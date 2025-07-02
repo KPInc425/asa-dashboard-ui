@@ -67,11 +67,13 @@ export class ApiError extends Error {
 // Create Axios instance with base configuration
 const createApiInstance = (): AxiosInstance => {
   const instance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
     timeout: 30000, // 30 seconds
     headers: {
       'Content-Type': 'application/json',
     },
+    // Enable credentials for cross-origin requests
+    withCredentials: true,
   });
 
   // Request interceptor to add auth token
@@ -416,7 +418,7 @@ export const logsApi = {
    * Note: This returns the URL for Socket.IO connection
    */
   getLogsUrl: (containerName: string): string => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
     return `${baseUrl}/api/logs/${encodeURIComponent(containerName)}`;
   },
 };

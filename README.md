@@ -54,6 +54,7 @@ A modern, feature-rich web dashboard for managing ARK: Survival Ascended Docker 
 - Node.js 18+ 
 - npm or yarn
 - Backend API server running (optional - see Frontend-Only Mode below)
+- Docker (for containerized deployment)
 
 ### Installation
 
@@ -82,7 +83,7 @@ A modern, feature-rich web dashboard for managing ARK: Survival Ascended Docker 
    For backend mode, add your API URL:
    ```env
    VITE_FRONTEND_ONLY=false
-   VITE_API_URL=http://localhost:3000
+   VITE_API_URL=http://your-ark-server:4000
    ```
 
 4. **Start development server**
@@ -150,6 +151,32 @@ src/
 
 ## 🔌 API Integration
 
+### External Backend Configuration
+
+When your backend is hosted on a different server (e.g., your ARK server machine), configure the dashboard to connect to it:
+
+1. **Set Backend URL**
+   ```env
+   VITE_API_URL=http://your-ark-server-ip:4000
+   # or
+   BACKEND_API_URL=http://your-ark-server-ip:4000
+   ```
+
+2. **CORS Configuration**
+   Your backend must allow CORS requests from the dashboard domain:
+   ```javascript
+   // Backend CORS configuration
+   app.use(cors({
+     origin: ['http://your-dashboard-domain:4010', 'http://localhost:4010'],
+     credentials: true
+   }));
+   ```
+
+3. **Network Access**
+   Ensure the backend port (4000) is accessible from the dashboard server.
+
+### API Endpoints
+
 The dashboard communicates with your backend API through the following endpoints:
 
 | Method | Endpoint | Description |
@@ -201,7 +228,7 @@ Custom CSS animations are available:
    ```
 
 2. **Access the dashboard:**
-   - Frontend-only mode: `http://localhost:3001`
+   - Frontend-only mode: `http://localhost:4010`
    - Login with: `admin` / `admin123`
 
 ### Docker Configuration
@@ -209,15 +236,16 @@ Custom CSS animations are available:
 #### **Environment Variables**
 ```env
 # In docker-compose.yml or .env file
-VITE_FRONTEND_ONLY=true          # Frontend-only mode
-VITE_API_URL=http://backend:3000 # Backend URL (when ready)
+DASHBOARD_PORT=4010                    # Dashboard port (configurable)
+BACKEND_API_URL=http://your-ark-server:4000  # Backend URL
+VITE_FRONTEND_ONLY=false               # Frontend-only mode
 ```
 
 #### **Port Configuration**
 ```yaml
 # In docker-compose.yml
 ports:
-  - "3001:80"  # Change 3001 to your preferred port
+  - "${DASHBOARD_PORT:-4010}:80"  # Configurable port, defaults to 4010
 ```
 
 #### **Nginx Proxy Setup**
@@ -285,11 +313,15 @@ npm run lint         # Run ESLint
 
 ### Environment Variables
 ```env
-# Backend API URL (required when not in frontend-only mode)
-VITE_API_URL=http://localhost:3000
+# Dashboard Configuration
+DASHBOARD_PORT=4010
+
+# Backend Configuration (when not using frontend-only mode)
+BACKEND_API_URL=http://your-ark-server:4000
+VITE_API_URL=http://your-ark-server:4000
 
 # Frontend-only mode (set to true for testing without backend)
-VITE_FRONTEND_ONLY=true
+VITE_FRONTEND_ONLY=false
 
 # Optional: Override default timeout
 VITE_API_TIMEOUT=30000

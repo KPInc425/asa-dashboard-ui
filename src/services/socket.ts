@@ -34,13 +34,14 @@ class SocketManager {
       }
 
       this.containerName = containerName;
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const url = `${baseUrl}/api/logs/${encodeURIComponent(containerName)}`;
 
       this.socket = io(url, {
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true,
+        withCredentials: true, // Enable credentials for cross-origin
       });
 
       // Set up event listeners
