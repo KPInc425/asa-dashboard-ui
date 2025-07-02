@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 /**
  * ARK Dashboard API Service
@@ -97,7 +98,7 @@ const createApiInstance = (): AxiosInstance => {
       if (error.response) {
         // Server responded with error status
         const apiError = new ApiError(
-          error.response.data?.message || 'An error occurred',
+          (error.response.data as any)?.message || 'An error occurred',
           error.response.status,
           error.response.data
         );

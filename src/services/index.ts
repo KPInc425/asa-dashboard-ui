@@ -14,5 +14,6 @@ export type {
   LockStatus,
   AuthResponse,
   User,
-  LogMessage,
-} from './api'; 
+} from './api';
+
+export type { LogMessage } from './socket'; 
