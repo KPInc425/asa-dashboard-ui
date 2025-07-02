@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  ark-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ark-dashboard
+    restart: unless-stopped
+    ports:
+      - "3001:80"  # Change this port as needed
+    environment:
+      # Frontend-only mode (set to false when backend is ready)
+      - VITE_FRONTEND_ONLY=true
+      # Backend API URL (when not in frontend-only mode)
+      # - VITE_API_URL=http://your-backend:3000
+    volumes:
+      # Optional: Mount for persistent logs
+      - ./logs:/var/log/nginx
+    networks:
+      - ark-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ark-dashboard.rule=Host(`ark-dashboard.yourdomain.com`)"
+      - "traefik.http.routers.ark-dashboard.tls=true"
+      - "traefik.http.routers.ark-dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ark-dashboard.loadbalancer.server.port=80"
+
+  # Optional: Backend service (uncomment when ready)
+  # ark-backend:
+  #   image: your-backend-image:latest
+  #   container_name: ark-backend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #   volumes:
+  #     - ./backend-data:/app/data
+  #   networks:
+  #     - ark-network
+  #   labels:
+  #     - "traefik.enable=false"  # Don't expose backend directly
+
+networks:
+  ark-network:
+    driver: bridge 

@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  ark-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      # Mount source code for development
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_FRONTEND_ONLY=true
+    ports:
+      - "5173:5173"  # Vite dev server port
+    command: npm run dev -- --host 0.0.0.0 
