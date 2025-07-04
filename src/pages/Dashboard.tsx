@@ -2,11 +2,50 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { containerApi, lockApi, type Container, type LockStatus } from '../services';
 
+// Add Port type for Dockerode port objects
+interface Port {
+  IP?: string;
+  PrivatePort: number;
+  PublicPort?: number;
+  Type: string;
+}
+
+// Helper to render port info
+const renderPort = (portObj: Port) => {
+  if (!portObj) return '-';
+  if (typeof portObj === 'string') return portObj;
+  const { IP, PrivatePort, PublicPort, Type } = portObj;
+  if (PublicPort) {
+    return `${IP ? IP + ':' : ''}${PublicPort} → ${PrivatePort}/${Type}`;
+  }
+  return `${PrivatePort}/${Type}`;
+};
+
+const API_SUITE_NAMES = [
+  'asa-control-api',
+  'asa-control-grafana',
+  'asa-control-prometheus',
+  'asa-control-cadvisor',
+];
+const HIDDEN_KEY = 'ark_dashboard_hidden_containers';
+const getHiddenContainers = () => {
+  try {
+    return JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]');
+  } catch {
+    return [];
+  }
+};
+const setHiddenContainers = (arr: string[]) => {
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify(arr));
+};
+
 const Dashboard = () => {
   const [containers, setContainers] = useState<Container[]>([]);
   const [lockStatus, setLockStatus] = useState<LockStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showHidden, setShowHidden] = useState(false);
+  const [hidden, setHidden] = useState<string[]>(getHiddenContainers());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -15,17 +54,45 @@ const Dashboard = () => {
           containerApi.getContainers(),
           lockApi.getLockStatus()
         ]);
-        setContainers(containersData);
+        // Label-based hiding
+        const hiddenByLabel = containersData.filter(c => c.labels && c.labels['ark.dashboard.exclude'] === 'true').map(c => c.name);
+        const allHidden = Array.from(new Set([...hidden, ...hiddenByLabel]));
+        setHidden(allHidden);
+        setHiddenContainers(allHidden);
         setLockStatus(lockData);
+        // Filter containers for display
+        setContainers(
+          containersData.filter(c =>
+            !API_SUITE_NAMES.includes(c.name) &&
+            (showHidden ? true : !allHidden.includes(c.name))
+          )
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchData();
-  }, []);
+    // eslint-disable-next-line
+  }, [showHidden]);
+
+  // Hide/unhide logic
+  const handleHide = (name: string) => {
+    const newHidden = Array.from(new Set([...hidden, name]));
+    setHidden(newHidden);
+    setHiddenContainers(newHidden);
+    // Re-fetch to update view
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 100); // quick refresh
+  };
+  const handleUnhide = (name: string) => {
+    const newHidden = hidden.filter(n => n !== name);
+    setHidden(newHidden);
+    setHiddenContainers(newHidden);
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 100);
+  };
 
   const runningServers = containers.filter(c => c.status === 'running').length;
   const totalServers = containers.length;
@@ -124,6 +191,29 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Toggle hidden containers */}
+        <div className="mb-4">
+          <label className="cursor-pointer label">
+            <span className="label-text">Show hidden containers</span>
+            <input type="checkbox" className="toggle toggle-primary ml-2" checked={showHidden} onChange={() => setShowHidden(!showHidden)} />
+          </label>
+        </div>
+
+        {/* Hidden containers list */}
+        {showHidden && hidden.length > 0 && (
+          <div className="ark-glass rounded-xl p-4 mb-4">
+            <h2 className="text-lg font-bold mb-2">Hidden Containers</h2>
+            <ul>
+              {hidden.map(name => (
+                <li key={name} className="flex items-center justify-between mb-1">
+                  <span>{name}</span>
+                  <button className="btn btn-xs btn-outline btn-success ml-2" onClick={() => handleUnhide(name)}>Unhide</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Server List */}
         <div className="ark-glass rounded-xl p-6 ark-slide-in" style={{ animationDelay: '0.4s' }}>
           <div className="flex items-center justify-between mb-6">
@@ -167,7 +257,9 @@ const Dashboard = () => {
                     {container.ports && container.ports.length > 0 && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-base-content/70">Ports:</span>
-                        <span className="text-base-content">{container.ports.join(', ')}</span>
+                        <span className="text-base-content">
+                          {container.ports.map((port, i) => renderPort(port)).join(', ')}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -185,6 +277,12 @@ const Dashboard = () => {
                     >
                       Logs
                     </Link>
+                    <button
+                      className="btn btn-sm btn-outline btn-error flex-1"
+                      onClick={() => handleHide(container.name)}
+                    >
+                      Hide
+                    </button>
                   </div>
                 </div>
               ))}

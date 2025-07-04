@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { containerApi, type Container } from '../services';
+// Use containerApi.sendRconCommand for RCON
 
 const API_SUITE_NAMES = [
   'asa-control-api',
@@ -97,6 +98,12 @@ const ContainerList = () => {
           await containerApi.startContainer(containerName);
           break;
         case 'stop':
+          // Save world before stopping
+          try {
+            await containerApi.sendRconCommand(containerName, 'saveworld');
+          } catch (e) {
+            console.warn('Failed to save world before stopping:', e);
+          }
           await containerApi.stopContainer(containerName);
           break;
         case 'restart':
@@ -251,7 +258,8 @@ const ContainerList = () => {
                   {containers.map((container, index) => (
                     <tr 
                       key={container.name}
-                      className="ark-hover-scale transition-all duration-200"
+                      // Removed ark-hover-scale to prevent scrollbars on hover
+                      className="transition-all duration-200"
                       style={{ animationDelay: `${0.3 + index * 0.05}s` }}
                     >
                       <td>
@@ -300,67 +308,52 @@ const ContainerList = () => {
                         )}
                       </td>
                       <td>
-                        <div className="flex items-center space-x-2">
-                          {/* Action Buttons */}
-                          {container.status === 'stopped' && (
-                            <button
-                              onClick={() => handleAction('start', container.name)}
-                              disabled={actionLoading === container.name}
-                              className="btn btn-sm btn-success ark-hover-glow"
-                              title="Start Server"
-                            >
-                              {actionLoading === container.name ? (
-                                <span className="loading loading-spinner loading-xs"></span>
-                              ) : (
-                                '▶️'
-                              )}
-                            </button>
-                          )}
-                          
-                          {container.status === 'running' && (
-                            <>
-                              <button
-                                onClick={() => handleAction('stop', container.name)}
-                                disabled={actionLoading === container.name}
-                                className="btn btn-sm btn-error ark-hover-glow"
-                                title="Stop Server"
-                              >
-                                {actionLoading === container.name ? (
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                ) : (
-                                  '⏹️'
-                                )}
-                              </button>
-                              <button
-                                onClick={() => handleAction('restart', container.name)}
-                                disabled={actionLoading === container.name}
-                                className="btn btn-sm btn-warning ark-hover-glow"
-                                title="Restart Server"
-                              >
-                                {actionLoading === container.name ? (
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                ) : (
-                                  '🔄'
-                                )}
-                              </button>
-                            </>
-                          )}
-
-                          {/* Navigation Buttons */}
-                          <Link
-                            to={`/rcon/${container.name}`}
-                            className="btn btn-sm btn-outline btn-primary ark-hover-glow"
-                            title="RCON Console"
+                        <div className="flex gap-2">
+                          <button
+                            className="btn btn-xs btn-success"
+                            title="Start Container"
+                            disabled={container.status === 'running' || actionLoading === container.name}
+                            onClick={() => handleAction('start', container.name)}
                           >
-                            💬
-                          </Link>
+                            ▶
+                          </button>
+                          <button
+                            className="btn btn-xs btn-warning"
+                            title="Restart Container"
+                            disabled={container.status !== 'running' || actionLoading === container.name}
+                            onClick={() => handleAction('restart', container.name)}
+                          >
+                            ↻
+                          </button>
+                          <button
+                            className="btn btn-xs btn-error"
+                            title="Stop Container"
+                            disabled={container.status !== 'running' || actionLoading === container.name}
+                            onClick={() => handleAction('stop', container.name)}
+                          >
+                            ■
+                          </button>
                           <Link
                             to={`/logs/${container.name}`}
-                            className="btn btn-sm btn-outline btn-info ark-hover-glow"
+                            className="btn btn-xs btn-info"
                             title="View Logs"
                           >
-                            📋
+                            📝
                           </Link>
+                          <Link
+                            to={`/rcon/${container.name}`}
+                            className="btn btn-xs btn-primary"
+                            title="Open RCON Console"
+                          >
+                            ⌨️
+                          </Link>
+                          <button
+                            className="btn btn-xs btn-outline btn-error"
+                            title="Hide Container"
+                            onClick={() => handleHide(container.name)}
+                          >
+                            Hide
+                          </button>
                         </div>
                       </td>
                     </tr>
