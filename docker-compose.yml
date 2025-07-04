@@ -11,9 +11,9 @@ services:
       - "${DASHBOARD_PORT:-4010}:80"  # Configurable port, defaults to 4010
     environment:
       # Frontend-only mode (set to false when backend is ready)
-      - VITE_FRONTEND_ONLY=false
+      - VITE_FRONTEND_ONLY=${VITE_FRONTEND_ONLY:-false}
       # Backend API URL (when not in frontend-only mode)
-      - VITE_API_URL=${BACKEND_API_URL:-http://your-ark-server:4000}
+      - VITE_API_URL=${VITE_API_URL:-http://192.168.0.204:4000}
       # Dashboard port (for internal reference)
       - VITE_DASHBOARD_PORT=${DASHBOARD_PORT:-4010}
     volumes:
