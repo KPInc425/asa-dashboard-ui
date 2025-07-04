@@ -68,8 +68,9 @@ export class ApiError extends Error {
 
 // Create Axios instance with base configuration
 const createApiInstance = (): AxiosInstance => {
+  // Use relative URLs for all API calls
   const instance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
+    baseURL: '', // Use relative URLs
     timeout: 30000, // 30 seconds
     headers: {
       'Content-Type': 'application/json',
@@ -83,6 +84,7 @@ const createApiInstance = (): AxiosInstance => {
     (config) => {
       const token = localStorage.getItem('auth_token');
       console.log('=== FRONTEND API REQUEST DEBUG ===');
+      console.log('Full URL:', `${config.baseURL}${config.url}`);
       console.log('Request URL:', config.url);
       console.log('Request method:', config.method);
       console.log('Request headers:', config.headers);
@@ -408,6 +410,17 @@ const FRONTEND_ONLY_MODE = import.meta.env.VITE_FRONTEND_ONLY === 'true';
 const MOCK_USER: User = {
   username: 'admin',
   role: 'admin'
+};
+
+// Health check function
+export const healthCheck = async (): Promise<boolean> => {
+  try {
+    const response = await axios.get(`/health`, { timeout: 5000 });
+    return response.status === 200;
+  } catch (error: unknown) {
+    console.warn('Backend health check failed:', error);
+    return false;
+  }
 };
 
 // Authentication API
