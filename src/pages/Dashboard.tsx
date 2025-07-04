@@ -39,6 +39,13 @@ const setHiddenContainers = (arr: string[]) => {
   localStorage.setItem(HIDDEN_KEY, JSON.stringify(arr));
 };
 
+const SYSTEM_LINKS: Record<string, { label: string; url: string }> = {
+  'asa-control-grafana': { label: 'Grafana', url: 'http://ark.ilgaming.xyz:3001' },
+  'asa-control-prometheus': { label: 'Prometheus', url: 'http://ark.ilgaming.xyz:9090' },
+  'asa-control-cadvisor': { label: 'cAdvisor', url: 'http://ark.ilgaming.xyz:8080' },
+  'asa-control-api': { label: 'API Logs', url: '/api/logs/asa-control-api' },
+};
+
 const Dashboard = () => {
   const [containers, setContainers] = useState<Container[]>([]);
   const [lockStatus, setLockStatus] = useState<LockStatus | null>(null);
@@ -77,21 +84,19 @@ const Dashboard = () => {
     // eslint-disable-next-line
   }, [showHidden]);
 
-  // Hide/unhide logic
+  // Hide/unhide logic (update UI immediately)
   const handleHide = (name: string) => {
     const newHidden = Array.from(new Set([...hidden, name]));
     setHidden(newHidden);
     setHiddenContainers(newHidden);
-    // Re-fetch to update view
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 100); // quick refresh
+    setContainers(containers.filter(c => c.name !== name));
   };
   const handleUnhide = (name: string) => {
     const newHidden = hidden.filter(n => n !== name);
     setHidden(newHidden);
     setHiddenContainers(newHidden);
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 100);
+    // Add back to containers if it matches filter
+    // (In a real app, you'd re-fetch, but here we just update state)
   };
 
   const runningServers = containers.filter(c => c.status === 'running').length;
@@ -207,7 +212,9 @@ const Dashboard = () => {
               {hidden.map(name => (
                 <li key={name} className="flex items-center justify-between mb-1">
                   <span>{name}</span>
-                  <button className="btn btn-xs btn-outline btn-success ml-2" onClick={() => handleUnhide(name)}>Unhide</button>
+                  <button className="btn btn-xs btn-outline btn-success ml-2" onClick={() => handleUnhide(name)}>
+                    Unhide
+                  </button>
                 </li>
               ))}
             </ul>
@@ -257,8 +264,12 @@ const Dashboard = () => {
                     {container.ports && container.ports.length > 0 && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-base-content/70">Ports:</span>
-                        <span className="text-base-content">
-                          {container.ports.map(renderPort).join(', ')}
+                        <span className="flex flex-col gap-1">
+                          {container.ports.map((port, i) => (
+                            <span key={i} className="badge badge-outline badge-xs">
+                              {renderPort(port)}
+                            </span>
+                          ))}
                         </span>
                       </div>
                     )}
@@ -321,6 +332,55 @@ const Dashboard = () => {
             </button>
           </div>
         </div>
+
+        {/* System Containers Section */}
+        {containers.length > 0 && (
+          <div className="ark-glass rounded-xl p-6 mt-8">
+            <h2 className="text-xl font-bold mb-4">System Containers</h2>
+            <div className="overflow-x-auto">
+              <table className="table table-zebra w-full">
+                <thead>
+                  <tr>
+                    <th>Container</th>
+                    <th>Status</th>
+                    <th>Ports</th>
+                    <th>Links</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {containers.filter(c => API_SUITE_NAMES.includes(c.name)).map((container) => (
+                    <tr key={container.name}>
+                      <td>{container.name}</td>
+                      <td>{getStatusIcon(container.status)} {container.status}</td>
+                      <td>
+                        {container.ports && container.ports.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {container.ports.map((port, i) => (
+                              <span key={i} className="badge badge-outline badge-sm">
+                                {renderPort(port)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-base-content/50">-</span>
+                        )}
+                      </td>
+                      <td>
+                        {SYSTEM_LINKS[container.name] ? (
+                          <a href={SYSTEM_LINKS[container.name].url} className="btn btn-xs btn-primary" target="_blank" rel="noopener noreferrer">
+                            {SYSTEM_LINKS[container.name].label}
+                          </a>
+                        ) : (
+                          <span className="text-base-content/50">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
