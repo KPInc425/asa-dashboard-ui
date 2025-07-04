@@ -41,8 +41,9 @@ class SocketManager {
       this.containerName = containerName;
       // Use relative URL for socket.io (handled by reverse proxy)
 
-      // Connect to the main Socket.IO server
-      this.socket = io('/socket.io', {
+      // Connect to the main Socket.IO server using the same base URL logic
+      const socketUrl = import.meta.env.VITE_API_URL || '/';
+      this.socket = io(socketUrl, {
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true,
@@ -70,10 +71,11 @@ class SocketManager {
             } else {
               try {
                 // First check if the backend is available
-                await axios.get(`/health`, { timeout: 5000 });
+                const baseUrl = import.meta.env.VITE_API_URL || '/';
+                await axios.get(`${baseUrl}/health`, { timeout: 5000 });
                 
                 const response = await axios.post(
-                  `/api/containers/${encodeURIComponent(containerName)}/logs/stream`,
+                  `${baseUrl}/api/containers/${encodeURIComponent(containerName)}/logs/stream`,
                   { tail: 100 },
                   {
                     headers: {
@@ -176,8 +178,9 @@ class SocketManager {
           const token = localStorage.getItem('auth_token');
           if (token) {
             try {
+              const baseUrl = import.meta.env.VITE_API_URL || '/';
               await axios.post(
-                `/api/containers/${encodeURIComponent(this.containerName)}/logs/stop-stream`,
+                `${baseUrl}/api/containers/${encodeURIComponent(this.containerName)}/logs/stop-stream`,
                 {},
                 {
                   headers: {

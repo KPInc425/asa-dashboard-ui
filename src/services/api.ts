@@ -68,9 +68,9 @@ export class ApiError extends Error {
 
 // Create Axios instance with base configuration
 const createApiInstance = (): AxiosInstance => {
-  // Use relative URLs for all API calls
+  // Use the working base URL configuration
   const instance = axios.create({
-    baseURL: '', // Use relative URLs
+    baseURL: import.meta.env.VITE_API_URL || '/',
     timeout: 30000, // 30 seconds
     headers: {
       'Content-Type': 'application/json',
@@ -415,7 +415,8 @@ const MOCK_USER: User = {
 // Health check function
 export const healthCheck = async (): Promise<boolean> => {
   try {
-    const response = await axios.get(`/health`, { timeout: 5000 });
+    const baseUrl = import.meta.env.VITE_API_URL || '/';
+    const response = await axios.get(`${baseUrl}/health`, { timeout: 5000 });
     return response.status === 200;
   } catch (error: unknown) {
     console.warn('Backend health check failed:', error);
