@@ -224,8 +224,8 @@ export const containerApi = {
       // Return mock data for frontend-only mode
       return MOCK_CONTAINERS;
     } else {
-      const response = await api.get<Container[]>('/api/containers');
-      return response.data;
+      const response = await api.get<{ success: boolean; containers: Container[] }>('/api/containers');
+      return response.data.containers;
     }
   },
 
