@@ -8,6 +8,13 @@ const ContainerList = () => {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  const API_SUITE_NAMES = [
+    'asa-control-api',
+    'asa-control-grafana',
+    'asa-control-prometheus',
+    'asa-control-cadvisor',
+  ];
+
   useEffect(() => {
     fetchContainers();
   }, []);
@@ -15,7 +22,8 @@ const ContainerList = () => {
   const fetchContainers = async () => {
     try {
       const data = await containerApi.getContainers();
-      setContainers(data);
+      // Filter out API suite containers by name
+      setContainers(data.filter(c => !API_SUITE_NAMES.includes(c.name)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load containers');
     } finally {
@@ -62,6 +70,18 @@ const ContainerList = () => {
       case 'restarting': return '🟡';
       default: return '⚪';
     }
+  };
+
+  // Helper to render port info
+  const renderPort = (portObj: any) => {
+    // Dockerode port object: { PrivatePort, PublicPort, Type }
+    if (typeof portObj === 'string') return portObj;
+    if (!portObj) return '-';
+    const { PrivatePort, PublicPort, Type } = portObj;
+    if (PublicPort) {
+      return `${PublicPort}:${PrivatePort}/${Type}`;
+    }
+    return `${PrivatePort}/${Type}`;
   };
 
   if (isLoading) {
@@ -180,7 +200,7 @@ const ContainerList = () => {
                           <div className="flex flex-wrap gap-1">
                             {container.ports.map((port, i) => (
                               <span key={i} className="badge badge-outline badge-sm">
-                                {port}
+                                {renderPort(port)}
                               </span>
                             ))}
                           </div>
