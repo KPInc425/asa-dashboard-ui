@@ -105,8 +105,22 @@ const createApiInstance = (): AxiosInstance => {
 
   // Response interceptor for error handling
   instance.interceptors.response.use(
-    (response: AxiosResponse) => response,
+    (response: AxiosResponse) => {
+      console.log('=== FRONTEND API RESPONSE DEBUG ===');
+      console.log('Response status:', response.status);
+      console.log('Response URL:', response.config.url);
+      console.log('Response data:', response.data);
+      console.log('=== FRONTEND API RESPONSE DEBUG END ===');
+      return response;
+    },
     (error: AxiosError) => {
+      console.log('=== FRONTEND API ERROR DEBUG ===');
+      console.log('Error status:', error.response?.status);
+      console.log('Error URL:', error.config?.url);
+      console.log('Error data:', error.response?.data);
+      console.log('Error message:', error.message);
+      console.log('=== FRONTEND API ERROR DEBUG END ===');
+      
       if (error.response) {
         // Server responded with error status
         const apiError = new ApiError(
