@@ -3,12 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { configApi } from '../services';
 
-interface ServerInfo {
-  serverName: string;
-  configFiles: string[];
-  defaultFiles: string[];
-}
-
 // Configs Page: expects ?server=...&file=... query params.
 // If file is not provided, the first config file for the selected server will be auto-selected.
 // This enables direct linking from other parts of the app.
