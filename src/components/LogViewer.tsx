@@ -19,7 +19,7 @@ const LogViewer = () => {
     }
 
     return () => {
-      socketService.disconnect();
+      socketService.disconnect().catch(console.error);
     };
   }, [containerName]);
 
