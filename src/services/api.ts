@@ -81,12 +81,24 @@ const createApiInstance = (): AxiosInstance => {
   instance.interceptors.request.use(
     (config) => {
       const token = localStorage.getItem('auth_token');
+      console.log('=== FRONTEND API REQUEST DEBUG ===');
+      console.log('Request URL:', config.url);
+      console.log('Request method:', config.method);
+      console.log('Request headers:', config.headers);
+      console.log('Token from localStorage:', token ? token.substring(0, 20) + '...' : 'NOT FOUND');
+      
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('Authorization header set:', `Bearer ${token.substring(0, 20)}...`);
+      } else {
+        console.warn('No auth token found in localStorage');
       }
+      console.log('Final request headers:', config.headers);
+      console.log('=== FRONTEND API REQUEST DEBUG END ===');
       return config;
     },
     (error) => {
+      console.error('Request interceptor error:', error);
       return Promise.reject(error);
     }
   );
