@@ -258,7 +258,7 @@ const Dashboard = () => {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-base-content/70">Ports:</span>
                         <span className="text-base-content">
-                          {container.ports.map((port, i) => renderPort(port)).join(', ')}
+                          {container.ports.map(renderPort).join(', ')}
                         </span>
                       </div>
                     )}
