@@ -1,5 +1,9 @@
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
+import axios from 'axios';
+
+// Check if we're in frontend-only mode
+const FRONTEND_ONLY_MODE = import.meta.env.VITE_FRONTEND_ONLY === 'true';
 
 // Types for socket events
 export interface LogMessage {
@@ -35,7 +39,8 @@ class SocketManager {
       }
 
       this.containerName = containerName;
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      // Use the same origin as the current page for production, or fallback to localhost for development
+      const baseUrl = import.meta.env.VITE_API_URL || (window.location.origin === 'http://localhost:5173' ? 'http://localhost:4000' : window.location.origin);
 
       // Connect to the main Socket.IO server
       this.socket = io(baseUrl, {
@@ -58,24 +63,51 @@ class SocketManager {
             socket.emit('join-logs', containerName);
           }
           
-          // Start log streaming via API
-          const response = await fetch(`${baseUrl}/api/containers/${encodeURIComponent(containerName)}/logs/stream`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ tail: 100 })
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Failed to start log streaming: ${response.statusText}`);
+          // Only attempt log streaming API call if not in frontend-only mode
+          if (!FRONTEND_ONLY_MODE) {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+              console.warn('No authentication token found for log streaming');
+            } else {
+              try {
+                // First check if the backend is available
+                await axios.get(`${baseUrl}/health`, { timeout: 5000 });
+                
+                const response = await axios.post(
+                  `${baseUrl}/api/containers/${encodeURIComponent(containerName)}/logs/stream`,
+                  { tail: 100 },
+                  {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`
+                    },
+                    timeout: 10000
+                  }
+                );
+                
+                if (response.status !== 200) {
+                  console.warn(`Log streaming API returned status: ${response.status}`);
+                } else {
+                  console.log('Log streaming started successfully');
+                }
+              } catch (apiError: any) {
+                if (apiError.code === 'ECONNREFUSED' || apiError.code === 'ERR_NETWORK') {
+                  console.warn('Backend API is not available, log streaming will be disabled:', apiError.message);
+                } else {
+                  console.warn('Log streaming API call failed, but socket connection is still active:', apiError.message);
+                }
+                // Don't fail the entire connection if the API call fails
+              }
+            }
           }
           
           resolve();
         } catch (error) {
-          console.error('Error starting log streaming:', error);
-          reject(error);
+          console.error('Error in socket connection setup:', error);
+          // Don't reject the entire connection if log streaming fails
+          // Just log the error and continue with socket connection
+          console.warn('Socket setup failed, but connection attempt continues');
+          resolve();
         }
       });
 
@@ -135,17 +167,31 @@ class SocketManager {
           socket.emit('leave-logs', containerName);
         }
         
-        // Stop log streaming via API
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-        await fetch(`${baseUrl}/api/containers/${encodeURIComponent(this.containerName)}/logs/stop-stream`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+        // Stop log streaming via API using axios for consistency (only if not in frontend-only mode)
+        if (!FRONTEND_ONLY_MODE) {
+          const token = localStorage.getItem('auth_token');
+          if (token) {
+            try {
+              const baseUrl = import.meta.env.VITE_API_URL || (window.location.origin === 'http://localhost:5173' ? 'http://localhost:4000' : window.location.origin);
+              await axios.post(
+                `${baseUrl}/api/containers/${encodeURIComponent(this.containerName)}/logs/stop-stream`,
+                {},
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  timeout: 5000
+                }
+              );
+            } catch (error) {
+              console.warn('Failed to stop log streaming via API:', error);
+            }
           }
-        });
+        }
       } catch (error) {
         console.error('Error stopping log streaming:', error);
+        // Don't throw error, just log it
       }
     }
     
