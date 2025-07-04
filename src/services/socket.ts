@@ -41,9 +41,10 @@ class SocketManager {
       this.containerName = containerName;
       // Use relative URL for socket.io (handled by reverse proxy)
 
-      // Connect to the main Socket.IO server using the same base URL logic
+      // Connect to the main Socket.IO server - use the same logic as API calls
       const socketUrl = import.meta.env.VITE_API_URL || '/';
       this.socket = io(socketUrl, {
+        path: '/socket.io', // Explicitly set the Socket.IO path
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true,
