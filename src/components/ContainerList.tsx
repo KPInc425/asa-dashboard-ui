@@ -2,25 +2,83 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { containerApi, type Container } from '../services';
 
+const API_SUITE_NAMES = [
+  'asa-control-api',
+  'asa-control-grafana',
+  'asa-control-prometheus',
+  'asa-control-cadvisor',
+];
+
+const SYSTEM_LINKS: Record<string, { label: string; url: string }> = {
+  'asa-control-grafana': { label: 'Grafana', url: '/grafana' },
+  'asa-control-prometheus': { label: 'Prometheus', url: '/prometheus' },
+  'asa-control-cadvisor': { label: 'cAdvisor', url: '/cadvisor' },
+  'asa-control-api': { label: 'API Logs', url: '/api/logs/asa-control-api' },
+};
+
+const HIDDEN_KEY = 'ark_dashboard_hidden_containers';
+
+const getHiddenContainers = () => {
+  try {
+    return JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]');
+  } catch {
+    return [];
+  }
+};
+const setHiddenContainers = (arr: string[]) => {
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify(arr));
+};
+
 const ContainerList = () => {
   const [containers, setContainers] = useState<Container[]>([]);
+  const [systemContainers, setSystemContainers] = useState<Container[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
+  const [hidden, setHidden] = useState<string[]>(getHiddenContainers());
 
   useEffect(() => {
     fetchContainers();
+    // eslint-disable-next-line
   }, []);
 
   const fetchContainers = async () => {
     try {
       const data = await containerApi.getContainers();
-      setContainers(data);
+      // Label-based hiding
+      const hiddenByLabel = data.filter(c => c.labels && c.labels['ark.dashboard.exclude'] === 'true').map(c => c.name);
+      const allHidden = Array.from(new Set([...hidden, ...hiddenByLabel]));
+      setHidden(allHidden);
+      setHiddenContainers(allHidden);
+      // System containers
+      setSystemContainers(data.filter(c => API_SUITE_NAMES.includes(c.name)));
+      // ARK containers (not system, not hidden unless showHidden)
+      setContainers(
+        data.filter(c =>
+          !API_SUITE_NAMES.includes(c.name) &&
+          (showHidden ? true : !allHidden.includes(c.name))
+        )
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load containers');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Hide/unhide logic
+  const handleHide = (name: string) => {
+    const newHidden = Array.from(new Set([...hidden, name]));
+    setHidden(newHidden);
+    setHiddenContainers(newHidden);
+    fetchContainers();
+  };
+  const handleUnhide = (name: string) => {
+    const newHidden = hidden.filter(n => n !== name);
+    setHidden(newHidden);
+    setHiddenContainers(newHidden);
+    fetchContainers();
   };
 
   const handleAction = async (action: 'start' | 'stop' | 'restart', containerName: string) => {
@@ -64,6 +122,17 @@ const ContainerList = () => {
     }
   };
 
+  // Helper to render port info
+  const renderPort = (portObj: any) => {
+    if (!portObj) return '-';
+    if (typeof portObj === 'string') return portObj;
+    const { IP, PrivatePort, PublicPort, Type } = portObj;
+    if (PublicPort) {
+      return `${IP ? IP + ':' : ''}${PublicPort} → ${PrivatePort}/${Type}`;
+    }
+    return `${PrivatePort}/${Type}`;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -90,6 +159,9 @@ const ContainerList = () => {
     );
   }
 
+  // Hidden containers
+  const hiddenContainers = containers.filter(c => hidden.includes(c.name));
+
   return (
     <div className="h-full overflow-auto p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -98,6 +170,29 @@ const ContainerList = () => {
           <h1 className="text-4xl font-bold text-primary mb-2">Server Management</h1>
           <p className="text-base-content/70">Control your ARK: Survival Ascended servers</p>
         </div>
+
+        {/* Toggle hidden containers */}
+        <div className="mb-4">
+          <label className="cursor-pointer label">
+            <span className="label-text">Show hidden containers</span>
+            <input type="checkbox" className="toggle toggle-primary ml-2" checked={showHidden} onChange={() => { setShowHidden(!showHidden); fetchContainers(); }} />
+          </label>
+        </div>
+
+        {/* Hidden containers list */}
+        {showHidden && hidden.length > 0 && (
+          <div className="ark-glass rounded-xl p-4 mb-4">
+            <h2 className="text-lg font-bold mb-2">Hidden Containers</h2>
+            <ul>
+              {hidden.map(name => (
+                <li key={name} className="flex items-center justify-between mb-1">
+                  <span>{name}</span>
+                  <button className="btn btn-xs btn-outline btn-success ml-2" onClick={() => handleUnhide(name)}>Unhide</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Stats Summary */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -180,7 +275,7 @@ const ContainerList = () => {
                           <div className="flex flex-wrap gap-1">
                             {container.ports.map((port, i) => (
                               <span key={i} className="badge badge-outline badge-sm">
-                                {port}
+                                {renderPort(port)}
                               </span>
                             ))}
                           </div>
@@ -310,6 +405,59 @@ const ContainerList = () => {
               >
                 🔄 Restart All Running
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* System Containers Section */}
+        {systemContainers.length > 0 && (
+          <div className="ark-glass rounded-xl p-6 mt-8">
+            <h2 className="text-xl font-bold mb-4">System Containers</h2>
+            <div className="overflow-x-auto">
+              <table className="table table-zebra w-full">
+                <thead>
+                  <tr>
+                    <th>Container</th>
+                    <th>Status</th>
+                    <th>Ports</th>
+                    <th>Links</th>
+                    <th>Hide</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {systemContainers.map((container, idx) => (
+                    <tr key={container.name}>
+                      <td>{container.name}</td>
+                      <td>{getStatusIcon(container.status)} {container.status}</td>
+                      <td>
+                        {container.ports && container.ports.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {container.ports.map((port, i) => (
+                              <span key={i} className="badge badge-outline badge-sm">
+                                {renderPort(port)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-base-content/50">-</span>
+                        )}
+                      </td>
+                      <td>
+                        {SYSTEM_LINKS[container.name] ? (
+                          <a href={SYSTEM_LINKS[container.name].url} className="btn btn-xs btn-primary" target="_blank" rel="noopener noreferrer">
+                            {SYSTEM_LINKS[container.name].label}
+                          </a>
+                        ) : (
+                          <span className="text-base-content/50">-</span>
+                        )}
+                      </td>
+                      <td>
+                        <button className="btn btn-xs btn-outline btn-error" onClick={() => handleHide(container.name)}>Hide</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
