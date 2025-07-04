@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { configApi } from '../services';
 
@@ -16,7 +16,7 @@ const Configs = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [servers, setServers] = useState<string[]>([]);
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
-  const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
+  const [configFiles, setConfigFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
   const [isLoadingServers, setIsLoadingServers] = useState(true);
@@ -28,18 +28,20 @@ const Configs = () => {
 
   // Fetch servers on mount
   useEffect(() => {
-    const fetchServers = async () => {
-      setIsLoadingServers(true);
-      try {
-        const res = await configApi.listServers();
+    setIsLoadingServers(true);
+    configApi.listServers()
+      .then(res => {
         setServers(res.servers || []);
-      } catch (err) {
-        setError('Failed to load servers');
-      } finally {
-        setIsLoadingServers(false);
-      }
-    };
-    fetchServers();
+        // Auto-select first server if not set
+        const urlServer = searchParams.get('server');
+        if (!urlServer && res.servers.length > 0) {
+          setSelectedServer(res.servers[0]);
+          setSearchParams({ server: res.servers[0] });
+        }
+      })
+      .catch(() => setError('Failed to load servers'))
+      .finally(() => setIsLoadingServers(false));
+    // eslint-disable-next-line
   }, []);
 
   // Handle query params for pre-selection
@@ -50,24 +52,27 @@ const Configs = () => {
     if (file) setSelectedFile(file);
   }, [searchParams]);
 
-  // Fetch server info (files) when server changes
+  // Fetch config files when server changes
   useEffect(() => {
     if (!selectedServer) return;
     setIsLoadingFiles(true);
-    setServerInfo(null);
+    setConfigFiles([]);
     setSelectedFile(null);
     setFileContent('');
     setError('');
-    configApi.getServerInfo(selectedServer)
-      .then(info => {
-        setServerInfo(info);
-        // Auto-select first file if not already selected
-        if (!selectedFile && info.configFiles.length > 0) {
-          setSelectedFile(info.configFiles[0]);
+    configApi.listConfigFiles(selectedServer)
+      .then(res => {
+        setConfigFiles(res.files || []);
+        // Auto-select first file if not set
+        const urlFile = searchParams.get('file');
+        if (!urlFile && res.files.length > 0) {
+          setSelectedFile(res.files[0]);
+          setSearchParams({ server: selectedServer, file: res.files[0] });
         }
       })
-      .catch(() => setError('Failed to load server info'))
+      .catch(() => setError('Failed to load config files'))
       .finally(() => setIsLoadingFiles(false));
+    // eslint-disable-next-line
   }, [selectedServer]);
 
   // Fetch file content when file changes
@@ -104,7 +109,7 @@ const Configs = () => {
     setIsSaving(true);
     setError('');
     try {
-      await configApi.saveConfig(selectedServer, fileContent, selectedFile);
+      await configApi.updateConfigFile(selectedServer, fileContent, selectedFile);
       setHasChanges(false);
       window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'Config saved!', type: 'success' } }));
     } catch {
@@ -153,9 +158,9 @@ const Configs = () => {
         <h2 className="text-lg font-bold mb-4 text-secondary">Config Files</h2>
         {isLoadingFiles ? (
           <span className="loading loading-spinner loading-md"></span>
-        ) : serverInfo && serverInfo.configFiles.length > 0 ? (
+        ) : configFiles.length > 0 ? (
           <ul className="space-y-2">
-            {serverInfo.configFiles.map(file => (
+            {configFiles.map(file => (
               <li key={file}>
                 <button
                   className={`btn btn-block btn-xs ${selectedFile === file ? 'btn-secondary' : 'btn-ghost'}`}

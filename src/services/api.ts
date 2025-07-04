@@ -312,8 +312,51 @@ export const containerApi = {
 // Configuration Management API
 export const configApi = {
   /**
-   * Load configuration file for a specific map
+   * List all available ASA servers
    */
+  async listServers(): Promise<{ servers: string[]; count: number; rootPath: string }> {
+    const response = await api.get('/api/servers');
+    if (!response.data.success) throw new Error('Failed to list servers');
+    return response.data;
+  },
+
+  /**
+   * Get server info (including config files)
+   */
+  async getServerInfo(server: string): Promise<any> {
+    const response = await api.get(`/api/servers/${encodeURIComponent(server)}`);
+    if (!response.data.success) throw new Error('Failed to get server info');
+    return response.data;
+  },
+
+  /**
+   * List config files for a server
+   */
+  async listConfigFiles(server: string): Promise<{ files: string[]; serverName: string; path: string; defaultFiles: string[] }> {
+    const response = await api.get(`/api/servers/${encodeURIComponent(server)}/config/files`);
+    if (!response.data.success) throw new Error('Failed to list config files');
+    return response.data;
+  },
+
+  /**
+   * Get config file content for a server
+   */
+  async getConfigFile(server: string, file: string): Promise<{ content: string; filePath: string; fileName: string; serverName: string; configPath: string }> {
+    const response = await api.get(`/api/servers/${encodeURIComponent(server)}/config`, { params: { file } });
+    if (!response.data.success) throw new Error('Failed to get config file');
+    return response.data;
+  },
+
+  /**
+   * Update config file content for a server
+   */
+  async updateConfigFile(server: string, content: string, file: string): Promise<{ success: boolean; message: string; filePath: string; fileName: string; serverName: string; configPath: string }> {
+    const response = await api.put(`/api/servers/${encodeURIComponent(server)}/config`, { content, file });
+    if (!response.data.success) throw new Error('Failed to update config file');
+    return response.data;
+  },
+
+  // Legacy methods for compatibility (can be removed after frontend refactor)
   loadConfig: async (map: string): Promise<ConfigFile> => {
     if (FRONTEND_ONLY_MODE) {
       // Return mock config for frontend-only mode
@@ -327,10 +370,6 @@ export const configApi = {
       return response.data;
     }
   },
-
-  /**
-   * Save configuration file for a specific map
-   */
   saveConfig: async (map: string, content: string): Promise<{ success: boolean; message: string }> => {
     if (FRONTEND_ONLY_MODE) {
       // Simulate API delay
