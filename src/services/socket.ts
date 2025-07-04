@@ -36,9 +36,9 @@ class SocketManager {
 
       this.containerName = containerName;
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-      const url = `${baseUrl}/api/logs/${encodeURIComponent(containerName)}`;
 
-      this.socket = io(url, {
+      // Connect to the main Socket.IO server
+      this.socket = io(baseUrl, {
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true,
@@ -46,11 +46,34 @@ class SocketManager {
       });
 
       // Set up event listeners
-      this.socket.on('connect', () => {
-        console.log(`Connected to logs for container: ${containerName}`);
+      this.socket.on('connect', async () => {
+        console.log(`Connected to Socket.IO server for container: ${containerName}`);
         this.reconnectAttempts = 0;
         this.reconnectDelay = 1000;
-        resolve();
+        
+        try {
+          // Join the logs room for this container
+          this.socket.emit('join-logs', containerName);
+          
+          // Start log streaming via API
+          const response = await fetch(`${baseUrl}/api/containers/${encodeURIComponent(containerName)}/logs/stream`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ tail: 100 })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to start log streaming: ${response.statusText}`);
+          }
+          
+          resolve();
+        } catch (error) {
+          console.error('Error starting log streaming:', error);
+          reject(error);
+        }
       });
 
       this.socket.on('disconnect', (reason: string) => {
@@ -99,7 +122,26 @@ class SocketManager {
   /**
    * Disconnect from WebSocket
    */
-  disconnect(): void {
+  async disconnect(): Promise<void> {
+    if (this.socket && this.containerName) {
+      try {
+        // Leave the logs room
+        this.socket.emit('leave-logs', this.containerName);
+        
+        // Stop log streaming via API
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+        await fetch(`${baseUrl}/api/containers/${encodeURIComponent(this.containerName)}/logs/stop-stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+      } catch (error) {
+        console.error('Error stopping log streaming:', error);
+      }
+    }
+    
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
