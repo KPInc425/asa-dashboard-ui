@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { containerApi, type Container } from '../services';
+import { containerNameToServerName } from '../utils';
 // Use containerApi.sendRconCommand for RCON
 
 const API_SUITE_NAMES = [
@@ -76,18 +77,18 @@ const ContainerList = () => {
     }
   };
 
-  // Hide/unhide logic
+  // Hide/unhide logic (update UI immediately)
   const handleHide = (name: string) => {
     const newHidden = Array.from(new Set([...hidden, name]));
     setHidden(newHidden);
     setHiddenContainers(newHidden);
-    fetchContainers();
+    setContainers(containers.filter(c => c.name !== name));
   };
   const handleUnhide = (name: string) => {
     const newHidden = hidden.filter(n => n !== name);
     setHidden(newHidden);
     setHiddenContainers(newHidden);
-    fetchContainers();
+    // Optionally, re-fetch or update containers list if needed
   };
 
   const handleAction = async (action: 'start' | 'stop' | 'restart', containerName: string) => {
@@ -346,6 +347,13 @@ const ContainerList = () => {
                             title="Open RCON Console"
                           >
                             ⌨️
+                          </Link>
+                          <Link
+                            to={`/configs?server=${encodeURIComponent(containerNameToServerName(container.name))}`}
+                            className="btn btn-xs btn-secondary"
+                            title="Edit Config"
+                          >
+                            ⚙️
                           </Link>
                           <button
                             className="btn btn-xs btn-outline btn-error"

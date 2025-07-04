@@ -313,8 +313,9 @@ const Dashboard = () => {
               Manage Servers
             </Link>
             
+            {/* Configs page now uses query params for server/file selection */}
             <Link
-              to="/configs/TheIsland"
+              to="/configs"
               className="btn btn-outline btn-secondary w-full ark-hover-glow"
             >
               <span className="text-xl mr-2">⚙️</span>

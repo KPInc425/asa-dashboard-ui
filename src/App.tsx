@@ -10,6 +10,7 @@ import ConfigEditor from './components/ConfigEditor';
 import LogViewer from './components/LogViewer';
 import Sidebar from './components/Sidebar';
 import LoadingSpinner from './components/LoadingSpinner';
+import Configs from './pages/Configs';
 
 // Authentication context
 interface AuthContextType {
@@ -98,6 +99,7 @@ function App() {
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/containers" element={<ContainerList />} />
                         <Route path="/rcon/:containerName" element={<RconConsole />} />
+                        <Route path="/configs" element={<Configs />} />
                         <Route path="/configs/:map" element={<ConfigEditor />} />
                         <Route path="/logs/:containerName" element={<LogViewer />} />
                       </Routes>
