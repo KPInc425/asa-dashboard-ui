@@ -8,7 +8,6 @@ const Sidebar = () => {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '🏠' },
     { path: '/containers', label: 'Servers', icon: '🖥️' },
-    // Configs page now uses query params for server/file selection
     { path: '/configs', label: 'Configs', icon: '⚙️' },
   ];
 
@@ -20,14 +19,14 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="w-64 bg-base-200 border-r border-base-300 flex flex-col">
+    <aside className="w-64 h-full bg-base-200 border-r border-base-300 flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-base-300">
+      <div className="p-4 lg:p-6 border-b border-base-300">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center ark-pulse">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center animate-pulse">
             <span className="text-xl">🦖</span>
           </div>
-          <div>
+          <div className="hidden lg:block">
             <h1 className="text-lg font-bold text-primary">ARK Dashboard</h1>
             <p className="text-xs text-base-content/70">Server Management</p>
             <div className="badge badge-warning badge-xs mt-1">Frontend Mode</div>
@@ -36,21 +35,27 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ark-hover-scale ${
-              isActive(item.path)
-                ? 'bg-primary text-primary-content ark-glow'
-                : 'text-base-content hover:bg-base-300'
-            }`}
-          >
-            <span className="text-lg">{item.icon}</span>
-            <span className="font-medium">{item.label}</span>
-          </NavLink>
-        ))}
+      <nav className="flex-1 p-0">
+        <ul className="menu menu-lg menu-vertical rounded-none">
+          {navItems.map((item) => (
+            <li key={item.path}>
+              <NavLink
+                to={item.path}
+                className={({ isActive: navIsActive }) =>
+                  `flex items-center space-x-3 px-4 py-3 rounded-none transition-all duration-200 hover:scale-105 ${
+                    isActive(item.path) || navIsActive
+                      ? 'bg-primary text-primary-content shadow-lg shadow-primary/25'
+                      : 'text-base-content hover:bg-base-300'
+                  }`
+                }
+                end={item.path === '/'}
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span className="font-medium">{item.label}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
       </nav>
 
       {/* User Section */}
@@ -62,7 +67,7 @@ const Sidebar = () => {
                 {user?.username?.charAt(0).toUpperCase()}
               </span>
             </div>
-            <div>
+            <div className="hidden lg:block">
               <p className="text-sm font-medium">{user?.username}</p>
               <p className="text-xs text-base-content/70">{user?.role || 'Admin'}</p>
             </div>
@@ -78,7 +83,7 @@ const Sidebar = () => {
           </button>
         </div>
       </div>
-    </div>
+    </aside>
   );
 };
 

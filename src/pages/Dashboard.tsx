@@ -124,7 +124,7 @@ const Dashboard = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="ark-rotate inline-block mb-4">
+          <div className="animate-spin inline-block mb-4">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"></div>
           </div>
           <p className="text-base-content/70">Loading dashboard...</p>
@@ -147,50 +147,50 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <div className="h-full overflow-auto p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="ark-slide-in">
-          <h1 className="text-4xl font-bold text-primary mb-2">ARK Dashboard</h1>
-          <p className="text-base-content/70">Monitor and manage your survival servers</p>
+        <div className="animate-in slide-in-from-bottom-4 duration-500">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary mb-2">ARK Dashboard</h1>
+          <p className="text-sm sm:text-base text-base-content/70">Monitor and manage your survival servers</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="ark-glass rounded-xl p-6 ark-slide-in" style={{ animationDelay: '0.1s' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 lg:p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-base-content/70 text-sm">Total Servers</p>
-                <p className="text-3xl font-bold text-primary">{totalServers}</p>
+                <p className="text-base-content/70 text-xs lg:text-sm">Total Servers</p>
+                <p className="text-2xl lg:text-3xl font-bold text-primary">{totalServers}</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🖥️</span>
+              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                <span className="text-xl lg:text-2xl">🖥️</span>
               </div>
             </div>
           </div>
 
-          <div className="ark-glass rounded-xl p-6 ark-slide-in" style={{ animationDelay: '0.2s' }}>
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 lg:p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-base-content/70 text-sm">Running Servers</p>
-                <p className="text-3xl font-bold text-success">{runningServers}</p>
+                <p className="text-base-content/70 text-xs lg:text-sm">Running Servers</p>
+                <p className="text-2xl lg:text-3xl font-bold text-success">{runningServers}</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-success to-info rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🟢</span>
+              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-success to-info rounded-lg flex items-center justify-center">
+                <span className="text-xl lg:text-2xl">🟢</span>
               </div>
             </div>
           </div>
 
-          <div className="ark-glass rounded-xl p-6 ark-slide-in" style={{ animationDelay: '0.3s' }}>
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 lg:p-6 animate-in slide-in-from-bottom-4 duration-500 sm:col-span-2 lg:col-span-1" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-base-content/70 text-sm">Update Lock</p>
-                <p className="text-3xl font-bold text-warning">
+                <p className="text-base-content/70 text-xs lg:text-sm">Update Lock</p>
+                <p className="text-2xl lg:text-3xl font-bold text-warning">
                   {lockStatus?.locked ? '🔒' : '🔓'}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-warning to-error rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🔒</span>
+              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-warning to-error rounded-lg flex items-center justify-center">
+                <span className="text-xl lg:text-2xl">🔒</span>
               </div>
             </div>
           </div>
@@ -206,7 +206,7 @@ const Dashboard = () => {
 
         {/* Hidden containers list */}
         {showHidden && hidden.length > 0 && (
-          <div className="ark-glass rounded-xl p-4 mb-4">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 mb-4">
             <h2 className="text-lg font-bold mb-2">Hidden Containers</h2>
             <ul>
               {hidden.map(name => (
@@ -222,12 +222,12 @@ const Dashboard = () => {
         )}
 
         {/* Server List */}
-        <div className="ark-glass rounded-xl p-6 ark-slide-in" style={{ animationDelay: '0.4s' }}>
+        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.4s' }}>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-primary">Server Status</h2>
             <Link 
               to="/containers" 
-              className="btn btn-primary btn-sm ark-gradient-primary ark-hover-glow"
+              className="btn btn-primary btn-sm bg-gradient-to-br from-primary to-accent hover:shadow-lg hover:shadow-primary/25"
             >
               View All
             </Link>
@@ -239,11 +239,11 @@ const Dashboard = () => {
               <p className="text-base-content/70">No servers found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {containers.slice(0, 6).map((container, index) => (
                 <div 
                   key={container.name}
-                  className="bg-base-300 rounded-lg p-4 ark-hover-scale transition-all duration-200"
+                  className="bg-base-300 rounded-lg p-4 hover:scale-105 transition-all duration-200"
                   style={{ animationDelay: `${0.5 + index * 0.1}s` }}
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -302,12 +302,12 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="ark-glass rounded-xl p-6 ark-slide-in" style={{ animationDelay: '0.6s' }}>
+        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.6s' }}>
           <h2 className="text-2xl font-bold text-primary mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
               to="/containers"
-              className="btn btn-outline btn-primary w-full ark-hover-glow"
+              className="btn btn-outline btn-primary w-full hover:shadow-lg hover:shadow-primary/25"
             >
               <span className="text-xl mr-2">🖥️</span>
               Manage Servers
@@ -316,18 +316,18 @@ const Dashboard = () => {
             {/* Configs page now uses query params for server/file selection */}
             <Link
               to="/configs"
-              className="btn btn-outline btn-secondary w-full ark-hover-glow"
+              className="btn btn-outline btn-secondary w-full hover:shadow-lg hover:shadow-secondary/25"
             >
               <span className="text-xl mr-2">⚙️</span>
               Edit Configs
             </Link>
             
-            <button className="btn btn-outline btn-accent w-full ark-hover-glow">
+            <button className="btn btn-outline btn-accent w-full hover:shadow-lg hover:shadow-accent/25">
               <span className="text-xl mr-2">📊</span>
               View Stats
             </button>
             
-            <button className="btn btn-outline btn-info w-full ark-hover-glow">
+            <button className="btn btn-outline btn-info w-full hover:shadow-lg hover:shadow-info/25">
               <span className="text-xl mr-2">🔧</span>
               System Info
             </button>
@@ -336,9 +336,10 @@ const Dashboard = () => {
 
         {/* System Containers Section */}
         {containers.length > 0 && (
-          <div className="ark-glass rounded-xl p-6 mt-8">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6 mt-8">
             <h2 className="text-xl font-bold mb-4">System Containers</h2>
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="table table-zebra w-full">
                 <thead>
                   <tr>
@@ -379,6 +380,51 @@ const Dashboard = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+              {containers.filter(c => API_SUITE_NAMES.includes(c.name)).map((container) => (
+                <div key={container.name} className="bg-base-300 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="font-bold text-base-content">{container.name}</div>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="text-lg">{getStatusIcon(container.status)}</span>
+                        <span className={`badge ${getStatusColor(container.status)}`}>
+                          {container.status.charAt(0).toUpperCase() + container.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {container.ports && container.ports.length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-sm text-base-content/70 mb-1">Ports:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {container.ports.map((port, i) => (
+                          <span key={i} className="badge badge-outline badge-xs">
+                            {renderPort(port)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {SYSTEM_LINKS[container.name] && (
+                    <div>
+                      <a 
+                        href={SYSTEM_LINKS[container.name].url} 
+                        className="btn btn-xs btn-primary w-full" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        {SYSTEM_LINKS[container.name].label}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}

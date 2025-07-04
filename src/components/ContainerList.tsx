@@ -153,7 +153,7 @@ const ContainerList = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="ark-rotate inline-block mb-4">
+          <div className="animate-spin inline-block mb-4">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"></div>
           </div>
           <p className="text-base-content/70">Loading servers...</p>
@@ -178,12 +178,12 @@ const ContainerList = () => {
   // Hidden containers
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <div className="h-full overflow-auto p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="ark-slide-in">
-          <h1 className="text-4xl font-bold text-primary mb-2">Server Management</h1>
-          <p className="text-base-content/70">Control your ARK: Survival Ascended servers</p>
+        <div className="animate-in slide-in-from-bottom-4 duration-500">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary mb-2">Server Management</h1>
+          <p className="text-sm sm:text-base text-base-content/70">Control your ARK: Survival Ascended servers</p>
         </div>
 
         {/* Toggle hidden containers */}
@@ -196,7 +196,7 @@ const ContainerList = () => {
 
         {/* Hidden containers list */}
         {showHidden && hidden.length > 0 && (
-          <div className="ark-glass rounded-xl p-4 mb-4">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 mb-4">
             <h2 className="text-lg font-bold mb-2">Hidden Containers</h2>
             <ul>
               {hidden.map(name => (
@@ -210,33 +210,33 @@ const ContainerList = () => {
         )}
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="ark-glass rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{containers.length}</div>
-            <div className="text-sm text-base-content/70">Total Servers</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-4 text-center">
+            <div className="text-xl md:text-2xl font-bold text-primary">{containers.length}</div>
+            <div className="text-xs md:text-sm text-base-content/70">Total Servers</div>
           </div>
-          <div className="ark-glass rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-success">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-4 text-center">
+            <div className="text-xl md:text-2xl font-bold text-success">
               {containers.filter(c => c.status === 'running').length}
             </div>
-            <div className="text-sm text-base-content/70">Running</div>
+            <div className="text-xs md:text-sm text-base-content/70">Running</div>
           </div>
-          <div className="ark-glass rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-error">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-4 text-center">
+            <div className="text-xl md:text-2xl font-bold text-error">
               {containers.filter(c => c.status === 'stopped').length}
             </div>
-            <div className="text-sm text-base-content/70">Stopped</div>
+            <div className="text-xs md:text-sm text-base-content/70">Stopped</div>
           </div>
-          <div className="ark-glass rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-warning">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-4 text-center">
+            <div className="text-xl md:text-2xl font-bold text-warning">
               {containers.filter(c => c.status === 'restarting').length}
             </div>
-            <div className="text-sm text-base-content/70">Restarting</div>
+            <div className="text-xs md:text-sm text-base-content/70">Restarting</div>
           </div>
         </div>
 
         {/* Server List */}
-        <div className="ark-glass rounded-xl p-6 ark-slide-in" style={{ animationDelay: '0.2s' }}>
+        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.2s' }}>
           {containers.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🦖</div>
@@ -244,139 +244,262 @@ const ContainerList = () => {
               <p className="text-sm text-base-content/50">Start by creating your first ARK server</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="table table-zebra w-full">
-                <thead>
-                  <tr>
-                    <th>Server</th>
-                    <th>Status</th>
-                    <th>Ports</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {containers.map((container, index) => (
-                    <tr 
-                      key={container.name}
-                      // Removed ark-hover-scale to prevent scrollbars on hover
-                      className="transition-all duration-200"
-                      style={{ animationDelay: `${0.3 + index * 0.05}s` }}
-                    >
-                      <td>
-                        <div className="flex items-center space-x-3">
-                          <div className="avatar placeholder">
-                            <div className="bg-gradient-to-br from-primary to-accent text-primary-content rounded-full w-10">
-                              <span className="text-lg">🦖</span>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="table table-zebra w-full">
+                  <thead>
+                    <tr>
+                      <th>Server</th>
+                      <th>Status</th>
+                      <th>Ports</th>
+                      <th>Created</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {containers.map((container, index) => (
+                      <tr 
+                        key={container.name}
+                        className="transition-all duration-200"
+                        style={{ animationDelay: `${0.3 + index * 0.05}s` }}
+                      >
+                        <td>
+                          <div className="flex items-center space-x-3">
+                            <div className="avatar placeholder">
+                              <div className="bg-gradient-to-br from-primary to-accent text-primary-content rounded-full w-10">
+                                <span className="text-lg">🦖</span>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="font-bold">{container.name}</div>
+                              {container.image && (
+                                <div className="text-sm opacity-50">{container.image}</div>
+                              )}
                             </div>
                           </div>
-                          <div>
-                            <div className="font-bold">{container.name}</div>
-                            {container.image && (
-                              <div className="text-sm opacity-50">{container.image}</div>
-                            )}
+                        </td>
+                        <td>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xl">{getStatusIcon(container.status)}</span>
+                            <span className={`badge ${getStatusColor(container.status)}`}>
+                              {container.status.charAt(0).toUpperCase() + container.status.slice(1)}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          {container.ports && container.ports.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {container.ports.map((port, i) => (
+                                <span key={i} className="badge badge-outline badge-sm">
+                                  {renderPort(port)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-base-content/50">-</span>
+                          )}
+                        </td>
+                        <td>
+                          {container.created ? (
+                            <span className="text-sm text-base-content/70">
+                              {new Date(container.created).toLocaleDateString()}
+                            </span>
+                          ) : (
+                            <span className="text-base-content/50">-</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="flex gap-2">
+                            <button
+                              className="btn btn-xs btn-success"
+                              title="Start Container"
+                              disabled={container.status === 'running' || actionLoading === container.name}
+                              onClick={() => handleAction('start', container.name)}
+                            >
+                              ▶
+                            </button>
+                            <button
+                              className="btn btn-xs btn-warning"
+                              title="Restart Container"
+                              disabled={container.status !== 'running' || actionLoading === container.name}
+                              onClick={() => handleAction('restart', container.name)}
+                            >
+                              ↻
+                            </button>
+                            <button
+                              className="btn btn-xs btn-error"
+                              title="Stop Container"
+                              disabled={container.status !== 'running' || actionLoading === container.name}
+                              onClick={() => handleAction('stop', container.name)}
+                            >
+                              ■
+                            </button>
+                            <Link
+                              to={`/logs/${container.name}`}
+                              className="btn btn-xs btn-info"
+                              title="View Logs"
+                            >
+                              📝
+                            </Link>
+                            <Link
+                              to={`/rcon/${container.name}`}
+                              className="btn btn-xs btn-primary"
+                              title="Open RCON Console"
+                            >
+                              ⌨️
+                            </Link>
+                            <Link
+                              to={`/configs?server=${encodeURIComponent(containerNameToServerName(container.name))}`}
+                              className="btn btn-xs btn-secondary"
+                              title="Edit Config"
+                            >
+                              ⚙️
+                            </Link>
+                            <button
+                              className="btn btn-xs btn-outline btn-error"
+                              title="Hide Container"
+                              onClick={() => handleHide(container.name)}
+                            >
+                              Hide
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-4">
+                {containers.map((container, index) => (
+                  <div 
+                    key={container.name}
+                    className="bg-base-300 rounded-lg p-4 hover:scale-105 transition-all duration-200"
+                    style={{ animationDelay: `${0.3 + index * 0.05}s` }}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="avatar placeholder">
+                          <div className="bg-gradient-to-br from-primary to-accent text-primary-content rounded-full w-10">
+                            <span className="text-lg">🦖</span>
                           </div>
                         </div>
-                      </td>
-                      <td>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xl">{getStatusIcon(container.status)}</span>
-                          <span className={`badge ${getStatusColor(container.status)}`}>
-                            {container.status.charAt(0).toUpperCase() + container.status.slice(1)}
-                          </span>
+                        <div>
+                          <div className="font-bold text-base-content">{container.name}</div>
+                          {container.image && (
+                            <div className="text-sm opacity-50">{container.image}</div>
+                          )}
                         </div>
-                      </td>
-                      <td>
-                        {container.ports && container.ports.length > 0 ? (
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xl">{getStatusIcon(container.status)}</span>
+                        <span className={`badge ${getStatusColor(container.status)}`}>
+                          {container.status.charAt(0).toUpperCase() + container.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Details */}
+                    <div className="space-y-2 mb-4">
+                      {container.ports && container.ports.length > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-base-content/70">Ports:</span>
                           <div className="flex flex-wrap gap-1">
                             {container.ports.map((port, i) => (
-                              <span key={i} className="badge badge-outline badge-sm">
+                              <span key={i} className="badge badge-outline badge-xs">
                                 {renderPort(port)}
                               </span>
                             ))}
                           </div>
-                        ) : (
-                          <span className="text-base-content/50">-</span>
-                        )}
-                      </td>
-                      <td>
-                        {container.created ? (
-                          <span className="text-sm text-base-content/70">
+                        </div>
+                      )}
+                      
+                      {container.created && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-base-content/70">Created:</span>
+                          <span className="text-base-content/70">
                             {new Date(container.created).toLocaleDateString()}
                           </span>
-                        ) : (
-                          <span className="text-base-content/50">-</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <button
-                            className="btn btn-xs btn-success"
-                            title="Start Container"
-                            disabled={container.status === 'running' || actionLoading === container.name}
-                            onClick={() => handleAction('start', container.name)}
-                          >
-                            ▶
-                          </button>
-                          <button
-                            className="btn btn-xs btn-warning"
-                            title="Restart Container"
-                            disabled={container.status !== 'running' || actionLoading === container.name}
-                            onClick={() => handleAction('restart', container.name)}
-                          >
-                            ↻
-                          </button>
-                          <button
-                            className="btn btn-xs btn-error"
-                            title="Stop Container"
-                            disabled={container.status !== 'running' || actionLoading === container.name}
-                            onClick={() => handleAction('stop', container.name)}
-                          >
-                            ■
-                          </button>
-                          <Link
-                            to={`/logs/${container.name}`}
-                            className="btn btn-xs btn-info"
-                            title="View Logs"
-                          >
-                            📝
-                          </Link>
-                          <Link
-                            to={`/rcon/${container.name}`}
-                            className="btn btn-xs btn-primary"
-                            title="Open RCON Console"
-                          >
-                            ⌨️
-                          </Link>
-                          <Link
-                            to={`/configs?server=${encodeURIComponent(containerNameToServerName(container.name))}`}
-                            className="btn btn-xs btn-secondary"
-                            title="Edit Config"
-                          >
-                            ⚙️
-                          </Link>
-                          <button
-                            className="btn btn-xs btn-outline btn-error"
-                            title="Hide Container"
-                            onClick={() => handleHide(container.name)}
-                          >
-                            Hide
-                          </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        className="btn btn-xs btn-success"
+                        title="Start Container"
+                        disabled={container.status === 'running' || actionLoading === container.name}
+                        onClick={() => handleAction('start', container.name)}
+                      >
+                        ▶ Start
+                      </button>
+                      <button
+                        className="btn btn-xs btn-warning"
+                        title="Restart Container"
+                        disabled={container.status !== 'running' || actionLoading === container.name}
+                        onClick={() => handleAction('restart', container.name)}
+                      >
+                        ↻ Restart
+                      </button>
+                      <button
+                        className="btn btn-xs btn-error"
+                        title="Stop Container"
+                        disabled={container.status !== 'running' || actionLoading === container.name}
+                        onClick={() => handleAction('stop', container.name)}
+                      >
+                        ■ Stop
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <Link
+                        to={`/logs/${container.name}`}
+                        className="btn btn-xs btn-info"
+                        title="View Logs"
+                      >
+                        📝 Logs
+                      </Link>
+                      <Link
+                        to={`/rcon/${container.name}`}
+                        className="btn btn-xs btn-primary"
+                        title="Open RCON Console"
+                      >
+                        ⌨️ RCON
+                      </Link>
+                      <Link
+                        to={`/configs?server=${encodeURIComponent(containerNameToServerName(container.name))}`}
+                        className="btn btn-xs btn-secondary"
+                        title="Edit Config"
+                      >
+                        ⚙️ Config
+                      </Link>
+                    </div>
+                    
+                    <div className="mt-2">
+                      <button
+                        className="btn btn-xs btn-outline btn-error w-full"
+                        title="Hide Container"
+                        onClick={() => handleHide(container.name)}
+                      >
+                        Hide Container
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
         {/* Bulk Actions */}
         {containers.length > 0 && (
-          <div className="ark-glass rounded-xl p-6 ark-slide-in" style={{ animationDelay: '0.4s' }}>
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.4s' }}>
             <h3 className="text-lg font-semibold text-primary mb-4">Bulk Actions</h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               <button
                 onClick={() => {
                   containers.forEach(container => {
@@ -385,7 +508,7 @@ const ContainerList = () => {
                     }
                   });
                 }}
-                className="btn btn-success btn-sm ark-gradient-primary ark-hover-glow"
+                className="btn btn-success btn-sm bg-gradient-to-br from-primary to-accent hover:shadow-lg hover:shadow-primary/25"
               >
                 🚀 Start All Stopped
               </button>
@@ -397,7 +520,7 @@ const ContainerList = () => {
                     }
                   });
                 }}
-                className="btn btn-error btn-sm ark-gradient-secondary ark-hover-glow"
+                className="btn btn-error btn-sm bg-gradient-to-br from-secondary to-error hover:shadow-lg hover:shadow-error/25"
               >
                 🛑 Stop All Running
               </button>
@@ -409,7 +532,7 @@ const ContainerList = () => {
                     }
                   });
                 }}
-                className="btn btn-warning btn-sm ark-hover-glow"
+                className="btn btn-warning btn-sm hover:shadow-lg hover:shadow-warning/25 sm:col-span-2 lg:col-span-1"
               >
                 🔄 Restart All Running
               </button>
@@ -419,9 +542,11 @@ const ContainerList = () => {
 
         {/* System Containers Section */}
         {systemContainers.length > 0 && (
-          <div className="ark-glass rounded-xl p-6 mt-8">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6 mt-8">
             <h2 className="text-xl font-bold mb-4">System Containers</h2>
-            <div className="overflow-x-auto">
+            
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="table table-zebra w-full">
                 <thead>
                   <tr>
@@ -466,6 +591,57 @@ const ContainerList = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+              {systemContainers.map((container) => (
+                <div key={container.name} className="bg-base-300 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="font-bold text-base-content">{container.name}</div>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="text-lg">{getStatusIcon(container.status)}</span>
+                        <span className={`badge ${getStatusColor(container.status)}`}>
+                          {container.status.charAt(0).toUpperCase() + container.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      className="btn btn-xs btn-outline btn-error" 
+                      onClick={() => handleHide(container.name)}
+                    >
+                      Hide
+                    </button>
+                  </div>
+                  
+                  {container.ports && container.ports.length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-sm text-base-content/70 mb-1">Ports:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {container.ports.map((port, i) => (
+                          <span key={i} className="badge badge-outline badge-xs">
+                            {renderPort(port)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {SYSTEM_LINKS[container.name] && (
+                    <div>
+                      <a 
+                        href={SYSTEM_LINKS[container.name].url} 
+                        className="btn btn-xs btn-primary w-full" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        {SYSTEM_LINKS[container.name].label}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
