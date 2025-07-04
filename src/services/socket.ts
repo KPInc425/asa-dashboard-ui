@@ -39,11 +39,10 @@ class SocketManager {
       }
 
       this.containerName = containerName;
-      // Use the same origin as the current page for production, or fallback to localhost for development
-      const baseUrl = import.meta.env.VITE_API_URL || (window.location.origin === 'http://localhost:5173' ? 'http://localhost:4000' : window.location.origin);
+      // Use relative URL for socket.io (handled by reverse proxy)
 
       // Connect to the main Socket.IO server
-      this.socket = io(baseUrl, {
+      this.socket = io('/socket.io', {
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true,
@@ -71,10 +70,10 @@ class SocketManager {
             } else {
               try {
                 // First check if the backend is available
-                await axios.get(`${baseUrl}/health`, { timeout: 5000 });
+                await axios.get(`/health`, { timeout: 5000 });
                 
                 const response = await axios.post(
-                  `${baseUrl}/api/containers/${encodeURIComponent(containerName)}/logs/stream`,
+                  `/api/containers/${encodeURIComponent(containerName)}/logs/stream`,
                   { tail: 100 },
                   {
                     headers: {
@@ -90,11 +89,16 @@ class SocketManager {
                 } else {
                   console.log('Log streaming started successfully');
                 }
-              } catch (apiError: any) {
-                if (apiError.code === 'ECONNREFUSED' || apiError.code === 'ERR_NETWORK') {
-                  console.warn('Backend API is not available, log streaming will be disabled:', apiError.message);
+              } catch (apiError: unknown) {
+                if (typeof apiError === 'object' && apiError !== null && 'code' in apiError) {
+                  const err = apiError as { code?: string; message?: string };
+                  if (err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK') {
+                    console.warn('Backend API is not available, log streaming will be disabled:', err.message);
+                  } else {
+                    console.warn('Log streaming API call failed, but socket connection is still active:', err.message);
+                  }
                 } else {
-                  console.warn('Log streaming API call failed, but socket connection is still active:', apiError.message);
+                  console.warn('Log streaming API call failed, but socket connection is still active:', apiError);
                 }
                 // Don't fail the entire connection if the API call fails
               }
@@ -102,7 +106,7 @@ class SocketManager {
           }
           
           resolve();
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Error in socket connection setup:', error);
           // Don't reject the entire connection if log streaming fails
           // Just log the error and continue with socket connection
@@ -172,9 +176,8 @@ class SocketManager {
           const token = localStorage.getItem('auth_token');
           if (token) {
             try {
-              const baseUrl = import.meta.env.VITE_API_URL || (window.location.origin === 'http://localhost:5173' ? 'http://localhost:4000' : window.location.origin);
               await axios.post(
-                `${baseUrl}/api/containers/${encodeURIComponent(this.containerName)}/logs/stop-stream`,
+                `/api/containers/${encodeURIComponent(this.containerName)}/logs/stop-stream`,
                 {},
                 {
                   headers: {
@@ -184,12 +187,12 @@ class SocketManager {
                   timeout: 5000
                 }
               );
-            } catch (error) {
+            } catch (error: unknown) {
               console.warn('Failed to stop log streaming via API:', error);
             }
           }
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Error stopping log streaming:', error);
         // Don't throw error, just log it
       }
