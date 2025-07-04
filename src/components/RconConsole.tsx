@@ -149,7 +149,7 @@ const RconConsole = () => {
     <div className="h-full flex flex-col p-6">
       <div className="max-w-7xl mx-auto w-full space-y-6">
         {/* Header */}
-        <div className="ark-slide-in">
+        <div className="animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-primary mb-2">RCON Console</h1>
@@ -159,7 +159,7 @@ const RconConsole = () => {
             </div>
             <Link
               to="/containers"
-              className="btn btn-outline btn-primary ark-hover-glow"
+              className="btn btn-outline btn-primary hover:shadow-lg hover:shadow-primary/25"
             >
               ← Back to Servers
             </Link>
@@ -167,7 +167,7 @@ const RconConsole = () => {
         </div>
 
         {/* Console Output */}
-        <div className="ark-glass rounded-xl flex-1 flex flex-col ark-slide-in" style={{ animationDelay: '0.1s' }}>
+                  <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl flex-1 flex flex-col animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.1s' }}>
           <div className="flex items-center justify-between p-4 border-b border-base-300">
             <h2 className="text-lg font-semibold text-primary">Console Output</h2>
             <div className="flex items-center space-x-2">
@@ -176,7 +176,7 @@ const RconConsole = () => {
               </span>
               <button
                 onClick={clearHistory}
-                className="btn btn-sm btn-outline btn-error ark-hover-glow"
+                className="btn btn-sm btn-outline btn-error hover:shadow-lg hover:shadow-error/25"
               >
                 Clear
               </button>
@@ -216,10 +216,10 @@ const RconConsole = () => {
         </div>
 
         {/* Command Input */}
-        <div className="ark-glass rounded-xl p-4 ark-slide-in" style={{ animationDelay: '0.2s' }}>
+                  <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.2s' }}>
           <form onSubmit={handleCommandSubmit} className="space-y-4">
             {error && (
-              <div className="alert alert-error ark-bounce">
+                              <div className="alert alert-error animate-bounce">
                 <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -237,13 +237,13 @@ const RconConsole = () => {
                   onChange={(e) => handleCommandChange(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Enter RCON command..."
-                  className="input input-bordered flex-1 font-mono ark-hover-scale"
+                  className="input input-bordered flex-1 font-mono hover:scale-105 transition-transform duration-200"
                   disabled={isLoading}
                 />
                 <button
                   type="submit"
                   disabled={isLoading || !command.trim()}
-                  className="btn btn-primary ark-gradient-primary ark-hover-glow"
+                  className="btn btn-primary bg-gradient-to-br from-primary to-accent hover:shadow-lg hover:shadow-primary/25"
                 >
                   {isLoading ? (
                     <span className="loading loading-spinner loading-sm"></span>
@@ -281,7 +281,7 @@ const RconConsole = () => {
                   key={cmd}
                   type="button"
                   onClick={() => setCommand(cmd)}
-                  className="btn btn-xs btn-outline btn-primary ark-hover-glow"
+                  className="btn btn-xs btn-outline btn-primary hover:shadow-lg hover:shadow-primary/25"
                 >
                   {cmd}
                 </button>
@@ -291,7 +291,7 @@ const RconConsole = () => {
         </div>
 
         {/* Help Section */}
-        <div className="ark-glass rounded-xl p-4 ark-slide-in" style={{ animationDelay: '0.3s' }}>
+                  <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.3s' }}>
           <h3 className="text-lg font-semibold text-primary mb-3">Common Commands</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
