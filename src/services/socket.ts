@@ -53,7 +53,10 @@ class SocketManager {
         
         try {
           // Join the logs room for this container
-          this.socket.emit('join-logs', containerName);
+          const socket = this.socket;
+          if (socket) {
+            socket.emit('join-logs', containerName);
+          }
           
           // Start log streaming via API
           const response = await fetch(`${baseUrl}/api/containers/${encodeURIComponent(containerName)}/logs/stream`, {
@@ -126,7 +129,11 @@ class SocketManager {
     if (this.socket && this.containerName) {
       try {
         // Leave the logs room
-        this.socket.emit('leave-logs', this.containerName);
+        const socket = this.socket;
+        const containerName = this.containerName;
+        if (socket && containerName) {
+          socket.emit('leave-logs', containerName);
+        }
         
         // Stop log streaming via API
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
