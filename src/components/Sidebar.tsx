@@ -8,7 +8,8 @@ const Sidebar = () => {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '🏠' },
     { path: '/containers', label: 'Servers', icon: '🖥️' },
-    { path: '/configs/TheIsland', label: 'Configs', icon: '⚙️' },
+    // Configs page now uses query params for server/file selection
+    { path: '/configs', label: 'Configs', icon: '⚙️' },
   ];
 
   const isActive = (path: string) => {
