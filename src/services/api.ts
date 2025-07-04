@@ -16,8 +16,9 @@ export interface Container {
   name: string;
   status: 'running' | 'stopped' | 'restarting' | 'unknown';
   image?: string;
-  ports?: string[];
+  ports?: any[];
   created?: string;
+  labels?: Record<string, string>;
 }
 
 export interface RconResponse {

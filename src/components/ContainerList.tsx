@@ -29,6 +29,14 @@ const setHiddenContainers = (arr: string[]) => {
   localStorage.setItem(HIDDEN_KEY, JSON.stringify(arr));
 };
 
+// Add Port type for Dockerode port objects
+export interface Port {
+  IP?: string;
+  PrivatePort: number;
+  PublicPort?: number;
+  Type: string;
+}
+
 const ContainerList = () => {
   const [containers, setContainers] = useState<Container[]>([]);
   const [systemContainers, setSystemContainers] = useState<Container[]>([]);
@@ -123,7 +131,7 @@ const ContainerList = () => {
   };
 
   // Helper to render port info
-  const renderPort = (portObj: any) => {
+  const renderPort = (portObj: Port) => {
     if (!portObj) return '-';
     if (typeof portObj === 'string') return portObj;
     const { IP, PrivatePort, PublicPort, Type } = portObj;
@@ -160,7 +168,6 @@ const ContainerList = () => {
   }
 
   // Hidden containers
-  const hiddenContainers = containers.filter(c => hidden.includes(c.name));
 
   return (
     <div className="h-full overflow-auto p-6">
@@ -425,7 +432,7 @@ const ContainerList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {systemContainers.map((container, idx) => (
+                  {systemContainers.map((container) => (
                     <tr key={container.name}>
                       <td>{container.name}</td>
                       <td>{getStatusIcon(container.status)} {container.status}</td>
