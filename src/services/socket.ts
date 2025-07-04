@@ -1,9 +1,5 @@
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
-import axios from 'axios';
-
-// Check if we're in frontend-only mode
-const FRONTEND_ONLY_MODE = import.meta.env.VITE_FRONTEND_ONLY === 'true';
 
 // Types for socket events
 export interface LogMessage {
@@ -43,12 +39,17 @@ class SocketManager {
 
       // Connect to the main Socket.IO server - use the same logic as API calls
       const socketUrl = import.meta.env.VITE_API_URL || '/';
+      const token = localStorage.getItem('auth_token');
+      
       this.socket = io(socketUrl, {
         path: '/socket.io', // Explicitly set the Socket.IO path
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true,
         withCredentials: true, // Enable credentials for cross-origin
+        auth: {
+          token: token || ''
+        }
       });
 
       // Set up event listeners
@@ -58,62 +59,15 @@ class SocketManager {
         this.reconnectDelay = 1000;
         
         try {
-          // Join the logs room for this container
+          // Start log streaming for this container
           const socket = this.socket;
           if (socket) {
-            socket.emit('join-logs', containerName);
-          }
-          
-          // Only attempt log streaming API call if not in frontend-only mode
-          if (!FRONTEND_ONLY_MODE) {
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
-              console.warn('No authentication token found for log streaming');
-            } else {
-              try {
-                // First check if the backend is available
-                const baseUrl = import.meta.env.VITE_API_URL || '/';
-                await axios.get(`${baseUrl}/health`, { timeout: 5000 });
-                
-                const response = await axios.post(
-                  `${baseUrl}/api/containers/${encodeURIComponent(containerName)}/logs/stream`,
-                  { tail: 100 },
-                  {
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${token}`
-                    },
-                    timeout: 10000
-                  }
-                );
-                
-                if (response.status !== 200) {
-                  console.warn(`Log streaming API returned status: ${response.status}`);
-                } else {
-                  console.log('Log streaming started successfully');
-                }
-              } catch (apiError: unknown) {
-                if (typeof apiError === 'object' && apiError !== null && 'code' in apiError) {
-                  const err = apiError as { code?: string; message?: string };
-                  if (err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK') {
-                    console.warn('Backend API is not available, log streaming will be disabled:', err.message);
-                  } else {
-                    console.warn('Log streaming API call failed, but socket connection is still active:', err.message);
-                  }
-                } else {
-                  console.warn('Log streaming API call failed, but socket connection is still active:', apiError);
-                }
-                // Don't fail the entire connection if the API call fails
-              }
-            }
+            socket.emit('start-logs', { container: containerName });
           }
           
           resolve();
         } catch (error: unknown) {
           console.error('Error in socket connection setup:', error);
-          // Don't reject the entire connection if log streaming fails
-          // Just log the error and continue with socket connection
-          console.warn('Socket setup failed, but connection attempt continues');
           resolve();
         }
       });
@@ -165,39 +119,17 @@ class SocketManager {
    * Disconnect from WebSocket
    */
   async disconnect(): Promise<void> {
-    if (this.socket && this.containerName) {
+    if (this.socket) {
       try {
-        // Leave the logs room
-        const socket = this.socket;
-        const containerName = this.containerName;
-        if (socket && containerName) {
-          socket.emit('leave-logs', containerName);
-        }
+        // Stop log streaming
+        this.socket.emit('stop-logs');
         
-        // Stop log streaming via API using axios for consistency (only if not in frontend-only mode)
-        if (!FRONTEND_ONLY_MODE) {
-          const token = localStorage.getItem('auth_token');
-          if (token) {
-            try {
-              const baseUrl = import.meta.env.VITE_API_URL || '/';
-              await axios.post(
-                `${baseUrl}/api/containers/${encodeURIComponent(this.containerName)}/logs/stop-stream`,
-                {},
-                {
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                  timeout: 5000
-                }
-              );
-            } catch (error: unknown) {
-              console.warn('Failed to stop log streaming via API:', error);
-            }
-          }
-        }
+        // Disconnect the socket
+        this.socket.disconnect();
+        this.socket = null;
+        this.containerName = null;
       } catch (error: unknown) {
-        console.error('Error stopping log streaming:', error);
+        console.error('Error disconnecting socket:', error);
         // Don't throw error, just log it
       }
     }
@@ -215,16 +147,25 @@ class SocketManager {
    */
   onLog(callback: (data: LogMessage) => void): void {
     if (this.socket) {
-      this.socket.on('log', callback);
+      this.socket.on('log-data', (data) => {
+        // Transform the Socket.IO data format to match our LogMessage interface
+        const logMessage: LogMessage = {
+          timestamp: data.timestamp,
+          level: 'info', // Default level since Docker logs don't include level info
+          message: data.data,
+          container: this.containerName || 'unknown'
+        };
+        callback(logMessage);
+      });
     }
   }
 
   /**
    * Unsubscribe from log events
    */
-  offLog(callback: (data: LogMessage) => void): void {
+  offLog(): void {
     if (this.socket) {
-      this.socket.off('log', callback);
+      this.socket.off('log-data');
     }
   }
 
@@ -279,7 +220,7 @@ export const socketService = {
   connect: (containerName: string) => socketManager.connect(containerName),
   disconnect: () => socketManager.disconnect(),
   onLog: (callback: (data: LogMessage) => void) => socketManager.onLog(callback),
-  offLog: (callback: (data: LogMessage) => void) => socketManager.offLog(callback),
+  offLog: () => socketManager.offLog(),
   onConnect: (callback: () => void) => socketManager.onConnect(callback),
   onDisconnect: (callback: (reason: string) => void) => socketManager.onDisconnect(callback),
   onError: (callback: (error: Error) => void) => socketManager.onError(callback),
