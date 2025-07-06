@@ -761,9 +761,9 @@ GRAFANA_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel`,
       retries: 3
       start_period: 40s
 
-  ark-server-theisland:
+  asa-server-theisland:
     container_name: asa-server-theisland
-    image: ark:latest
+    image: mschnitzer/asa-linux-server:latest
     ports:
       - "7777:7777"
       - "32330:32330"
@@ -773,10 +773,10 @@ GRAFANA_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel`,
       - SERVER_PASSWORD=
       - ADMIN_PASSWORD=admin123
       - MAX_PLAYERS=70
-      - MODS=123456789,987654321
+      - MODS=731604991,793605978
       - ADDITIONAL_ARGS=-servergamelog
     volumes:
-      - ./ark-data/theisland:/ark
+      - /opt/asa/asa-server/theisland:/opt/asa/asa-server
     restart: unless-stopped
     networks:
       - ark-network
@@ -831,11 +831,11 @@ networks:
             success: true,
             servers: [
               {
-                name: 'ark-server-theisland',
+                name: 'asa-server-theisland',
                 lines: [
-                  '  ark-server-theisland:',
+                  '  asa-server-theisland:',
                   '    container_name: asa-server-theisland',
-                  '    image: ark:latest',
+                  '    image: mschnitzer/asa-linux-server:latest',
                   '    ports:',
                   '      - "7777:7777"',
                   '      - "32330:32330"',
@@ -845,10 +845,10 @@ networks:
                   '      - SERVER_PASSWORD=',
                   '      - ADMIN_PASSWORD=admin123',
                   '      - MAX_PLAYERS=70',
-                  '      - MODS=123456789,987654321',
+                  '      - MODS=731604991,793605978',
                   '      - ADDITIONAL_ARGS=-servergamelog',
                   '    volumes:',
-                  '      - ./ark-data/theisland:/ark',
+                  '      - /opt/asa/asa-server/theisland:/opt/asa/asa-server',
                   '    restart: unless-stopped',
                   '    networks:',
                   '      - ark-network'

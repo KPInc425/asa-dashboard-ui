@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { containerApi, type Container } from '../services';
+import { containerApi, environmentApi, type Container } from '../services';
 import { containerNameToServerName } from '../utils';
+import ArkServerEditor from './ArkServerEditor';
 // Use containerApi.sendRconCommand for RCON
 
 const API_SUITE_NAMES = [
@@ -47,11 +48,29 @@ const ContainerList = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
   const [hidden, setHidden] = useState<string[]>(getHiddenContainers());
+  
+  // Server management state
+  const [isAddingServer, setIsAddingServer] = useState(false);
+  const [isEditingServer, setIsEditingServer] = useState(false);
+  const [selectedServer, setSelectedServer] = useState<any>(null);
+  const [serverConfigs, setServerConfigs] = useState<any[]>([]);
 
   useEffect(() => {
     fetchContainers();
+    fetchServerConfigs();
     // eslint-disable-next-line
   }, []);
+
+  const fetchServerConfigs = async () => {
+    try {
+      const data = await environmentApi.getArkServerConfigs();
+      setServerConfigs(data.servers);
+    } catch (err) {
+      console.error('Failed to load server configs:', err);
+    } finally {
+      // setIsLoadingServers(false); // This line was removed
+    }
+  };
 
   const fetchContainers = async () => {
     try {
@@ -149,6 +168,14 @@ const ContainerList = () => {
     return `${PrivatePort}/${Type}`;
   };
 
+  const isAsaServer = (containerName: string) => {
+    return containerName.startsWith('asa-server-');
+  };
+
+  const getServerConfig = (containerName: string) => {
+    return serverConfigs.find(config => config.name === containerName);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -182,9 +209,40 @@ const ContainerList = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="animate-in slide-in-from-bottom-4 duration-500">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary mb-2">Server Management</h1>
-          <p className="text-sm sm:text-base text-base-content/70">Control your ARK: Survival Ascended servers</p>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary mb-2">Server Management</h1>
+              <p className="text-sm sm:text-base text-base-content/70">Control your ARK: Survival Ascended servers</p>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setIsAddingServer(true)}
+                className="btn btn-primary btn-sm"
+              >
+                Add New Server
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* Server Management Modal */}
+        {(isAddingServer || isEditingServer) && (
+          <ArkServerEditor
+            server={isEditingServer ? selectedServer : undefined}
+            onSave={() => {
+              setIsAddingServer(false);
+              setIsEditingServer(false);
+              setSelectedServer(null);
+              fetchServerConfigs();
+              fetchContainers();
+            }}
+            onCancel={() => {
+              setIsAddingServer(false);
+              setIsEditingServer(false);
+              setSelectedServer(null);
+            }}
+          />
+        )}
 
         {/* Toggle hidden containers */}
         <div className="mb-4">
@@ -356,6 +414,18 @@ const ContainerList = () => {
                             >
                               ⚙️
                             </Link>
+                            {isAsaServer(container.name) && (
+                              <button
+                                className="btn btn-xs btn-outline btn-accent"
+                                title="Edit Server Configuration"
+                                onClick={() => {
+                                  setSelectedServer(getServerConfig(container.name));
+                                  setIsEditingServer(true);
+                                }}
+                              >
+                                🛠️
+                              </button>
+                            )}
                             <button
                               className="btn btn-xs btn-outline btn-error"
                               title="Hide Container"
@@ -478,6 +548,21 @@ const ContainerList = () => {
                         ⚙️ Config
                       </Link>
                     </div>
+                    
+                    {isAsaServer(container.name) && (
+                      <div className="mt-2">
+                        <button
+                          className="btn btn-xs btn-outline btn-accent w-full"
+                          title="Edit Server Configuration"
+                          onClick={() => {
+                            setSelectedServer(getServerConfig(container.name));
+                            setIsEditingServer(true);
+                          }}
+                        >
+                          🛠️ Edit Server Config
+                        </button>
+                      </div>
+                    )}
                     
                     <div className="mt-2">
                       <button
