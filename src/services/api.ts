@@ -53,6 +53,65 @@ export interface User {
   role?: string;
 }
 
+export interface LogFile {
+  name: string;
+  path: string;
+  size: number;
+}
+
+export interface LogFilesResponse {
+  success: boolean;
+  serverName: string;
+  logFiles: LogFile[];
+}
+
+export interface LogContentResponse {
+  success: boolean;
+  serverName: string;
+  fileName: string;
+  content: string;
+  lines: number;
+}
+
+export interface EnvironmentFile {
+  success: boolean;
+  content: string;
+  variables: Record<string, string>;
+  path: string;
+}
+
+export interface DockerComposeFile {
+  success: boolean;
+  content: string;
+  path: string;
+}
+
+export interface ArkServer {
+  name: string;
+  lines: string[];
+  startLine: number;
+  endLine: number;
+}
+
+export interface ArkServerConfigs {
+  success: boolean;
+  servers: ArkServer[];
+  count: number;
+}
+
+export interface Mod {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  version: string;
+}
+
+export interface ModsResponse {
+  success: boolean;
+  mods: Mod[];
+}
+
 // API Error class for better error handling
 export class ApiError extends Error {
   public status: number;
@@ -492,7 +551,7 @@ export const authApi = {
   },
 };
 
-// Logs API (for WebSocket connection setup)
+// Logs API (for WebSocket connection setup and file access)
 export const logsApi = {
   /**
    * Get WebSocket URL for container logs
@@ -502,10 +561,432 @@ export const logsApi = {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
     return `${baseUrl}/api/logs/${encodeURIComponent(containerName)}`;
   },
+
+  /**
+   * Get available log files for a server
+   */
+  getLogFiles: async (serverName: string): Promise<LogFilesResponse> => {
+    const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/files`);
+    return response.data;
+  },
+
+  /**
+   * Get recent log content from a specific file
+   */
+  getLogContent: async (serverName: string, fileName: string, lines: number = 100): Promise<LogContentResponse> => {
+    const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/files/${encodeURIComponent(fileName)}`, {
+      params: { lines }
+    });
+    return response.data;
+  },
 };
 
 // Export the main API instance for custom requests
 export { api };
+
+// Environment Management API
+export const environmentApi = {
+  /**
+   * Get environment file content
+   */
+  getEnvironmentFile: async (): Promise<EnvironmentFile> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            content: `# Server Configuration
+PORT=4000
+HOST=0.0.0.0
+NODE_ENV=production
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRES_IN=24h
+
+# Docker Configuration
+DOCKER_SOCKET_PATH=/var/run/docker.sock
+
+# ASA Server Configuration
+ASA_SERVER_ROOT_PATH=/opt/asa/asa-server
+ASA_CONFIG_SUB_PATH=Config/WindowsServer
+ASA_UPDATE_LOCK_PATH=/opt/asa/.update.lock
+
+# RCON Configuration
+RCON_DEFAULT_PORT=32330
+RCON_PASSWORD=admin
+
+# Rate Limiting
+RATE_LIMIT_MAX=100
+RATE_LIMIT_TIME_WINDOW=900000
+
+# CORS Configuration
+CORS_ORIGIN=https://ark.ilgaming.xyz
+
+# Logging
+LOG_LEVEL=info
+LOG_FILE_PATH=./logs/app.log
+
+# Metrics
+METRICS_ENABLED=true
+
+# Monitoring Service Ports
+PROMETHEUS_PORT=9090
+GRAFANA_PORT=3001
+CADVISOR_PORT=8080
+
+# Grafana Configuration
+GRAFANA_ADMIN_PASSWORD=admin
+GRAFANA_ALLOW_SIGNUP=false
+GRAFANA_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel`,
+            variables: {
+              PORT: '4000',
+              HOST: '0.0.0.0',
+              NODE_ENV: 'production',
+              JWT_SECRET: 'your-super-secret-jwt-key-change-this-in-production',
+              JWT_EXPIRES_IN: '24h',
+              DOCKER_SOCKET_PATH: '/var/run/docker.sock',
+              ASA_SERVER_ROOT_PATH: '/opt/asa/asa-server',
+              ASA_CONFIG_SUB_PATH: 'Config/WindowsServer',
+              ASA_UPDATE_LOCK_PATH: '/opt/asa/.update.lock',
+              RCON_DEFAULT_PORT: '32330',
+              RCON_PASSWORD: 'admin',
+              RATE_LIMIT_MAX: '100',
+              RATE_LIMIT_TIME_WINDOW: '900000',
+              CORS_ORIGIN: 'https://ark.ilgaming.xyz',
+              LOG_LEVEL: 'info',
+              LOG_FILE_PATH: './logs/app.log',
+              METRICS_ENABLED: 'true',
+              PROMETHEUS_PORT: '9090',
+              GRAFANA_PORT: '3001',
+              CADVISOR_PORT: '8080',
+              GRAFANA_ADMIN_PASSWORD: 'admin',
+              GRAFANA_ALLOW_SIGNUP: 'false',
+              GRAFANA_PLUGINS: 'grafana-piechart-panel,grafana-worldmap-panel'
+            },
+            path: '/mock/.env'
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/environment');
+    return response.data;
+  },
+
+  /**
+   * Update environment file
+   */
+  updateEnvironmentFile: async (content: string): Promise<{ success: boolean; message: string; path: string; variables: Record<string, string> }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Environment file updated successfully (mock)',
+            path: '/mock/.env',
+            variables: {}
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put('/api/environment', { content });
+    return response.data;
+  },
+
+  /**
+   * Update specific environment variable
+   */
+  updateEnvironmentVariable: async (key: string, value: string): Promise<{ success: boolean; message: string; path: string; variables: Record<string, string> }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Environment variable ${key} updated successfully (mock)`,
+            path: '/mock/.env',
+            variables: { [key]: value }
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.put(`/api/environment/${key}`, { value });
+    return response.data;
+  },
+
+  /**
+   * Get Docker Compose file content
+   */
+  getDockerComposeFile: async (): Promise<DockerComposeFile> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            content: `services:
+  ark-api:
+    container_name: asa-control-api
+    build: .
+    ports:
+      - "\${PORT:-4000}:\${PORT:-4000}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./logs:/app/logs
+      - \${ASA_SERVER_ROOT_PATH:-/opt/asa/asa-server}:/opt/asa/asa-server
+    environment:
+      - NODE_ENV=\${NODE_ENV:-production}
+      - DOCKER_SOCKET_PATH=\${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+      - ASA_CONFIG_SUB_PATH=\${ASA_CONFIG_SUB_PATH:-Config/WindowsServer}
+      - ASA_UPDATE_LOCK_PATH=\${ASA_UPDATE_LOCK_PATH:-/opt/asa/.update.lock}
+      - CORS_ORIGIN=\${CORS_ORIGIN:-https://ark.ilgaming.xyz}
+      - PORT=\${PORT:-4000}
+      - JWT_SECRET=\${JWT_SECRET:-fallback-secret-change-in-production}
+      - JWT_EXPIRES_IN=\${JWT_EXPIRES_IN:-24h}
+      - RCON_DEFAULT_PORT=\${RCON_DEFAULT_PORT:-32330}
+      - RCON_PASSWORD=\${RCON_PASSWORD:-admin}
+      - RATE_LIMIT_MAX=\${RATE_LIMIT_MAX:-100}
+      - RATE_LIMIT_TIME_WINDOW=\${RATE_LIMIT_TIME_WINDOW:-900000}
+      - LOG_LEVEL=\${LOG_LEVEL:-info}
+      - LOG_FILE_PATH=\${LOG_FILE_PATH:-./logs/app.log}
+      - METRICS_ENABLED=\${METRICS_ENABLED:-true}
+    restart: unless-stopped
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:\${PORT:-4000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  ark-server-theisland:
+    container_name: asa-server-theisland
+    image: ark:latest
+    ports:
+      - "7777:7777"
+      - "32330:32330"
+    environment:
+      - SERVER_NAME=The Island Server
+      - MAP_NAME=TheIsland
+      - SERVER_PASSWORD=
+      - ADMIN_PASSWORD=admin123
+      - MAX_PLAYERS=70
+      - MODS=123456789,987654321
+      - ADDITIONAL_ARGS=-servergamelog
+    volumes:
+      - ./ark-data/theisland:/ark
+    restart: unless-stopped
+    networks:
+      - ark-network
+
+volumes:
+  prometheus_data:
+  grafana_storage:
+
+networks:
+  monitoring:
+    driver: bridge
+  ark-network:
+    driver: bridge`,
+            path: '/mock/docker-compose.yml'
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/docker-compose');
+    return response.data;
+  },
+
+  /**
+   * Update Docker Compose file
+   */
+  updateDockerComposeFile: async (content: string): Promise<{ success: boolean; message: string; path: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Docker Compose file updated successfully (mock)',
+            path: '/mock/docker-compose.yml'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put('/api/docker-compose', { content });
+    return response.data;
+  },
+
+  /**
+   * Get ARK server configurations
+   */
+  getArkServerConfigs: async (): Promise<ArkServerConfigs> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            servers: [
+              {
+                name: 'ark-server-theisland',
+                lines: [
+                  '  ark-server-theisland:',
+                  '    container_name: asa-server-theisland',
+                  '    image: ark:latest',
+                  '    ports:',
+                  '      - "7777:7777"',
+                  '      - "32330:32330"',
+                  '    environment:',
+                  '      - SERVER_NAME=The Island Server',
+                  '      - MAP_NAME=TheIsland',
+                  '      - SERVER_PASSWORD=',
+                  '      - ADMIN_PASSWORD=admin123',
+                  '      - MAX_PLAYERS=70',
+                  '      - MODS=123456789,987654321',
+                  '      - ADDITIONAL_ARGS=-servergamelog',
+                  '    volumes:',
+                  '      - ./ark-data/theisland:/ark',
+                  '    restart: unless-stopped',
+                  '    networks:',
+                  '      - ark-network'
+                ],
+                startLine: 35,
+                endLine: 52
+              }
+            ],
+            count: 1
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/ark-servers');
+    return response.data;
+  },
+
+  /**
+   * Add new ARK server
+   */
+  addArkServer: async (serverConfig: any): Promise<{ success: boolean; message: string; path: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `ARK server ${serverConfig.name} added successfully (mock)`,
+            path: '/mock/docker-compose.yml'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.post('/api/ark-servers', serverConfig);
+    return response.data;
+  },
+
+  /**
+   * Update ARK server
+   */
+  updateArkServer: async (name: string, serverConfig: any): Promise<{ success: boolean; message: string; path: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `ARK server ${name} updated successfully (mock)`,
+            path: '/mock/docker-compose.yml'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put(`/api/ark-servers/${name}`, serverConfig);
+    return response.data;
+  },
+
+  /**
+   * Remove ARK server
+   */
+  removeArkServer: async (name: string): Promise<{ success: boolean; message: string; path: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `ARK server ${name} removed successfully (mock)`,
+            path: '/mock/docker-compose.yml'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.delete(`/api/ark-servers/${name}`);
+    return response.data;
+  },
+
+  /**
+   * Reload Docker Compose configuration
+   */
+  reloadDockerCompose: async (): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Docker Compose configuration reloaded successfully (mock)'
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post('/api/docker-compose/reload');
+    return response.data;
+  },
+
+  /**
+   * Get available mods
+   */
+  getMods: async (): Promise<ModsResponse> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            mods: [
+              {
+                id: '123456789',
+                name: 'Structures Plus',
+                description: 'Enhanced building system for ARK',
+                author: 'Orionsun',
+                version: '1.0.0'
+              },
+              {
+                id: '987654321',
+                name: 'Stackable Foundations',
+                description: 'Allows stacking of foundation pieces',
+                author: 'ModAuthor',
+                version: '2.1.0'
+              },
+              {
+                id: '555666777',
+                name: 'Advanced Rafts',
+                description: 'Enhanced raft building and functionality',
+                author: 'RaftModder',
+                version: '1.5.0'
+              }
+            ]
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/mods');
+    return response.data;
+  }
+};
 
 // Export all APIs as a single object for convenience
 export const apiService = {
@@ -514,6 +995,7 @@ export const apiService = {
   lock: lockApi,
   auth: authApi,
   logs: logsApi,
+  environment: environmentApi,
 };
 
 export default apiService; 

@@ -9,6 +9,7 @@ const Sidebar = () => {
     { path: '/', label: 'Dashboard', icon: '🏠' },
     { path: '/containers', label: 'Servers', icon: '🖥️' },
     { path: '/configs', label: 'Configs', icon: '⚙️' },
+    { path: '/environment', label: 'Environment', icon: '🔧' },
   ];
 
   const isActive = (path: string) => {

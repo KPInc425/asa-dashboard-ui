@@ -11,6 +11,7 @@ import LogViewer from './components/LogViewer';
 import Sidebar from './components/Sidebar';
 import LoadingSpinner from './components/LoadingSpinner';
 import Configs from './pages/Configs';
+import EnvironmentEditor from './components/EnvironmentEditor';
 
 // Authentication context
 interface AuthContextType {
@@ -109,6 +110,7 @@ const MainLayout = () => {
             <Route path="/rcon/:containerName" element={<RconConsole />} />
             <Route path="/configs" element={<Configs />} />
             <Route path="/configs/:map" element={<ConfigEditor />} />
+            <Route path="/environment" element={<EnvironmentEditor />} />
             <Route path="/logs/:containerName" element={<LogViewer />} />
           </Routes>
         </div>

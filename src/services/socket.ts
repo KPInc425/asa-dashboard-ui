@@ -28,7 +28,7 @@ class SocketManager {
   /**
    * Connect to container logs WebSocket
    */
-  connect(containerName: string): Promise<void> {
+  connect(containerName: string, logFile?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.socket?.connected) {
         this.disconnect();
@@ -59,10 +59,16 @@ class SocketManager {
         this.reconnectDelay = 1000;
         
         try {
-          // Start log streaming for this container
+          // Start container log streaming for this container
           const socket = this.socket;
           if (socket) {
-            socket.emit('start-logs', { container: containerName });
+            if (logFile) {
+              // Start streaming specific log file
+              socket.emit('start-ark-logs', { container: containerName, logFile });
+            } else {
+              // Start streaming container logs
+              socket.emit('start-container-logs', { container: containerName });
+            }
           }
           
           resolve();
@@ -116,13 +122,42 @@ class SocketManager {
   }
 
   /**
+   * Switch to streaming a different log file
+   */
+  switchLogFile(logFile: string): void {
+    if (this.socket?.connected && this.containerName) {
+      // Stop current streaming
+      this.socket.emit('stop-container-logs');
+      this.socket.emit('stop-ark-logs');
+      
+      // Start streaming the new log file
+      this.socket.emit('start-ark-logs', { container: this.containerName, logFile });
+    }
+  }
+
+  /**
+   * Switch to streaming container logs
+   */
+  switchToContainerLogs(): void {
+    if (this.socket?.connected && this.containerName) {
+      // Stop current streaming
+      this.socket.emit('stop-container-logs');
+      this.socket.emit('stop-ark-logs');
+      
+      // Start streaming container logs
+      this.socket.emit('start-container-logs', { container: this.containerName });
+    }
+  }
+
+  /**
    * Disconnect from WebSocket
    */
   async disconnect(): Promise<void> {
     if (this.socket) {
       try {
-        // Stop log streaming
-        this.socket.emit('stop-logs');
+        // Stop all log streaming
+        this.socket.emit('stop-container-logs');
+        this.socket.emit('stop-ark-logs');
         
         // Disconnect the socket
         this.socket.disconnect();
@@ -143,11 +178,11 @@ class SocketManager {
   }
 
   /**
-   * Subscribe to log events
+   * Subscribe to container log events
    */
-  onLog(callback: (data: LogMessage) => void): void {
+  onContainerLog(callback: (data: LogMessage) => void): void {
     if (this.socket) {
-      this.socket.on('log-data', (data) => {
+      this.socket.on('container-log-data', (data) => {
         // Transform the Socket.IO data format to match our LogMessage interface
         const logMessage: LogMessage = {
           timestamp: data.timestamp,
@@ -161,11 +196,38 @@ class SocketManager {
   }
 
   /**
-   * Unsubscribe from log events
+   * Subscribe to ARK server log events
    */
-  offLog(): void {
+  onArkLog(callback: (data: LogMessage) => void): void {
     if (this.socket) {
-      this.socket.off('log-data');
+      this.socket.on('ark-log-data', (data) => {
+        // Transform the Socket.IO data format to match our LogMessage interface
+        const logMessage: LogMessage = {
+          timestamp: data.timestamp,
+          level: 'info', // Default level since ARK logs don't include level info
+          message: data.data,
+          container: this.containerName || 'unknown'
+        };
+        callback(logMessage);
+      });
+    }
+  }
+
+  /**
+   * Unsubscribe from container log events
+   */
+  offContainerLog(): void {
+    if (this.socket) {
+      this.socket.off('container-log-data');
+    }
+  }
+
+  /**
+   * Unsubscribe from ARK log events
+   */
+  offArkLog(): void {
+    if (this.socket) {
+      this.socket.off('ark-log-data');
     }
   }
 
@@ -217,10 +279,14 @@ export const socketManager = new SocketManager();
 
 // Export convenience functions
 export const socketService = {
-  connect: (containerName: string) => socketManager.connect(containerName),
+  connect: (containerName: string, logFile?: string) => socketManager.connect(containerName, logFile),
   disconnect: () => socketManager.disconnect(),
-  onLog: (callback: (data: LogMessage) => void) => socketManager.onLog(callback),
-  offLog: () => socketManager.offLog(),
+  switchLogFile: (logFile: string) => socketManager.switchLogFile(logFile),
+  switchToContainerLogs: () => socketManager.switchToContainerLogs(),
+  onContainerLog: (callback: (data: LogMessage) => void) => socketManager.onContainerLog(callback),
+  onArkLog: (callback: (data: LogMessage) => void) => socketManager.onArkLog(callback),
+  offContainerLog: () => socketManager.offContainerLog(),
+  offArkLog: () => socketManager.offArkLog(),
   onConnect: (callback: () => void) => socketManager.onConnect(callback),
   onDisconnect: (callback: (reason: string) => void) => socketManager.onDisconnect(callback),
   onError: (callback: (error: Error) => void) => socketManager.onError(callback),
