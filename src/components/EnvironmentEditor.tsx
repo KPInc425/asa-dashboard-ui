@@ -349,22 +349,26 @@ const ArkServersManager = ({ servers, onUpdate }: { servers: any[], onUpdate: ()
         <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4">
           <h3 className="text-lg font-semibold mb-4">Server List</h3>
           <div className="space-y-2">
-            {servers.map((server) => (
-              <div
-                key={server.name}
-                className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                  selectedServer?.name === server.name
-                    ? 'border-primary bg-primary/10'
-                    : 'border-base-300 hover:border-primary/50'
-                }`}
-                onClick={() => setSelectedServer(server)}
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">{server.name}</span>
+            {servers.map((server) => {
+              // Display user-friendly name without prefix
+              const displayName = server.name.replace('asa-server-', '');
+              return (
+                <div
+                  key={server.name}
+                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                    selectedServer?.name === server.name
+                      ? 'border-primary bg-primary/10'
+                      : 'border-base-300 hover:border-primary/50'
+                  }`}
+                  onClick={() => setSelectedServer(server)}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{displayName}</span>
                   <div className="flex space-x-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        setSelectedServer(server);
                         setIsEditing(true);
                       }}
                       className="btn btn-xs btn-outline"
@@ -403,17 +407,57 @@ const ArkServersManager = ({ servers, onUpdate }: { servers: any[], onUpdate: ()
                 </label>
                 <input
                   type="text"
-                  value={selectedServer.name}
+                  value={selectedServer.name.replace('asa-server-', '')}
                   className="input input-bordered w-full"
                   readOnly
                 />
               </div>
               <div>
                 <label className="label">
-                  <span className="label-text">Configuration</span>
+                  <span className="label-text">Container Status</span>
                 </label>
-                <div className="bg-base-300 rounded-lg p-3 max-h-64 overflow-y-auto">
-                  <pre className="text-sm">{selectedServer.lines.join('\n')}</pre>
+                <div className="flex items-center space-x-2">
+                  <div className="badge badge-info">Docker Service</div>
+                  <span className="text-sm text-base-content/70">
+                    {selectedServer.lines.length} configuration lines
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="label">
+                  <span className="label-text">Quick Actions</span>
+                </label>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="btn btn-outline btn-sm"
+                  >
+                    Edit Configuration
+                  </button>
+                  <button
+                    onClick={() => handleRemoveServer(selectedServer.name)}
+                    disabled={isRemoving}
+                    className="btn btn-error btn-sm"
+                  >
+                    {isRemoving ? (
+                      <span className="loading loading-spinner loading-xs"></span>
+                    ) : (
+                      'Remove Server'
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="label">
+                  <span className="label-text">Raw Configuration</span>
+                </label>
+                <div className="bg-base-300 rounded-lg p-3 max-h-32 overflow-y-auto">
+                  <pre className="text-xs">{selectedServer.lines.slice(0, 10).join('\n')}</pre>
+                  {selectedServer.lines.length > 10 && (
+                    <div className="text-xs text-base-content/50 mt-2">
+                      ... and {selectedServer.lines.length - 10} more lines
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

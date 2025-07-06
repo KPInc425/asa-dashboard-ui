@@ -14,7 +14,6 @@ interface ArkServerFormData {
   maxPlayers: string;
   mods: string[];
   additionalArgs: string;
-  dataPath: string;
 }
 
 interface ArkServerEditorProps {
@@ -27,7 +26,7 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
   const [formData, setFormData] = useState<ArkServerFormData>({
     name: '',
     containerName: '',
-    image: 'ark:latest',
+    image: 'mschnitzer/asa-linux-server:latest',
     gamePort: '7777',
     rconPort: '32330',
     serverName: '',
@@ -36,8 +35,7 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
     adminPassword: 'admin123',
     maxPlayers: '70',
     mods: [],
-    additionalArgs: '',
-    dataPath: './ark-data'
+    additionalArgs: ''
   });
 
   const [availableMods, setAvailableMods] = useState<any[]>([]);
@@ -80,9 +78,9 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
     // This is a simplified parser - in a real implementation, you'd want more robust parsing
     const lines = serverConfig.lines;
     let parsedData: Partial<ArkServerFormData> = {
-      name: serverConfig.name,
+      name: serverConfig.name.replace('asa-server-', ''), // Remove prefix for display
       containerName: serverConfig.name,
-      image: 'ark:latest',
+      image: 'mschnitzer/asa-linux-server:latest',
       gamePort: '7777',
       rconPort: '32330',
       serverName: '',
@@ -91,8 +89,7 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
       adminPassword: 'admin123',
       maxPlayers: '70',
       mods: [],
-      additionalArgs: '',
-      dataPath: './ark-data'
+      additionalArgs: ''
     };
 
     lines.forEach((line: string) => {
@@ -133,7 +130,18 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
   };
 
   const handleInputChange = (field: keyof ArkServerFormData, value: string | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Auto-generate container name when server name changes
+      if (field === 'name' && typeof value === 'string') {
+        const baseName = value.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const containerName = baseName.startsWith('asa-server-') ? baseName : `asa-server-${baseName}`;
+        newData.containerName = containerName;
+      }
+      
+      return newData;
+    });
   };
 
   const handleModToggle = (modId: string) => {
@@ -200,7 +208,7 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 className="input input-bordered w-full"
-                placeholder="ark-server-theisland"
+                placeholder="theisland"
                 required
               />
             </div>
@@ -208,6 +216,7 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
             <div>
               <label className="label">
                 <span className="label-text">Container Name</span>
+                <span className="label-text-alt text-info">Auto-generated</span>
               </label>
               <input
                 type="text"
@@ -367,32 +376,17 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
           </div>
 
           {/* Additional Configuration */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label">
-                <span className="label-text">Additional Arguments</span>
-              </label>
-              <input
-                type="text"
-                value={formData.additionalArgs}
-                onChange={(e) => handleInputChange('additionalArgs', e.target.value)}
-                className="input input-bordered w-full"
-                placeholder="-servergamelog -nosteam"
-              />
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">Data Path</span>
-              </label>
-              <input
-                type="text"
-                value={formData.dataPath}
-                onChange={(e) => handleInputChange('dataPath', e.target.value)}
-                className="input input-bordered w-full"
-                placeholder="./ark-data"
-              />
-            </div>
+          <div>
+            <label className="label">
+              <span className="label-text">Additional Arguments</span>
+            </label>
+            <input
+              type="text"
+              value={formData.additionalArgs}
+              onChange={(e) => handleInputChange('additionalArgs', e.target.value)}
+              className="input input-bordered w-full"
+              placeholder="-servergamelog -nosteam"
+            />
           </div>
 
           {/* Action Buttons */}
