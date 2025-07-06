@@ -364,35 +364,36 @@ const ArkServersManager = ({ servers, onUpdate }: { servers: any[], onUpdate: ()
                 >
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{displayName}</span>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedServer(server);
-                        setIsEditing(true);
-                      }}
-                      className="btn btn-xs btn-outline"
-                    >
-                      Edit
-                    </button>
-                                         <button
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         handleRemoveServer(server.name);
-                       }}
-                       disabled={isRemoving}
-                       className="btn btn-xs btn-error"
-                     >
-                       {isRemoving ? (
-                         <span className="loading loading-spinner loading-xs"></span>
-                       ) : (
-                         'Remove'
-                       )}
-                     </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedServer(server);
+                          setIsEditing(true);
+                        }}
+                        className="btn btn-xs btn-outline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveServer(server.name);
+                        }}
+                        disabled={isRemoving}
+                        className="btn btn-xs btn-error"
+                      >
+                        {isRemoving ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        ) : (
+                          'Remove'
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
