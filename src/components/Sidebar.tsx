@@ -87,8 +87,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   </div>
                 </div>
                 <div>
-                  <div className="font-medium text-sm">{user.username}</div>
-                  <div className="text-xs text-base-content/70">{user.role || 'User'}</div>
+                  <div className="font-medium text-sm">{user.username || 'Unknown User'}</div>
+                  <div className="text-xs text-base-content/70">{user.role || 'Administrator'}</div>
                 </div>
               </div>
             </div>

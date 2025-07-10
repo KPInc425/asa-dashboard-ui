@@ -586,17 +586,28 @@ export const authApi = {
       }
     } else {
       // Real backend authentication
-      const response = await api.post<AuthResponse>('/api/auth/login', {
+      const response = await api.post<{ success: boolean; token: string; user: any }>('/api/auth/login', {
         username,
         password,
       });
       
-      // Store token in localStorage
-      if (response.data.token) {
+      // Handle backend response format
+      if (response.data.success && response.data.token) {
         localStorage.setItem('auth_token', response.data.token);
+        
+        // Convert backend user format to frontend format
+        const authResponse: AuthResponse = {
+          token: response.data.token,
+          user: {
+            username: response.data.user.username,
+            role: response.data.user.role
+          }
+        };
+        
+        return authResponse;
+      } else {
+        throw new Error(response.data.message || 'Authentication failed');
       }
-      
-      return response.data;
     }
   },
 
@@ -613,8 +624,17 @@ export const authApi = {
       throw new Error('Not authenticated');
     } else {
       // Real backend call
-      const response = await api.get<User>('/api/auth/me');
-      return response.data;
+      const response = await api.get<{ success: boolean; user: any }>('/api/auth/me');
+      
+      // Handle backend response format
+      if (response.data.success && response.data.user) {
+        return {
+          username: response.data.user.username,
+          role: response.data.user.role
+        };
+      } else {
+        throw new Error('Failed to get user info');
+      }
     }
   },
 
@@ -629,7 +649,11 @@ export const authApi = {
    * Check if user is authenticated
    */
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token');
+    console.log('🔍 isAuthenticated check - token:', token ? token.substring(0, 20) + '...' : 'null');
+    const hasToken = !!token;
+    console.log('🔍 isAuthenticated result:', hasToken);
+    return hasToken;
   },
 };
 
