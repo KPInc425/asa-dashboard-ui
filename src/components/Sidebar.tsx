@@ -66,7 +66,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       `}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-end p-4 border-b border-base-300">
+          <div className="flex items-center justify-between p-4 border-b border-base-300">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                <span className="text-primary-content text-lg">🦖</span>
+              </div>
+              <h1 className="text-lg font-semibold text-base-content">ASA Management Suite</h1>
+            </div>
             <button
               onClick={onClose}
               className="lg:hidden btn btn-ghost btn-sm"
@@ -76,23 +82,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               </svg>
             </button>
           </div>
-
-          {/* User Info */}
-          {user && (
-            <div className="p-4 border-b border-base-300">
-              <div className="flex items-center space-x-3">
-                <div className="avatar placeholder">
-                  <div className="w-10 h-10 rounded-full bg-primary text-primary-content">
-                    <span className="text-sm font-medium">{user.username ? user.username.charAt(0).toUpperCase() : 'U'}</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium text-sm">{user.username || 'Unknown User'}</div>
-                  <div className="text-xs text-base-content/70">{user.role || 'Administrator'}</div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2">

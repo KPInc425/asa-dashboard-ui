@@ -23,26 +23,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check if user is already authenticated on app load
     const checkAuth = async () => {
       try {
-        console.log('🔍 Checking authentication...');
-        const hasToken = authApi.isAuthenticated();
-        console.log('🔍 Has token:', hasToken);
-        
-        if (hasToken) {
-          console.log('🔍 Token found, getting current user...');
+        if (authApi.isAuthenticated()) {
           const currentUser = await authApi.getCurrentUser();
-          console.log('🔍 Current user:', currentUser);
           setUser(currentUser);
-        } else {
-          console.log('🔍 No token found, user not authenticated');
-          setUser(null);
         }
       } catch (error) {
-        console.error('❌ Auth check failed:', error);
+        console.error('Auth check failed:', error);
         authApi.logout();
         setUser(null); // Ensure user is set to null when auth check fails
       } finally {
         setIsLoading(false);
-        console.log('🔍 Auth check completed, isLoading:', false);
       }
     };
 

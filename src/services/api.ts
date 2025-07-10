@@ -649,11 +649,7 @@ export const authApi = {
    * Check if user is authenticated
    */
   isAuthenticated: (): boolean => {
-    const token = localStorage.getItem('auth_token');
-    console.log('🔍 isAuthenticated check - token:', token ? token.substring(0, 20) + '...' : 'null');
-    const hasToken = !!token;
-    console.log('🔍 isAuthenticated result:', hasToken);
-    return hasToken;
+    return !!localStorage.getItem('auth_token');
   },
 };
 

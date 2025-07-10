@@ -48,37 +48,34 @@ const Header: React.FC<{ sidebarOpen: boolean; setSidebarOpen: (open: boolean) =
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-              <span className="text-primary-content text-lg">🦖</span>
-            </div>
-            <h1 className="text-lg font-semibold text-base-content">ASA Management Suite</h1>
-          </div>
         </div>
 
         <div className="flex items-center space-x-2">
           {user && user.username ? (
-            <div className="dropdown dropdown-end">
-              <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                  <span className="text-sm font-medium">{user.username.charAt(0).toUpperCase()}</span>
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-base-content/70">Welcome,</span>
+              <span className="text-sm font-medium text-base-content">{user.username}</span>
+              <div className="dropdown dropdown-end">
+                <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
+                  <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                    <span className="text-sm font-medium">{user.username.charAt(0).toUpperCase()}</span>
+                  </div>
                 </div>
+                <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                  <li className="menu-title">
+                    <span className="text-sm text-base-content/70">Signed in as</span>
+                  </li>
+                  <li>
+                    <span className="text-sm font-medium text-base-content">{user.username}</span>
+                  </li>
+                  <li className="divider"></li>
+                  <li>
+                    <button onClick={logout} className="text-error">
+                      Logout
+                    </button>
+                  </li>
+                </ul>
               </div>
-              <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                <li className="menu-title">
-                  <span className="text-sm text-base-content/70">Signed in as</span>
-                </li>
-                <li>
-                  <span className="text-sm font-medium text-base-content">{user.username}</span>
-                </li>
-                <li className="divider"></li>
-                <li>
-                  <button onClick={logout} className="text-error">
-                    Logout
-                  </button>
-                </li>
-              </ul>
             </div>
           ) : (
             <div className="text-sm text-base-content/70">Not signed in</div>
