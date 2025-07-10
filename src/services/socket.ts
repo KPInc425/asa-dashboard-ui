@@ -9,8 +9,20 @@ export interface LogMessage {
   container: string;
 }
 
+// Job progress types
+export interface JobProgress {
+  jobId: string;
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  progress: number; // 0-100
+  message: string;
+  step?: string;
+  error?: string;
+  result?: any;
+}
+
 export interface SocketEvents {
   'log': (data: LogMessage) => void;
+  'job-progress': (data: JobProgress) => void;
   'connect': () => void;
   'disconnect': (reason: string) => void;
   'connect_error': (error: Error) => void;
@@ -214,6 +226,17 @@ class SocketManager {
   }
 
   /**
+   * Subscribe to job progress events
+   */
+  onJobProgress(callback: (data: JobProgress) => void): void {
+    if (this.socket) {
+      this.socket.on('job-progress', (data) => {
+        callback(data);
+      });
+    }
+  }
+
+  /**
    * Unsubscribe from container log events
    */
   offContainerLog(): void {
@@ -228,6 +251,15 @@ class SocketManager {
   offArkLog(): void {
     if (this.socket) {
       this.socket.off('ark-log-data');
+    }
+  }
+
+  /**
+   * Unsubscribe from job progress events
+   */
+  offJobProgress(): void {
+    if (this.socket) {
+      this.socket.off('job-progress');
     }
   }
 
@@ -285,8 +317,10 @@ export const socketService = {
   switchToContainerLogs: () => socketManager.switchToContainerLogs(),
   onContainerLog: (callback: (data: LogMessage) => void) => socketManager.onContainerLog(callback),
   onArkLog: (callback: (data: LogMessage) => void) => socketManager.onArkLog(callback),
+  onJobProgress: (callback: (data: JobProgress) => void) => socketManager.onJobProgress(callback),
   offContainerLog: () => socketManager.offContainerLog(),
   offArkLog: () => socketManager.offArkLog(),
+  offJobProgress: () => socketManager.offJobProgress(),
   onConnect: (callback: () => void) => socketManager.onConnect(callback),
   onDisconnect: (callback: (reason: string) => void) => socketManager.onDisconnect(callback),
   onError: (callback: (error: Error) => void) => socketManager.onError(callback),

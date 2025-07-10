@@ -19,6 +19,16 @@ export interface Container {
   ports?: any[];
   created?: string;
   labels?: Record<string, string>;
+  type?: string;
+  serverCount?: number;
+  maps?: string;
+  map?: string;
+  clusterName?: string;
+  gamePort?: number;
+  queryPort?: number;
+  rconPort?: number;
+  maxPlayers?: number;
+  serverPath?: string;
 }
 
 export interface RconResponse {
@@ -128,8 +138,10 @@ export class ApiError extends Error {
 // Create Axios instance with base configuration
 const createApiInstance = (): AxiosInstance => {
   // Use the working base URL configuration
+  const baseURL = import.meta.env.VITE_API_URL || '/';
+  
   const instance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/',
+    baseURL: baseURL,
     timeout: 30000, // 30 seconds
     headers: {
       'Content-Type': 'application/json',
@@ -142,21 +154,11 @@ const createApiInstance = (): AxiosInstance => {
   instance.interceptors.request.use(
     (config) => {
       const token = localStorage.getItem('auth_token');
-      console.log('=== FRONTEND API REQUEST DEBUG ===');
-      console.log('Full URL:', `${config.baseURL}${config.url}`);
-      console.log('Request URL:', config.url);
-      console.log('Request method:', config.method);
-      console.log('Request headers:', config.headers);
-      console.log('Token from localStorage:', token ? token.substring(0, 20) + '...' : 'NOT FOUND');
       
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('Authorization header set:', `Bearer ${token.substring(0, 20)}...`);
-      } else {
-        console.warn('No auth token found in localStorage');
       }
-      console.log('Final request headers:', config.headers);
-      console.log('=== FRONTEND API REQUEST DEBUG END ===');
+      
       return config;
     },
     (error) => {
@@ -168,20 +170,9 @@ const createApiInstance = (): AxiosInstance => {
   // Response interceptor for error handling
   instance.interceptors.response.use(
     (response: AxiosResponse) => {
-      console.log('=== FRONTEND API RESPONSE DEBUG ===');
-      console.log('Response status:', response.status);
-      console.log('Response URL:', response.config.url);
-      console.log('Response data:', response.data);
-      console.log('=== FRONTEND API RESPONSE DEBUG END ===');
       return response;
     },
     (error: AxiosError) => {
-      console.log('=== FRONTEND API ERROR DEBUG ===');
-      console.log('Error status:', error.response?.status);
-      console.log('Error URL:', error.config?.url);
-      console.log('Error data:', error.response?.data);
-      console.log('Error message:', error.message);
-      console.log('=== FRONTEND API ERROR DEBUG END ===');
       
       if (error.response) {
         // Server responded with error status
@@ -292,6 +283,67 @@ export const containerApi = {
   },
 
   /**
+   * Get list of native servers (including cluster servers)
+   */
+  getNativeServers: async (): Promise<Container[]> => {
+    if (FRONTEND_ONLY_MODE) {
+      // Return mock data for frontend-only mode
+      return MOCK_CONTAINERS;
+    } else {
+      const response = await api.get<{ success: boolean; servers: Container[] }>('/api/native-servers');
+      return response.data.servers;
+    }
+  },
+
+  /**
+   * Start a native server by name
+   */
+  startNativeServer: async (name: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true, message: `Native server ${name} started successfully` };
+    } else {
+      const response = await api.post<{ success: boolean; message: string }>(
+        `/api/native-servers/${encodeURIComponent(name)}/start`
+      );
+      return response.data;
+    }
+  },
+
+  /**
+   * Stop a native server by name
+   */
+  stopNativeServer: async (name: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true, message: `Native server ${name} stopped successfully` };
+    } else {
+      const response = await api.post<{ success: boolean; message: string }>(
+        `/api/native-servers/${encodeURIComponent(name)}/stop`
+      );
+      return response.data;
+    }
+  },
+
+  /**
+   * Restart a native server by name
+   */
+  restartNativeServer: async (name: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      return { success: true, message: `Native server ${name} restarted successfully` };
+    } else {
+      const response = await api.post<{ success: boolean; message: string }>(
+        `/api/native-servers/${encodeURIComponent(name)}/restart`
+      );
+      return response.data;
+    }
+  },
+
+  /**
    * Start a container by name
    */
   startContainer: async (name: string): Promise<{ success: boolean; message: string }> => {
@@ -363,6 +415,36 @@ export const containerApi = {
     } else {
       const response = await api.post<RconResponse>(
         `/api/containers/${encodeURIComponent(name)}/rcon`,
+        { command }
+      );
+      return response.data;
+    }
+  },
+
+  /**
+   * Send RCON command to a native server
+   */
+  sendNativeRconCommand: async (name: string, command: string): Promise<RconResponse> => {
+    if (FRONTEND_ONLY_MODE) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Mock responses for common commands
+      const mockResponses: Record<string, string> = {
+        'listplayers': 'Players online: 3\n1. Player1 (SteamID: 123456789)\n2. Player2 (SteamID: 987654321)\n3. Player3 (SteamID: 456789123)',
+        'saveworld': 'World saved successfully',
+        'broadcast': 'Message broadcasted to all players',
+        'kickplayer': 'Player kicked successfully',
+        'banplayer': 'Player banned successfully',
+        'destroywilddinos': 'All wild dinosaurs destroyed',
+        'shutdown': 'Server shutdown initiated'
+      };
+      
+      const response = mockResponses[command.toLowerCase()] || `Command executed: ${command}`;
+      return { success: true, message: 'Command sent successfully', response };
+    } else {
+      const response = await api.post<RconResponse>(
+        `/api/native-servers/${encodeURIComponent(name)}/rcon`,
         { command }
       );
       return response.data;
@@ -591,108 +673,44 @@ export const environmentApi = {
    */
   getEnvironmentFile: async (): Promise<EnvironmentFile> => {
     if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            content: `# Server Configuration
+      return {
+        success: true,
+        content: `# ASA Management Suite Environment Configuration
+NODE_ENV=development
 PORT=4000
-HOST=0.0.0.0
-NODE_ENV=production
-
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_EXPIRES_IN=24h
-
-# Docker Configuration
-DOCKER_SOCKET_PATH=/var/run/docker.sock
-
-# ASA Server Configuration
-ASA_SERVER_ROOT_PATH=/opt/asa/asa-server
-ASA_CONFIG_SUB_PATH=Config/WindowsServer
-ASA_UPDATE_LOCK_PATH=/opt/asa/.update.lock
-
-# RCON Configuration
-RCON_DEFAULT_PORT=32330
-RCON_PASSWORD=admin
-
-# Rate Limiting
-RATE_LIMIT_MAX=100
-RATE_LIMIT_TIME_WINDOW=900000
-
-# CORS Configuration
-CORS_ORIGIN=https://ark.ilgaming.xyz
-
-# Logging
 LOG_LEVEL=info
-LOG_FILE_PATH=./logs/app.log
-
-# Metrics
-METRICS_ENABLED=true
-
-# Monitoring Service Ports
-PROMETHEUS_PORT=9090
-GRAFANA_PORT=3001
-CADVISOR_PORT=8080
-
-# Grafana Configuration
-GRAFANA_ADMIN_PASSWORD=admin
-GRAFANA_ALLOW_SIGNUP=false
-GRAFANA_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel`,
-            variables: {
-              PORT: '4000',
-              HOST: '0.0.0.0',
-              NODE_ENV: 'production',
-              JWT_SECRET: 'your-super-secret-jwt-key-change-this-in-production',
-              JWT_EXPIRES_IN: '24h',
-              DOCKER_SOCKET_PATH: '/var/run/docker.sock',
-              ASA_SERVER_ROOT_PATH: '/opt/asa/asa-server',
-              ASA_CONFIG_SUB_PATH: 'Config/WindowsServer',
-              ASA_UPDATE_LOCK_PATH: '/opt/asa/.update.lock',
-              RCON_DEFAULT_PORT: '32330',
-              RCON_PASSWORD: 'admin',
-              RATE_LIMIT_MAX: '100',
-              RATE_LIMIT_TIME_WINDOW: '900000',
-              CORS_ORIGIN: 'https://ark.ilgaming.xyz',
-              LOG_LEVEL: 'info',
-              LOG_FILE_PATH: './logs/app.log',
-              METRICS_ENABLED: 'true',
-              PROMETHEUS_PORT: '9090',
-              GRAFANA_PORT: '3001',
-              CADVISOR_PORT: '8080',
-              GRAFANA_ADMIN_PASSWORD: 'admin',
-              GRAFANA_ALLOW_SIGNUP: 'false',
-              GRAFANA_PLUGINS: 'grafana-piechart-panel,grafana-worldmap-panel'
-            },
-            path: '/mock/.env'
-          });
-        }, 500);
-      });
+CORS_ORIGIN=http://localhost:5173
+JWT_SECRET=your-secret-key-here
+NATIVE_BASE_PATH=C:\\ARK
+STEAMCMD_PATH=C:\\SteamCMD`,
+        variables: {
+          NODE_ENV: 'development',
+          PORT: '4000',
+          LOG_LEVEL: 'info',
+          CORS_ORIGIN: 'http://localhost:5173',
+          JWT_SECRET: 'your-secret-key-here',
+          NATIVE_BASE_PATH: 'C:\\ARK',
+          STEAMCMD_PATH: 'C:\\SteamCMD'
+        },
+        path: '.env'
+      };
+    } else {
+      const response = await api.get<EnvironmentFile>('/api/environment');
+      return response.data;
     }
-
-    const response = await api.get('/api/environment');
-    return response.data;
   },
 
   /**
-   * Update environment file
+   * Update environment file content
    */
-  updateEnvironmentFile: async (content: string): Promise<{ success: boolean; message: string; path: string; variables: Record<string, string> }> => {
+  updateEnvironmentFile: async (content: string): Promise<{ success: boolean; message: string }> => {
     if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'Environment file updated successfully (mock)',
-            path: '/mock/.env',
-            variables: {}
-          });
-        }, 1000);
-      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true, message: 'Environment file updated successfully' };
+    } else {
+      const response = await api.put<{ success: boolean; message: string }>('/api/environment', { content });
+      return response.data;
     }
-
-    const response = await api.put('/api/environment', { content });
-    return response.data;
   },
 
   /**
@@ -721,103 +739,38 @@ GRAFANA_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel`,
    */
   getDockerComposeFile: async (): Promise<DockerComposeFile> => {
     if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            content: `services:
-  ark-api:
-    container_name: asa-control-api
-    build: .
+      return {
+        success: true,
+        content: `version: '3.8'
+services:
+  asa-control-api:
+    build: ./asa-docker-control-api
     ports:
-      - "\${PORT:-4000}:\${PORT:-4000}"
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - ./logs:/app/logs
-      - \${ASA_SERVER_ROOT_PATH:-/opt/asa/asa-server}:/opt/asa/asa-server
-    environment:
-      - NODE_ENV=\${NODE_ENV:-production}
-      - DOCKER_SOCKET_PATH=\${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
-      - ASA_CONFIG_SUB_PATH=\${ASA_CONFIG_SUB_PATH:-Config/WindowsServer}
-      - ASA_UPDATE_LOCK_PATH=\${ASA_UPDATE_LOCK_PATH:-/opt/asa/.update.lock}
-      - CORS_ORIGIN=\${CORS_ORIGIN:-https://ark.ilgaming.xyz}
-      - PORT=\${PORT:-4000}
-      - JWT_SECRET=\${JWT_SECRET:-fallback-secret-change-in-production}
-      - JWT_EXPIRES_IN=\${JWT_EXPIRES_IN:-24h}
-      - RCON_DEFAULT_PORT=\${RCON_DEFAULT_PORT:-32330}
-      - RCON_PASSWORD=\${RCON_PASSWORD:-admin}
-      - RATE_LIMIT_MAX=\${RATE_LIMIT_MAX:-100}
-      - RATE_LIMIT_TIME_WINDOW=\${RATE_LIMIT_TIME_WINDOW:-900000}
-      - LOG_LEVEL=\${LOG_LEVEL:-info}
-      - LOG_FILE_PATH=\${LOG_FILE_PATH:-./logs/app.log}
-      - METRICS_ENABLED=\${METRICS_ENABLED:-true}
-    restart: unless-stopped
-    networks:
-      - monitoring
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:\${PORT:-4000}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  asa-server-theisland:
-    container_name: asa-server-theisland
-    image: mschnitzer/asa-linux-server:latest
-    ports:
-      - "7777:7777"
-      - "32330:32330"
-    environment:
-      - SERVER_NAME=The Island Server
-      - MAP_NAME=TheIsland
-      - SERVER_PASSWORD=
-      - ADMIN_PASSWORD=admin123
-      - MAX_PLAYERS=70
-      - MODS=731604991,793605978
-      - ADDITIONAL_ARGS=-servergamelog
-    volumes:
-      - /opt/asa/asa-server/theisland:/opt/asa/asa-server
-    restart: unless-stopped
-    networks:
-      - ark-network
-
-volumes:
-  prometheus_data:
-  grafana_storage:
-
-networks:
-  monitoring:
-    driver: bridge
-  ark-network:
-    driver: bridge`,
-            path: '/mock/docker-compose.yml'
-          });
-        }, 500);
-      });
+    restart: unless-stopped`,
+        path: 'docker-compose.yml'
+      };
+    } else {
+      const response = await api.get<DockerComposeFile>('/api/docker-compose');
+      return response.data;
     }
-
-    const response = await api.get('/api/docker-compose');
-    return response.data;
   },
 
   /**
-   * Update Docker Compose file
+   * Update Docker Compose file content
    */
-  updateDockerComposeFile: async (content: string): Promise<{ success: boolean; message: string; path: string }> => {
+  updateDockerComposeFile: async (content: string): Promise<{ success: boolean; message: string }> => {
     if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'Docker Compose file updated successfully (mock)',
-            path: '/mock/docker-compose.yml'
-          });
-        }, 1000);
-      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true, message: 'Docker Compose file updated successfully' };
+    } else {
+      const response = await api.put<{ success: boolean; message: string }>('/api/docker-compose', { content });
+      return response.data;
     }
-
-    const response = await api.put('/api/docker-compose', { content });
-    return response.data;
   },
 
   /**
@@ -825,46 +778,28 @@ networks:
    */
   getArkServerConfigs: async (): Promise<ArkServerConfigs> => {
     if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            servers: [
-              {
-                name: 'asa-server-theisland',
-                lines: [
-                  '  asa-server-theisland:',
-                  '    container_name: asa-server-theisland',
-                  '    image: mschnitzer/asa-linux-server:latest',
-                  '    ports:',
-                  '      - "7777:7777"',
-                  '      - "32330:32330"',
-                  '    environment:',
-                  '      - SERVER_NAME=The Island Server',
-                  '      - MAP_NAME=TheIsland',
-                  '      - SERVER_PASSWORD=',
-                  '      - ADMIN_PASSWORD=admin123',
-                  '      - MAX_PLAYERS=70',
-                  '      - MODS=731604991,793605978',
-                  '      - ADDITIONAL_ARGS=-servergamelog',
-                  '    volumes:',
-                  '      - /opt/asa/asa-server/theisland:/opt/asa/asa-server',
-                  '    restart: unless-stopped',
-                  '    networks:',
-                  '      - ark-network'
-                ],
-                startLine: 35,
-                endLine: 52
-              }
-            ],
-            count: 1
-          });
-        }, 500);
-      });
+      return {
+        success: true,
+        servers: [
+          {
+            name: 'asa-server-theisland',
+            lines: ['[/script/shootergame/shootergamemode]', 'HarvestAmountMultiplier=3.0', 'XPMultiplier=3.0'],
+            startLine: 1,
+            endLine: 3
+          },
+          {
+            name: 'asa-server-ragnarok',
+            lines: ['[/script/shootergame/shootergamemode]', 'HarvestAmountMultiplier=2.5', 'XPMultiplier=2.5'],
+            startLine: 1,
+            endLine: 3
+          }
+        ],
+        count: 2
+      };
+    } else {
+      const response = await api.get<ArkServerConfigs>('/api/ark-servers');
+      return response.data;
     }
-
-    const response = await api.get('/api/ark-servers');
-    return response.data;
   },
 
   /**
@@ -988,6 +923,368 @@ networks:
   }
 };
 
+// Provisioning API
+export const provisioningApi = {
+  /**
+   * Get system information for provisioning
+   */
+  getSystemInfo: async (): Promise<any> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+                  resolve({
+          success: true,
+          systemInfo: {
+            diskSpace: { total: 1000000000000, free: 500000000000, used: 500000000000, usagePercent: 50, drive: 'G' },
+            memory: { total: 16000000000, free: 8000000000, used: 8000000000 },
+            steamCmdInstalled: true,
+            steamCmdPath: 'C:\\SteamCMD\\steamcmd.exe',
+            asaBinariesInstalled: true,
+            basePath: 'G:\\ARK'
+          }
+        });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/system-info');
+    const data = response.data;
+    
+    // Transform the response to match expected structure
+    if (data.success && data.status) {
+      return {
+        success: true,
+        status: {
+          diskSpace: { 
+            total: data.status.diskSpace?.total || 0,
+            free: data.status.diskSpace?.free || 0,
+            used: data.status.diskSpace?.used || 0,
+            usagePercent: data.status.diskSpace?.usagePercent || 0,
+            drive: data.status.diskSpace?.drive
+          },
+          memory: { 
+            total: data.status.memory?.total || 0,
+            free: data.status.memory?.free || 0,
+            used: data.status.memory?.used || 0,
+            usagePercent: data.status.memory?.usagePercent || 0
+          },
+          steamCmdInstalled: data.status.steamCmdInstalled || false,
+          steamCmdPath: data.status.steamCmdPath,
+          asaBinariesInstalled: data.status.asaBinariesInstalled || false,
+          basePath: data.status.basePath || 'C:\\ARK',
+          platform: data.status.platform,
+          arch: data.status.arch,
+          nodeVersion: data.status.nodeVersion,
+          cpuCores: data.status.cpuCores
+        }
+      };
+    }
+    return data;
+  },
+
+  /**
+   * Get system requirements (alias for getSystemInfo)
+   */
+  getRequirements: async (): Promise<any> => {
+    return provisioningApi.getSystemInfo();
+  },
+
+  /**
+   * Initialize provisioning system
+   */
+  initialize: async (): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'System initialized successfully (mock)'
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/initialize');
+    return response.data;
+  },
+
+  /**
+   * Install SteamCMD
+   */
+  installSteamCmd: async (foreground: boolean = false): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'SteamCMD installed successfully (mock)'
+          });
+        }, 3000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/install-steamcmd', { foreground });
+    return response.data;
+  },
+
+  /**
+   * Find existing SteamCMD
+   */
+  findSteamCmd: async (): Promise<{ success: boolean; steamCmdPath?: string; found: boolean }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            steamCmdPath: 'C:\\SteamCMD\\steamcmd.exe',
+            found: true
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/find-steamcmd');
+    return response.data;
+  },
+
+  /**
+   * Configure SteamCMD
+   */
+  configureSteamCmd: async (config: { customPath?: string; autoInstall?: boolean }): Promise<{ success: boolean; message: string; steamCmdPath: string; autoInstall: boolean }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'SteamCMD configured successfully (mock)',
+            steamCmdPath: config.customPath || 'C:\\SteamCMD\\steamcmd.exe',
+            autoInstall: config.autoInstall || false
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/configure-steamcmd', config);
+    return response.data;
+  },
+
+  /**
+   * Install ASA binaries
+   */
+  installASABinaries: async (foreground: boolean = false): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'ASA binaries installed successfully (mock)'
+          });
+        }, 5000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/install-asa-binaries', { foreground });
+    return response.data;
+  },
+
+  /**
+   * Update ASA binaries
+   */
+  updateASABinaries: async (): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'ASA binaries updated successfully (mock)'
+          });
+        }, 3000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/update-asa');
+    return response.data;
+  },
+
+  /**
+   * List clusters
+   */
+  listClusters: async (): Promise<{ success: boolean; clusters: any[] }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            clusters: [
+              {
+                name: 'TestCluster',
+                description: 'A test cluster',
+                basePort: 7777,
+                serverCount: 2,
+                created: new Date().toISOString(),
+                servers: [
+                  { name: 'TestCluster-Server1', gamePort: 7777 },
+                  { name: 'TestCluster-Server2', gamePort: 7778 }
+                ]
+              }
+            ]
+          });
+        }, 500);
+      });
+    }
+
+    console.log('Making API call to /api/provisioning/clusters');
+    const response = await api.get('/api/provisioning/clusters');
+    console.log('API response:', response);
+    console.log('API response.data:', response.data);
+    console.log('API response.data.clusters:', response.data.clusters);
+    console.log('API response.data.clusters[0]:', response.data.clusters?.[0]);
+    return response.data;
+  },
+
+  /**
+   * Create cluster
+   */
+  createCluster: async (config: any): Promise<{ success: boolean; cluster?: any; message: string; jobId?: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            cluster: config,
+            message: 'Cluster created successfully (mock)',
+            jobId: 'mock-job-id'
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/clusters', config);
+    return response.data;
+  },
+
+  /**
+   * Get job status
+   */
+  getJobStatus: async (jobId: string): Promise<{ success: boolean; job?: any; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            job: {
+              id: jobId,
+              status: 'completed',
+              progress: 100,
+              message: 'Job completed successfully (mock)'
+            },
+            message: 'Job status retrieved successfully (mock)'
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get(`/api/provisioning/jobs/${jobId}`);
+    return response.data;
+  },
+
+  /**
+   * Delete cluster
+   */
+  deleteCluster: async (name: string, force: boolean = false): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${name} ${force ? 'force ' : ''}deleted successfully (mock)`
+          });
+        }, 1000);
+      });
+    }
+
+    const url = force 
+      ? `/api/provisioning/clusters/${name}?force=true`
+      : `/api/provisioning/clusters/${name}`;
+      
+    const response = await api.delete(url);
+    return response.data;
+  }
+};
+
+// Provisioning API
+export const initializeSystem = async (): Promise<{ success: boolean; message: string }> => {
+  const response = await api.post<{ success: boolean; message: string }>('/api/provisioning/initialize');
+  if (!response.data.success) {
+    throw new ApiError('Failed to initialize system', 500, response.data);
+  }
+  return response.data;
+};
+
+export const installSteamCmd = async (): Promise<{ success: boolean; message: string }> => {
+  const response = await api.post<{ success: boolean; message: string }>('/api/provisioning/install-steamcmd');
+  if (!response.data.success) {
+    throw new ApiError('Failed to install SteamCMD', 500, response.data);
+  }
+  return response.data;
+};
+
+export const createServer = async (serverConfig: any): Promise<{ success: boolean; message: string }> => {
+  const response = await api.post<{ success: boolean; message: string }>('/api/provisioning/create-server', serverConfig);
+  if (!response.data.success) {
+    throw new ApiError('Failed to create server', 500, response.data);
+  }
+  return response.data;
+};
+
+export const createCluster = async (clusterConfig: any): Promise<{ success: boolean; message: string }> => {
+  const response = await api.post<{ success: boolean; message: string }>('/api/provisioning/clusters', clusterConfig);
+  if (!response.data.success) {
+    throw new ApiError('Failed to create cluster', 500, response.data);
+  }
+  return response.data;
+};
+
+export const getServers = async (): Promise<any[]> => {
+  const response = await api.get<{ success: boolean; servers: any[] }>('/api/provisioning/servers');
+  if (!response.data.success) {
+    throw new ApiError('Failed to get servers', 500, response.data);
+  }
+  return response.data.servers;
+};
+
+export const getClusters = async (): Promise<any[]> => {
+  const response = await api.get<{ success: boolean; clusters: any[] }>('/api/provisioning/clusters');
+  if (!response.data.success) {
+    throw new ApiError('Failed to get clusters', 500, response.data);
+  }
+  return response.data.clusters;
+};
+
+export const deleteServer = async (serverName: string): Promise<{ success: boolean; message: string }> => {
+  const response = await api.delete<{ success: boolean; message: string }>(`/api/provisioning/servers/${encodeURIComponent(serverName)}`);
+  if (!response.data.success) {
+    throw new ApiError('Failed to delete server', 500, response.data);
+  }
+  return response.data;
+};
+
+export const deleteCluster = async (clusterName: string): Promise<{ success: boolean; message: string }> => {
+  const response = await api.delete<{ success: boolean; message: string }>(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}`);
+  if (!response.data.success) {
+    throw new ApiError('Failed to delete cluster', 500, response.data);
+  }
+  return response.data;
+};
+
+export const updateAllServers = async (): Promise<{ success: boolean; message: string }> => {
+  const response = await api.post<{ success: boolean; message: string }>('/api/provisioning/update-all-servers');
+  if (!response.data.success) {
+    throw new ApiError('Failed to update all servers', 500, response.data);
+  }
+  return response.data;
+};
+
 // Export all APIs as a single object for convenience
 export const apiService = {
   containers: containerApi,
@@ -996,6 +1293,7 @@ export const apiService = {
   auth: authApi,
   logs: logsApi,
   environment: environmentApi,
+  provisioning: provisioningApi,
 };
 
 export default apiService; 

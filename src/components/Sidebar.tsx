@@ -1,90 +1,134 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { useAuth } from '../App';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
-const Sidebar = () => {
-  const { user, logout } = useAuth();
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
-
-  const navItems = [
-    { path: '/', label: 'Dashboard', icon: '🏠' },
-    { path: '/containers', label: 'Servers', icon: '🖥️' },
-    { path: '/configs', label: 'Configs', icon: '⚙️' },
-    { path: '/environment', label: 'Environment', icon: '🔧' },
-  ];
+  const { user } = useAuth();
 
   const isActive = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/';
-    }
-    return location.pathname.startsWith(path);
+    return location.pathname === path;
   };
 
+  const menuItems = [
+    {
+      path: '/',
+      label: 'Dashboard',
+      icon: '📊',
+      description: 'Overview and statistics'
+    },
+    {
+      path: '/servers',
+      label: 'Servers',
+      icon: '🦖',
+      description: 'Manage ARK servers (containers & native)'
+    },
+    {
+      path: '/configs',
+      label: 'Configs',
+      icon: '📝',
+      description: 'Edit server configurations'
+    },
+    {
+      path: '/logs',
+      label: 'System Logs',
+      icon: '📋',
+      description: 'API and system logs'
+    },
+    {
+      path: '/provisioning',
+      label: 'Provisioning',
+      icon: '🏗️',
+      description: 'Create servers and clusters'
+    }
+  ];
+
   return (
-    <aside className="w-64 h-full bg-base-200 border-r border-base-300 flex flex-col">
-      {/* Header */}
-      <div className="p-4 lg:p-6 border-b border-base-300">
-        <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center animate-pulse">
-            <span className="text-xl">🦖</span>
-          </div>
-          <div className="hidden lg:block">
-            <h1 className="text-lg font-bold text-primary">ARK Dashboard</h1>
-            <p className="text-xs text-base-content/70">Server Management</p>
-            <div className="badge badge-warning badge-xs mt-1">Frontend Mode</div>
-          </div>
-        </div>
-      </div>
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      {/* Navigation */}
-      <nav className="flex-1 p-0">
-        <ul className="menu menu-lg menu-vertical rounded-none">
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <NavLink
+      {/* Sidebar */}
+      <div className={`
+        fixed top-0 left-0 h-full w-64 bg-base-100 shadow-xl z-50 transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        lg:relative lg:translate-x-0
+      `}>
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-end p-4 border-b border-base-300">
+            <button
+              onClick={onClose}
+              className="lg:hidden btn btn-ghost btn-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* User Info */}
+          {user && (
+            <div className="p-4 border-b border-base-300">
+              <div className="flex items-center space-x-3">
+                <div className="avatar placeholder">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-content">
+                    <span className="text-sm font-medium">{user.username ? user.username.charAt(0).toUpperCase() : 'U'}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-medium text-sm">{user.username}</div>
+                  <div className="text-xs text-base-content/70">{user.role || 'User'}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-2">
+            {menuItems.map((item) => (
+              <Link
+                key={item.path}
                 to={item.path}
-                className={({ isActive: navIsActive }) =>
-                  `flex items-center space-x-3 px-4 py-3 rounded-none transition-all duration-200 hover:scale-105 ${
-                    isActive(item.path) || navIsActive
-                      ? 'bg-primary text-primary-content shadow-lg shadow-primary/25'
-                      : 'text-base-content hover:bg-base-300'
-                  }`
-                }
-                end={item.path === '/'}
+                onClick={onClose}
+                className={`
+                  flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 group
+                  ${isActive(item.path) 
+                    ? 'bg-primary text-primary-content shadow-lg' 
+                    : 'hover:bg-base-200 text-base-content'
+                  }
+                `}
               >
-                <span className="text-lg">{item.icon}</span>
-                <span className="font-medium">{item.label}</span>
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
+                <span className="text-xl">{item.icon}</span>
+                <div className="flex-1">
+                  <div className="font-medium">{item.label}</div>
+                  <div className={`text-xs ${isActive(item.path) ? 'text-primary-content/70' : 'text-base-content/50'}`}>
+                    {item.description}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </nav>
 
-      {/* User Section */}
-      <div className="p-4 border-t border-base-300">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center">
-              <span className="text-sm font-bold text-accent-content">
-                {user?.username?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="hidden lg:block">
-              <p className="text-sm font-medium">{user?.username}</p>
-              <p className="text-xs text-base-content/70">{user?.role || 'Admin'}</p>
+          {/* Footer */}
+          <div className="p-4 border-t border-base-300">
+            <div className="text-xs text-base-content/50 text-center">
+              ASA Management Suite v1.0
             </div>
           </div>
-          <button
-            onClick={logout}
-            className="btn btn-ghost btn-sm text-error hover:bg-error hover:text-error-content"
-            title="Logout"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
         </div>
       </div>
-    </aside>
+    </>
   );
 };
 

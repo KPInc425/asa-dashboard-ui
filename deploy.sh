@@ -31,30 +31,30 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    print_error "docker-compose is not installed. Please install it and try again."
+# Check if docker compose is available
+if ! command -v docker &> /dev/null; then
+    print_error "docker is not installed. Please install it and try again."
     exit 1
 fi
 
 # Build the image
 print_status "Building ARK Dashboard Docker image..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Stop existing containers
 print_status "Stopping existing containers..."
-docker-compose down
+docker compose down
 
 # Start the services
 print_status "Starting ARK Dashboard..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for container to be healthy
 print_status "Waiting for container to be healthy..."
 timeout=60
 counter=0
 while [ $counter -lt $timeout ]; do
-    if docker-compose ps | grep -q "healthy"; then
+    if docker compose ps | grep -q "healthy"; then
         print_status "Container is healthy!"
         break
     fi
@@ -65,7 +65,7 @@ done
 
 if [ $counter -eq $timeout ]; then
     print_warning "Container health check timeout. Checking logs..."
-    docker-compose logs ark-dashboard
+    docker compose logs ark-dashboard
 else
     print_status "ARK Dashboard is running successfully!"
     echo ""
@@ -73,11 +73,11 @@ else
     echo "   http://localhost:3001"
     echo ""
     echo "🔧 Management commands:"
-    echo "   View logs:     docker-compose logs -f ark-dashboard"
-    echo "   Stop:          docker-compose down"
-    echo "   Restart:       docker-compose restart ark-dashboard"
+    echo "   View logs:     docker compose logs -f ark-dashboard"
+    echo "   Stop:          docker compose down"
+    echo "   Restart:       docker compose restart ark-dashboard"
     echo "   Update:        ./deploy.sh"
     echo ""
     echo "📋 Container status:"
-    docker-compose ps
+    docker compose ps
 fi 

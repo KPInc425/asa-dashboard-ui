@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -59,6 +59,7 @@ const Login = () => {
                 onChange={(e) => setUsername(e.target.value)}
                 className="input input-bordered hover:scale-105 transition-transform duration-200"
                 placeholder="Enter username"
+                autoComplete="username"
                 required
               />
             </div>
@@ -73,6 +74,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="input input-bordered hover:scale-105 transition-transform duration-200"
                 placeholder="Enter password"
+                autoComplete="current-password"
                 required
               />
             </div>

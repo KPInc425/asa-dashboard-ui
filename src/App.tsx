@@ -1,148 +1,157 @@
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect, createContext, useContext } from 'react';
-import { authApi } from './services';
-import type { User } from './services';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import ContainerList from './components/ContainerList';
-import RconConsole from './components/RconConsole';
-import ConfigEditor from './components/ConfigEditor';
-import LogViewer from './components/LogViewer';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Sidebar from './components/Sidebar';
-import LoadingSpinner from './components/LoadingSpinner';
+import Dashboard from './pages/Dashboard';
+import Servers from './pages/Servers';
 import Configs from './pages/Configs';
-import EnvironmentEditor from './components/EnvironmentEditor';
+import RconConsole from './components/RconConsole';
+import LogViewer from './components/LogViewer';
+import ServerLogViewer from './components/ServerLogViewer';
+import Provisioning from './pages/Provisioning';
+import Login from './pages/Login';
 
-// Authentication context
-interface AuthContextType {
-  user: User | null;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
-}
+// Protected Route Component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-// Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
   if (isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="flex items-center justify-center h-screen bg-base-200">
+        <div className="text-center">
+          <div className="loading loading-spinner loading-lg text-primary"></div>
+          <p className="mt-4 text-base-content">Loading...</p>
+        </div>
+      </div>
+    );
   }
-  return user ? <>{children}</> : <Navigate to="/login" replace />;
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
 };
 
-// Auth provider component
-const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        if (authApi.isAuthenticated()) {
-          const currentUser = await authApi.getCurrentUser();
-          setUser(currentUser);
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        authApi.logout();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    checkAuth();
-  }, []);
-
-  const login = async (username: string, password: string) => {
-    const response = await authApi.login(username, password);
-    setUser(response.user);
-  };
-
-  const logout = () => {
-    authApi.logout();
-    setUser(null);
-  };
+const Header: React.FC<{ sidebarOpen: boolean; setSidebarOpen: (open: boolean) => void }> = ({ sidebarOpen, setSidebarOpen }) => {
+  const { user, logout } = useAuth();
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
-      {children}
-    </AuthContext.Provider>
+    <header className="bg-base-100 shadow-sm border-b border-base-300">
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden btn btn-ghost btn-sm"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+              <span className="text-primary-content text-lg">🦖</span>
+            </div>
+            <h1 className="text-lg font-semibold text-base-content">ASA Management Suite</h1>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          {user && user.username ? (
+            <div className="dropdown dropdown-end">
+              <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                  <span className="text-sm font-medium">{user.username.charAt(0).toUpperCase()}</span>
+                </div>
+              </div>
+              <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                <li className="menu-title">
+                  <span className="text-sm text-base-content/70">Signed in as</span>
+                </li>
+                <li>
+                  <span className="text-sm font-medium text-base-content">{user.username}</span>
+                </li>
+                <li className="divider"></li>
+                <li>
+                  <button onClick={logout} className="text-error">
+                    Logout
+                  </button>
+                </li>
+              </ul>
+            </div>
+          ) : (
+            <div className="text-sm text-base-content/70">Not signed in</div>
+          )}
+        </div>
+      </div>
+    </header>
   );
 };
 
-// Main layout using daisyUI drawer
-const MainLayout = () => {
-  return (
-    <div className="drawer lg:drawer-open h-screen">
-      {/* Drawer toggle for mobile */}
-      <input id="dashboard-drawer" type="checkbox" className="drawer-toggle" />
-      <div className="drawer-content flex flex-col">
-        {/* Mobile navbar/header */}
-        <div className="w-full navbar bg-base-200 border-b border-base-300 lg:hidden">
-          <div className="flex-none">
-            <label htmlFor="dashboard-drawer" className="btn btn-square btn-ghost drawer-button">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </label>
-          </div>
-          <div className="flex-1 flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-              <span className="text-sm">🦖</span>
-            </div>
-            <span className="font-bold text-primary">ARK Dashboard</span>
-          </div>
-        </div>
-        {/* Main content area */}
-        <div className="flex-1 overflow-auto">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/containers" element={<ContainerList />} />
-            <Route path="/rcon/:containerName" element={<RconConsole />} />
-            <Route path="/configs" element={<Configs />} />
-            <Route path="/configs/:map" element={<ConfigEditor />} />
-            <Route path="/environment" element={<EnvironmentEditor />} />
-            <Route path="/logs/:containerName" element={<LogViewer />} />
-          </Routes>
+const AppContent: React.FC = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-base-200">
+        <div className="text-center">
+          <div className="loading loading-spinner loading-lg text-primary"></div>
+          <p className="mt-4 text-base-content">Loading...</p>
         </div>
       </div>
-      <div className="drawer-side">
-        <label htmlFor="dashboard-drawer" className="drawer-overlay lg:hidden"></label>
-        <Sidebar />
+    );
+  }
+
+  // If not authenticated, show login page
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-base-200">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-base-200">
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Navigation */}
+        <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/servers" element={<Servers />} />
+            <Route path="/configs" element={<Configs />} />
+            <Route path="/logs" element={<LogViewer />} />
+            <Route path="/logs/:serverName" element={<ServerLogViewer />} />
+            <Route path="/provisioning" element={<Provisioning />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
       </div>
     </div>
   );
 };
 
-function App() {
+const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-base-100 text-base-content animate-in fade-in duration-500">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <MainLayout />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </div>
+        <AppContent />
       </Router>
     </AuthProvider>
   );
-}
+};
 
 export default App;

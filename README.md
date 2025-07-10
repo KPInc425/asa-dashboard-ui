@@ -115,6 +115,16 @@ The dashboard includes a frontend-only mode for testing without a backend server
 4. **Switch to Backend Mode**
    When your backend is ready, set `VITE_FRONTEND_ONLY=false` or remove the variable from `.env`
 
+## Unified Startup (Optional)
+
+If you have both the backend and frontend repos in the same parent folder, you can use the `start-asa-suite.ps1` script and `docker-compose.unified.yml` to start both at once. These files are copies for convenience; the latest version is maintained at the root of the suite if you have one.
+
+- To start both: `powershell -ExecutionPolicy Bypass -File start-asa-suite.ps1 unified`
+- To start only backend: `powershell -ExecutionPolicy Bypass -File start-asa-suite.ps1 backend`
+- To start only frontend: `powershell -ExecutionPolicy Bypass -File start-asa-suite.ps1 frontend`
+
+Otherwise, use the individual scripts as usual.
+
 ## 🏗️ Architecture
 
 ### Frontend Stack
@@ -220,7 +230,7 @@ Custom CSS animations are available:
 1. **Build and run with Docker Compose:**
    ```bash
    # Build and start the container
-   docker-compose up -d
+   docker compose up -d
    
    # Or use the deployment script
    chmod +x deploy.sh
@@ -229,140 +239,3 @@ Custom CSS animations are available:
 
 2. **Access the dashboard:**
    - Frontend-only mode: `http://localhost:4010`
-   - Login with: `admin` / `admin123`
-
-### Docker Configuration
-
-#### **Environment Variables**
-```env
-# In docker-compose.yml or .env file
-DASHBOARD_PORT=4010                    # Dashboard port (configurable)
-BACKEND_API_URL=http://your-ark-server:4000  # Backend URL
-VITE_FRONTEND_ONLY=false               # Frontend-only mode
-```
-
-#### **Port Configuration**
-```yaml
-# In docker-compose.yml
-ports:
-  - "${DASHBOARD_PORT:-4010}:80"  # Configurable port, defaults to 4010
-```
-
-#### **Nginx Proxy Setup**
-The container includes nginx with:
-- ✅ **SPA Routing** - React Router support
-- ✅ **Gzip Compression** - Optimized assets
-- ✅ **Security Headers** - XSS protection, etc.
-- ✅ **Health Checks** - Container monitoring
-- ✅ **API Proxying** - Ready for backend integration
-
-### Production Deployment
-
-#### **With Traefik (Recommended)**
-```yaml
-# docker-compose.yml
-labels:
-  - "traefik.enable=true"
-  - "traefik.http.routers.ark-dashboard.rule=Host(`ark-dashboard.yourdomain.com`)"
-  - "traefik.http.routers.ark-dashboard.tls=true"
-  - "traefik.http.routers.ark-dashboard.tls.certresolver=letsencrypt"
-```
-
-#### **With Custom Nginx Proxy**
-1. Copy `nginx.production.conf` to your nginx server
-2. Update the `proxy_pass` URLs to point to your backend
-3. Configure SSL certificates
-
-### Management Commands
-```bash
-# View logs
-docker-compose logs -f ark-dashboard
-
-# Restart container
-docker-compose restart ark-dashboard
-
-# Stop all services
-docker-compose down
-
-# Update and redeploy
-./deploy.sh
-
-# Check container status
-docker-compose ps
-```
-
-## 🧪 Development
-
-### Available Scripts
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-```
-
-### Development Notes
-- Uses Vite for fast hot module replacement
-- TypeScript for type safety
-- ESLint for code quality
-- Tailwind CSS v4 with DaisyUI v5 for styling
-- Monaco Editor for configuration editing
-- Socket.IO for real-time features
-
-## 🔧 Configuration
-
-### Environment Variables
-```env
-# Dashboard Configuration
-DASHBOARD_PORT=4010
-
-# Backend Configuration (when not using frontend-only mode)
-BACKEND_API_URL=http://your-ark-server:4000
-VITE_API_URL=http://your-ark-server:4000
-
-# Frontend-only mode (set to true for testing without backend)
-VITE_FRONTEND_ONLY=false
-
-# Optional: Override default timeout
-VITE_API_TIMEOUT=30000
-
-# Optional: Enable debug logging
-VITE_DEBUG=true
-```
-
-### Backend Requirements
-Your backend should implement:
-- RESTful API endpoints for container management
-- WebSocket support for real-time log streaming
-- JWT authentication
-- CORS configuration for frontend access
-
-## 📱 Browser Support
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **ARK: Survival Ascended** - For the amazing game that inspired this dashboard
-- **React Team** - For the incredible framework
-- **Tailwind CSS** - For the utility-first CSS framework
-- **DaisyUI** - For the beautiful component library
-- **Monaco Editor** - For the powerful code editor
-
----
-
-**Survive, Build, Tame, and Manage with ARK Dashboard! 🦖**

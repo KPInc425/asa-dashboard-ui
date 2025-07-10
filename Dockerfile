@@ -1,5 +1,5 @@
 # Multi-stage build for ARK Dashboard
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -12,6 +12,15 @@ RUN npm ci
 
 # Copy source code and config files
 COPY . .
+
+# Copy .env file if it exists (for build-time environment variables)
+COPY .env* ./
+
+# Set build-time environment variables with fallbacks
+ARG VITE_API_URL
+ARG VITE_FRONTEND_ONLY
+ENV VITE_API_URL=${VITE_API_URL:-http://localhost:4000}
+ENV VITE_FRONTEND_ONLY=${VITE_FRONTEND_ONLY:-false}
 
 # Build the application
 RUN npm run build

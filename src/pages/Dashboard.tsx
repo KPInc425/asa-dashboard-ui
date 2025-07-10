@@ -1,299 +1,367 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { containerApi, lockApi, type Container, type LockStatus } from '../services';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api, apiService } from '../services/api';
+import LoadingSpinner from '../components/LoadingSpinner';
+import ConfigEditor from '../components/ConfigEditor';
 
-// Add Port type for Dockerode port objects
-interface Port {
-  IP?: string;
-  PrivatePort: number;
-  PublicPort?: number;
-  Type: string;
+interface SystemInfo {
+  mode: string;
+  platform: string;
+  nodeVersion: string;
+  uptime: number;
+  memoryUsage: any;
+  dockerEnabled: boolean;
+  powershellEnabled: boolean;
+  nativeBasePath: string;
+  nativeClustersPath: string;
 }
 
-// Helper to render port info
-const renderPort = (portObj: Port) => {
-  if (!portObj) return '-';
-  if (typeof portObj === 'string') return portObj;
-  const { IP, PrivatePort, PublicPort, Type } = portObj;
-  if (PublicPort) {
-    return `${IP ? IP + ':' : ''}${PublicPort} → ${PrivatePort}/${Type}`;
-  }
-  return `${PrivatePort}/${Type}`;
-};
+interface Cluster {
+  name: string;
+  path: string;
+  config: any;
+  created: string;
+  servers?: Server[]; // Make servers optional since it's not always present
+}
 
-const API_SUITE_NAMES = [
-  'asa-control-api',
-  'asa-control-grafana',
-  'asa-control-prometheus',
-  'asa-control-cadvisor',
-];
-const HIDDEN_KEY = 'ark_dashboard_hidden_containers';
-const getHiddenContainers = () => {
-  try {
-    return JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]');
-  } catch {
-    return [];
-  }
-};
-const setHiddenContainers = (arr: string[]) => {
-  localStorage.setItem(HIDDEN_KEY, JSON.stringify(arr));
-};
+interface Server {
+  name: string;
+  map: string;
+  port: number;
+  status: 'running' | 'stopped' | 'starting' | 'stopping';
+  players: number;
+  maxPlayers: number;
+}
 
-const SYSTEM_LINKS: Record<string, { label: string; url: string }> = {
-  'asa-control-grafana': { label: 'Grafana', url: 'http://ark.ilgaming.xyz:3001' },
-  'asa-control-prometheus': { label: 'Prometheus', url: 'http://ark.ilgaming.xyz:9090' },
-  'asa-control-cadvisor': { label: 'cAdvisor', url: 'http://ark.ilgaming.xyz:8080' },
-  'asa-control-api': { label: 'API Logs', url: '/api/logs/asa-control-api' },
-};
-
-const Dashboard = () => {
-  const [containers, setContainers] = useState<Container[]>([]);
-  const [lockStatus, setLockStatus] = useState<LockStatus | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showHidden, setShowHidden] = useState(false);
-  const [hidden, setHidden] = useState<string[]>(getHiddenContainers());
+const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [clusters, setClusters] = useState<Cluster[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showConfigEditor, setShowConfigEditor] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [containersData, lockData] = await Promise.all([
-          containerApi.getContainers(),
-          lockApi.getLockStatus()
-        ]);
-        // Label-based hiding
-        const hiddenByLabel = containersData.filter(c => c.labels && c.labels['ark.dashboard.exclude'] === 'true').map(c => c.name);
-        const allHidden = Array.from(new Set([...hidden, ...hiddenByLabel]));
-        setHidden(allHidden);
-        setHiddenContainers(allHidden);
-        setLockStatus(lockData);
-        // Filter containers for display
-        setContainers(
-          containersData.filter(c =>
-            !API_SUITE_NAMES.includes(c.name) &&
-            (showHidden ? true : !allHidden.includes(c.name))
-          )
-        );
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
-      } finally {
-        setIsLoading(false);
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [systemResponse, clustersResponse] = await Promise.all([
+        api.get('/api/system/info'),
+        apiService.provisioning.listClusters()
+      ]);
+
+      if (systemResponse.data.success) {
+        setSystemInfo(systemResponse.data.systemInfo);
       }
-    };
-    fetchData();
-    // eslint-disable-next-line
-  }, [showHidden]);
 
-  // Hide/unhide logic (update UI immediately)
-  const handleHide = (name: string) => {
-    const newHidden = Array.from(new Set([...hidden, name]));
-    setHidden(newHidden);
-    setHiddenContainers(newHidden);
-    setContainers(containers.filter(c => c.name !== name));
-  };
-  const handleUnhide = (name: string) => {
-    const newHidden = hidden.filter(n => n !== name);
-    setHidden(newHidden);
-    setHiddenContainers(newHidden);
-    // Add back to containers if it matches filter
-    // (In a real app, you'd re-fetch, but here we just update state)
+      if (clustersResponse.success) {
+        setClusters(clustersResponse.clusters);
+      }
+    } catch (err: any) {
+      setError('Failed to load dashboard data');
+      console.error('Error loading dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const runningServers = containers.filter(c => c.status === 'running').length;
-  const totalServers = containers.length;
+
+
+  const getModeDisplayName = (mode: string) => {
+    switch (mode) {
+      case 'docker': return 'Docker Mode';
+      case 'native': return 'Native Windows Mode';
+      case 'hybrid': return 'Hybrid Mode';
+      default: return mode;
+    }
+  };
+
+  const getModeDescription = (mode: string) => {
+    switch (mode) {
+      case 'docker':
+        return 'Running in Docker containers with full isolation';
+      case 'native':
+        return 'Running directly on Windows with native performance';
+      case 'hybrid':
+        return 'Mixed Docker and native deployment';
+      default:
+        return 'Unknown deployment mode';
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'running': return 'text-success';
-      case 'stopped': return 'text-error';
-      case 'restarting': return 'text-warning';
-      default: return 'text-base-content/50';
+      case 'running': return 'badge-success';
+      case 'stopped': return 'badge-error';
+      case 'starting': return 'badge-warning';
+      case 'stopping': return 'badge-info';
+      default: return 'badge-neutral';
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'running': return '🟢';
-      case 'stopped': return '🔴';
-      case 'restarting': return '🟡';
-      default: return '⚪';
-    }
+  const formatUptime = (seconds: number) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="animate-spin inline-block mb-4">
-            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"></div>
-          </div>
-          <p className="text-base-content/70">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  const formatMemoryUsage = (usage: any) => {
+    const mb = usage.used / 1024 / 1024;
+    return `${mb.toFixed(1)} MB`;
+  };
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="alert alert-error max-w-md">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{error}</span>
-        </div>
-      </div>
-    );
+  if (loading) {
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className="h-full overflow-auto p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-base-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="animate-in slide-in-from-bottom-4 duration-500">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary mb-2">ARK Dashboard</h1>
-          <p className="text-sm sm:text-base text-base-content/70">Monitor and manage your survival servers</p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-base-content">ASA Management Dashboard</h1>
+          <p className="mt-2 text-base-content/70">
+            Manage your ARK: Survival Ascended servers and clusters
+          </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 lg:p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.1s' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-base-content/70 text-xs lg:text-sm">Total Servers</p>
-                <p className="text-2xl lg:text-3xl font-bold text-primary">{totalServers}</p>
-              </div>
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-xl lg:text-2xl">🖥️</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 lg:p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-base-content/70 text-xs lg:text-sm">Running Servers</p>
-                <p className="text-2xl lg:text-3xl font-bold text-success">{runningServers}</p>
-              </div>
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-success to-info rounded-lg flex items-center justify-center">
-                <span className="text-xl lg:text-2xl">🟢</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 lg:p-6 animate-in slide-in-from-bottom-4 duration-500 sm:col-span-2 lg:col-span-1" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-base-content/70 text-xs lg:text-sm">Update Lock</p>
-                <p className="text-2xl lg:text-3xl font-bold text-warning">
-                  {lockStatus?.locked ? '🔒' : '🔓'}
-                </p>
-              </div>
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-warning to-error rounded-lg flex items-center justify-center">
-                <span className="text-xl lg:text-2xl">🔒</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Toggle hidden containers */}
-        <div className="mb-4">
-          <label className="cursor-pointer label">
-            <span className="label-text">Show hidden containers</span>
-            <input type="checkbox" className="toggle toggle-primary ml-2" checked={showHidden} onChange={() => setShowHidden(!showHidden)} />
-          </label>
-        </div>
-
-        {/* Hidden containers list */}
-        {showHidden && hidden.length > 0 && (
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 mb-4">
-            <h2 className="text-lg font-bold mb-2">Hidden Containers</h2>
-            <ul>
-              {hidden.map(name => (
-                <li key={name} className="flex items-center justify-between mb-1">
-                  <span>{name}</span>
-                  <button className="btn btn-xs btn-outline btn-success ml-2" onClick={() => handleUnhide(name)}>
-                    Unhide
-                  </button>
-                </li>
-              ))}
-            </ul>
+        {error && (
+          <div className="mb-6 alert alert-error">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
-        {/* Server List */}
-        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.4s' }}>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-primary">Server Status</h2>
-            <Link 
-              to="/containers" 
-              className="btn btn-primary btn-sm bg-gradient-to-br from-primary to-accent hover:shadow-lg hover:shadow-primary/25"
-            >
-              View All
-            </Link>
-          </div>
+        {/* System Information */}
+        {systemInfo && (
+          <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="card bg-base-100 shadow-sm">
+              <div className="card-body">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                      <span className="text-primary-content text-sm font-medium">M</span>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-base-content/70">Mode</p>
+                    <p className="text-lg font-semibold text-base-content">
+                      {getModeDisplayName(systemInfo.mode)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          {containers.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🦖</div>
-              <p className="text-base-content/70">No servers found</p>
+            <div className="card bg-base-100 shadow-sm">
+              <div className="card-body">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-success rounded-lg flex items-center justify-center">
+                      <span className="text-success-content text-sm font-medium">U</span>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-base-content/70">Uptime</p>
+                    <p className="text-lg font-semibold text-base-content">
+                      {formatUptime(systemInfo.uptime)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card bg-base-100 shadow-sm">
+              <div className="card-body">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center">
+                      <span className="text-secondary-content text-sm font-medium">M</span>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-base-content/70">Memory</p>
+                    <p className="text-lg font-semibold text-base-content">
+                      {formatMemoryUsage(systemInfo.memoryUsage)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card bg-base-100 shadow-sm">
+              <div className="card-body">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+                      <span className="text-accent-content text-sm font-medium">S</span>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-base-content/70">Servers</p>
+                    <p className="text-lg font-semibold text-base-content">
+                      <a href="/servers" className="link link-primary">
+                        View All
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mode Information */}
+        {systemInfo && (
+          <div className="mb-8 card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <h2 className="card-title text-base-content">System Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-medium text-base-content/70 mb-2">Deployment Mode</h3>
+                  <p className="text-sm text-base-content">{getModeDescription(systemInfo.mode)}</p>
+                  <div className="mt-2 flex items-center space-x-4 text-xs text-base-content/50">
+                    <span>Platform: {systemInfo.platform}</span>
+                    <span>Node: {systemInfo.nodeVersion}</span>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-base-content/70 mb-2">Features</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <span className={`w-2 h-2 rounded-full ${systemInfo.dockerEnabled ? 'bg-success' : 'bg-base-300'}`}></span>
+                      <span>Docker: {systemInfo.dockerEnabled ? 'Enabled' : 'Disabled'}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={`w-2 h-2 rounded-full ${systemInfo.powershellEnabled ? 'bg-success' : 'bg-base-300'}`}></span>
+                      <span>PowerShell: {systemInfo.powershellEnabled ? 'Enabled' : 'Disabled'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Actions */}
+        <div className="mb-8 card bg-base-100 shadow-sm">
+          <div className="card-body">
+            <h2 className="card-title text-base-content">Quick Actions</h2>
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={() => navigate('/provisioning')}
+                className="btn btn-primary"
+              >
+                Create New Cluster
+              </button>
+              <button
+                onClick={() => navigate('/servers')}
+                className="btn btn-secondary"
+              >
+                View All Servers
+              </button>
+              <button
+                onClick={() => setShowConfigEditor(true)}
+                className="btn btn-accent"
+              >
+                Edit Configuration
+              </button>
+              <button
+                onClick={loadDashboardData}
+                className="btn btn-success"
+              >
+                Refresh Data
+              </button>
+            </div>
+            {systemInfo && !systemInfo.dockerEnabled && (
+              <div className="mt-4 alert alert-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>
+                  <strong>System Setup Required:</strong> Before creating clusters, you need to initialize the system and install SteamCMD. 
+                  Go to the <button onClick={() => navigate('/provisioning')} className="link link-primary">Provisioning page</button> to set up your environment.
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Clusters */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-base-content">Clusters</h2>
+            <span className="text-sm text-base-content/70">{clusters.length} clusters</span>
+          </div>
+          
+          {clusters.length === 0 ? (
+            <div className="card bg-base-100 shadow-sm">
+              <div className="card-body text-center">
+                <div className="text-base-content/30 mb-4">
+                  <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-base-content mb-2">No clusters found</h3>
+                <p className="text-base-content/70 mb-4">
+                  {systemInfo?.mode === 'native' 
+                    ? 'Create your first cluster to get started with ASA server management.'
+                    : 'No clusters are currently configured in your system.'
+                  }
+                </p>
+                <button
+                  onClick={() => navigate('/provisioning')}
+                  className="btn btn-primary"
+                >
+                  Create First Cluster
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {containers.slice(0, 6).map((container, index) => (
-                <div 
-                  key={container.name}
-                  className="bg-base-300 rounded-lg p-4 hover:scale-105 transition-all duration-200"
-                  style={{ animationDelay: `${0.5 + index * 0.1}s` }}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-base-content truncate">
-                      {container.name}
-                    </h3>
-                    <span className="text-2xl">{getStatusIcon(container.status)}</span>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-base-content/70">Status:</span>
-                      <span className={getStatusColor(container.status)}>
-                        {container.status.charAt(0).toUpperCase() + container.status.slice(1)}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {clusters.map((cluster) => (
+                <div key={cluster.name} className="card bg-base-100 shadow-sm">
+                  <div className="card-body">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="card-title text-base-content">{cluster.name}</h3>
+                      <span className="text-sm text-base-content/70">
+                        {cluster.servers ? cluster.servers.length : 0} servers
                       </span>
                     </div>
-                    
-                    {container.ports && container.ports.length > 0 && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-base-content/70">Ports:</span>
-                        <span className="flex flex-col gap-1">
-                          {container.ports.map((port, i) => (
-                            <span key={i} className="badge badge-outline badge-xs">
-                              {renderPort(port)}
-                            </span>
-                          ))}
+                    <div className="space-y-2">
+                      <div className="text-sm text-base-content/70">
+                        <span className="font-medium">Path:</span> {cluster.path}
+                      </div>
+                      <div className="text-sm text-base-content/70">
+                        <span className="font-medium">Status:</span>
+                        <span className={`ml-1 badge ${getStatusColor(
+                          cluster.servers && cluster.servers.some(s => s.status === 'running') ? 'running' : 'stopped'
+                        )}`}>
+                          {cluster.servers && cluster.servers.some(s => s.status === 'running') ? 'Active' : 'Inactive'}
                         </span>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 flex space-x-2">
-                    <Link
-                      to={`/rcon/${container.name}`}
-                      className="btn btn-sm btn-outline btn-primary flex-1"
-                    >
-                      RCON
-                    </Link>
-                    <Link
-                      to={`/logs/${container.name}`}
-                      className="btn btn-sm btn-outline btn-info flex-1"
-                    >
-                      Logs
-                    </Link>
-                    <button
-                      className="btn btn-sm btn-outline btn-error flex-1"
-                      onClick={() => handleHide(container.name)}
-                    >
-                      Hide
-                    </button>
+                      {cluster.config && cluster.config.description && (
+                        <div className="text-sm text-base-content/70">
+                          <span className="font-medium">Description:</span> {cluster.config.description}
+                        </div>
+                      )}
+                      {cluster.created && (
+                        <div className="text-sm text-base-content/70">
+                          <span className="font-medium">Created:</span> {new Date(cluster.created).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -301,133 +369,11 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6 animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.6s' }}>
-          <h2 className="text-2xl font-bold text-primary mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link
-              to="/containers"
-              className="btn btn-outline btn-primary w-full hover:shadow-lg hover:shadow-primary/25"
-            >
-              <span className="text-xl mr-2">🖥️</span>
-              Manage Servers
-            </Link>
-            
-            {/* Configs page now uses query params for server/file selection */}
-            <Link
-              to="/configs"
-              className="btn btn-outline btn-secondary w-full hover:shadow-lg hover:shadow-secondary/25"
-            >
-              <span className="text-xl mr-2">⚙️</span>
-              Edit Configs
-            </Link>
-            
-            <button className="btn btn-outline btn-accent w-full hover:shadow-lg hover:shadow-accent/25">
-              <span className="text-xl mr-2">📊</span>
-              View Stats
-            </button>
-            
-            <button className="btn btn-outline btn-info w-full hover:shadow-lg hover:shadow-info/25">
-              <span className="text-xl mr-2">🔧</span>
-              System Info
-            </button>
-          </div>
-        </div>
-
-        {/* System Containers Section */}
-        {containers.length > 0 && (
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6 mt-8">
-            <h2 className="text-xl font-bold mb-4">System Containers</h2>
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="table table-zebra w-full">
-                <thead>
-                  <tr>
-                    <th>Container</th>
-                    <th>Status</th>
-                    <th>Ports</th>
-                    <th>Links</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {containers.filter(c => API_SUITE_NAMES.includes(c.name)).map((container) => (
-                    <tr key={container.name}>
-                      <td>{container.name}</td>
-                      <td>{getStatusIcon(container.status)} {container.status}</td>
-                      <td>
-                        {container.ports && container.ports.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {container.ports.map((port, i) => (
-                              <span key={i} className="badge badge-outline badge-sm">
-                                {renderPort(port)}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-base-content/50">-</span>
-                        )}
-                      </td>
-                      <td>
-                        {SYSTEM_LINKS[container.name] ? (
-                          <a href={SYSTEM_LINKS[container.name].url} className="btn btn-xs btn-primary" target="_blank" rel="noopener noreferrer">
-                            {SYSTEM_LINKS[container.name].label}
-                          </a>
-                        ) : (
-                          <span className="text-base-content/50">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="lg:hidden space-y-4">
-              {containers.filter(c => API_SUITE_NAMES.includes(c.name)).map((container) => (
-                <div key={container.name} className="bg-base-300 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <div className="font-bold text-base-content">{container.name}</div>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-lg">{getStatusIcon(container.status)}</span>
-                        <span className={`badge ${getStatusColor(container.status)}`}>
-                          {container.status.charAt(0).toUpperCase() + container.status.slice(1)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {container.ports && container.ports.length > 0 && (
-                    <div className="mb-3">
-                      <div className="text-sm text-base-content/70 mb-1">Ports:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {container.ports.map((port, i) => (
-                          <span key={i} className="badge badge-outline badge-xs">
-                            {renderPort(port)}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {SYSTEM_LINKS[container.name] && (
-                    <div>
-                      <a 
-                        href={SYSTEM_LINKS[container.name].url} 
-                        className="btn btn-xs btn-primary w-full" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                      >
-                        {SYSTEM_LINKS[container.name].label}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Modals */}
+        {showConfigEditor && (
+          <ConfigEditor onClose={() => setShowConfigEditor(false)} />
         )}
+        
       </div>
     </div>
   );

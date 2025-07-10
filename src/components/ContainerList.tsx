@@ -74,7 +74,17 @@ const ContainerList = () => {
 
   const fetchContainers = async () => {
     try {
-      const data = await containerApi.getContainers();
+      // Use native servers API to get cluster servers
+      const data = await containerApi.getNativeServers();
+      
+      // Debug logging to see what data we're getting
+      console.log('Native servers data:', data);
+      
+      // Process each server to add debugging info
+      data.forEach(server => {
+        console.log(`Processing server: ${server.name} Type: ${server.type} Map: ${server.map}`);
+      });
+      
       // Label-based hiding
       const hiddenByLabel = data.filter(c => c.labels && c.labels['ark.dashboard.exclude'] === 'true').map(c => c.name);
       const allHidden = Array.from(new Set([...hidden, ...hiddenByLabel]));
@@ -82,7 +92,7 @@ const ContainerList = () => {
       setHiddenContainers(allHidden);
       // System containers
       setSystemContainers(data.filter(c => API_SUITE_NAMES.includes(c.name)));
-      // ARK containers (not system, not hidden unless showHidden)
+      // ARK servers (not system, not hidden unless showHidden)
       setContainers(
         data.filter(c =>
           !API_SUITE_NAMES.includes(c.name) &&
@@ -90,7 +100,7 @@ const ContainerList = () => {
         )
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load containers');
+      setError(err instanceof Error ? err.message : 'Failed to load servers');
     } finally {
       setIsLoading(false);
     }
@@ -113,27 +123,49 @@ const ContainerList = () => {
   const handleAction = async (action: 'start' | 'stop' | 'restart', containerName: string) => {
     setActionLoading(containerName);
     try {
+      // Find the server to determine its type
+      const server = containers.find(c => c.name === containerName);
+      const isNativeServer = server?.type === 'cluster-server';
+      
       switch (action) {
         case 'start':
-          await containerApi.startContainer(containerName);
+          if (isNativeServer) {
+            await containerApi.startNativeServer(containerName);
+          } else {
+            await containerApi.startContainer(containerName);
+          }
           break;
         case 'stop':
           // Save world before stopping
           try {
-            await containerApi.sendRconCommand(containerName, 'saveworld');
+            const server = containers.find(c => c.name === containerName);
+            const isNativeServer = server?.type === 'cluster-server';
+            if (isNativeServer) {
+              await containerApi.sendNativeRconCommand(containerName, 'saveworld');
+            } else {
+              await containerApi.sendRconCommand(containerName, 'saveworld');
+            }
           } catch (e) {
             console.warn('Failed to save world before stopping:', e);
           }
-          await containerApi.stopContainer(containerName);
+          if (isNativeServer) {
+            await containerApi.stopNativeServer(containerName);
+          } else {
+            await containerApi.stopContainer(containerName);
+          }
           break;
         case 'restart':
-          await containerApi.restartContainer(containerName);
+          if (isNativeServer) {
+            await containerApi.restartNativeServer(containerName);
+          } else {
+            await containerApi.restartContainer(containerName);
+          }
           break;
       }
       // Refresh the list after action
       await fetchContainers();
     } catch (err) {
-      console.error(`Failed to ${action} container:`, err);
+      console.error(`Failed to ${action} server:`, err);
     } finally {
       setActionLoading(null);
     }
@@ -174,6 +206,27 @@ const ContainerList = () => {
 
   const getServerConfig = (containerName: string) => {
     return serverConfigs.find(config => config.name === containerName);
+  };
+
+  // Helper function to convert map codes to readable names
+  const getMapDisplayName = (mapCode: string) => {
+    const mapNames: Record<string, string> = {
+      'TheIsland_WP': 'The Island',
+      'Ragnarok_WP': 'Ragnarok',
+      'BobsMissions_WP': 'Club ARK',
+      'ScorchedEarth_WP': 'Scorched Earth',
+      'Aberration_WP': 'Aberration',
+      'Extinction_WP': 'Extinction',
+      'Genesis_WP': 'Genesis',
+      'Genesis2_WP': 'Genesis Part 2',
+      'LostIsland_WP': 'Lost Island',
+      'Fjordur_WP': 'Fjordur',
+      'CrystalIsles_WP': 'Crystal Isles',
+      'Valguero_WP': 'Valguero',
+      'Center_WP': 'The Center',
+      'Island_WP': 'The Island'
+    };
+    return mapNames[mapCode] || mapCode;
   };
 
   if (isLoading) {
@@ -309,6 +362,8 @@ const ContainerList = () => {
                   <thead>
                     <tr>
                       <th>Server</th>
+                      <th>Type</th>
+                      <th>Map</th>
                       <th>Status</th>
                       <th>Ports</th>
                       <th>Created</th>
@@ -338,6 +393,18 @@ const ContainerList = () => {
                           </div>
                         </td>
                         <td>
+                          <span className="badge badge-outline badge-sm">
+                            {container.type || 'Container'}
+                          </span>
+                        </td>
+                        <td>
+                          {container.map ? (
+                            <span className="text-sm font-medium">{getMapDisplayName(container.map)}</span>
+                          ) : (
+                            <span className="text-base-content/50">-</span>
+                          )}
+                        </td>
+                        <td>
                           <div className="flex items-center space-x-2">
                             <span className="text-xl">{getStatusIcon(container.status)}</span>
                             <span className={`badge ${getStatusColor(container.status)}`}>
@@ -346,13 +413,19 @@ const ContainerList = () => {
                           </div>
                         </td>
                         <td>
-                          {container.ports && container.ports.length > 0 ? (
+                          {container.ports ? (
                             <div className="flex flex-wrap gap-1">
-                              {container.ports.map((port, i) => (
-                                <span key={i} className="badge badge-outline badge-sm">
-                                  {renderPort(port)}
+                              {Array.isArray(container.ports) ? (
+                                container.ports.map((port, i) => (
+                                  <span key={i} className="badge badge-outline badge-sm">
+                                    {renderPort(port)}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="badge badge-outline badge-sm">
+                                  {container.ports}
                                 </span>
-                              ))}
+                              )}
                             </div>
                           ) : (
                             <span className="text-base-content/50">-</span>
@@ -474,15 +547,33 @@ const ContainerList = () => {
 
                     {/* Details */}
                     <div className="space-y-2 mb-4">
-                      {container.ports && container.ports.length > 0 && (
+                      {container.type && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-base-content/70">Type:</span>
+                          <span className="text-base-content/70">{container.type}</span>
+                        </div>
+                      )}
+                      {container.map && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-base-content/70">Map:</span>
+                          <span className="text-base-content/70">{getMapDisplayName(container.map)}</span>
+                        </div>
+                      )}
+                      {container.ports && (
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-base-content/70">Ports:</span>
                           <div className="flex flex-wrap gap-1">
-                            {container.ports.map((port, i) => (
-                              <span key={i} className="badge badge-outline badge-xs">
-                                {renderPort(port)}
+                            {Array.isArray(container.ports) ? (
+                              container.ports.map((port, i) => (
+                                <span key={i} className="badge badge-outline badge-xs">
+                                  {renderPort(port)}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="badge badge-outline badge-xs">
+                                {container.ports}
                               </span>
-                            ))}
+                            )}
                           </div>
                         </div>
                       )}
@@ -648,13 +739,19 @@ const ContainerList = () => {
                       <td>{container.name}</td>
                       <td>{getStatusIcon(container.status)} {container.status}</td>
                       <td>
-                        {container.ports && container.ports.length > 0 ? (
+                        {container.ports ? (
                           <div className="flex flex-wrap gap-1">
-                            {container.ports.map((port, i) => (
-                              <span key={i} className="badge badge-outline badge-sm">
-                                {renderPort(port)}
+                            {Array.isArray(container.ports) ? (
+                              container.ports.map((port, i) => (
+                                <span key={i} className="badge badge-outline badge-sm">
+                                  {renderPort(port)}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="badge badge-outline badge-sm">
+                                {container.ports}
                               </span>
-                            ))}
+                            )}
                           </div>
                         ) : (
                           <span className="text-base-content/50">-</span>
@@ -700,15 +797,21 @@ const ContainerList = () => {
                     </button>
                   </div>
                   
-                  {container.ports && container.ports.length > 0 && (
+                  {container.ports && (
                     <div className="mb-3">
                       <div className="text-sm text-base-content/70 mb-1">Ports:</div>
                       <div className="flex flex-wrap gap-1">
-                        {container.ports.map((port, i) => (
-                          <span key={i} className="badge badge-outline badge-xs">
-                            {renderPort(port)}
+                        {Array.isArray(container.ports) ? (
+                          container.ports.map((port, i) => (
+                            <span key={i} className="badge badge-outline badge-xs">
+                              {renderPort(port)}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="badge badge-outline badge-xs">
+                            {container.ports}
                           </span>
-                        ))}
+                        )}
                       </div>
                     </div>
                   )}
