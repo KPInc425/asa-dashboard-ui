@@ -142,7 +142,7 @@ const createApiInstance = (): AxiosInstance => {
   
   const instance = axios.create({
     baseURL: baseURL,
-    timeout: 30000, // 30 seconds
+    timeout: 90000, // 90 seconds (increased from 30 to accommodate server startup)
     headers: {
       'Content-Type': 'application/json',
     },
