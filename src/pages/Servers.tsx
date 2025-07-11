@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
-import ServerDetailsModal from '../components/ServerDetailsModal';
 import ServerCard from '../components/ServerCard';
 import ServerList from '../components/ServerList';
-import { Server, getServerType } from '../utils/serverUtils';
+import type { Server } from '../utils/serverUtils';
 
 const Servers: React.FC = () => {
+  const navigate = useNavigate();
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<'cards' | 'list'>('cards');
-  const [selectedServer, setSelectedServer] = useState<Server | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
   
@@ -377,7 +377,11 @@ const Servers: React.FC = () => {
   };
 
   const handleViewDetails = (server: Server) => {
-    setSelectedServer(server);
+    navigate(`/servers/${encodeURIComponent(server.name)}`);
+  };
+
+  const handleConfigClick = (server: Server) => {
+    navigate(`/servers/${encodeURIComponent(server.name)}?tab=config`);
   };
 
   if (loading) {
@@ -484,6 +488,7 @@ const Servers: React.FC = () => {
                   actionStatus={actionStatus}
                   onAction={handleAction}
                   onViewDetails={handleViewDetails}
+                  onConfigClick={handleConfigClick}
                 />
               ))}
             </div>
@@ -494,19 +499,13 @@ const Servers: React.FC = () => {
               actionLoading={actionLoading}
               onAction={handleAction}
               onViewDetails={handleViewDetails}
+              onConfigClick={handleConfigClick}
             />
           )}
         </div>
       </div>
 
-      {selectedServer && (
-        <ServerDetailsModal
-          server={selectedServer}
-          isOpen={!!selectedServer}
-          onClose={() => setSelectedServer(null)}
-          onRefresh={loadAllServers}
-        />
-      )}
+
     </div>
   );
 };

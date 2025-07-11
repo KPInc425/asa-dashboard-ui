@@ -26,13 +26,15 @@ interface ServerListProps {
   actionLoading: string | null;
   onAction: (action: 'start' | 'stop' | 'restart', server: Server) => void;
   onViewDetails: (server: Server) => void;
+  onConfigClick?: (server: Server) => void;
 }
 
 const ServerList: React.FC<ServerListProps> = ({
   servers,
   actionLoading,
   onAction,
-  onViewDetails
+  onViewDetails,
+  onConfigClick
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -230,6 +232,15 @@ const ServerList: React.FC<ServerListProps> = ({
                   >
                     🔍
                   </button>
+                  {onConfigClick && (
+                    <button
+                      title="Edit Configuration"
+                      onClick={() => onConfigClick(server)}
+                      className="btn btn-xs btn-secondary"
+                    >
+                      ⚙️
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>

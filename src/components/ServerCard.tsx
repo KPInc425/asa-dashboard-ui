@@ -34,6 +34,7 @@ interface ServerCardProps {
   actionStatus: Record<string, string>;
   onAction: (action: 'start' | 'stop' | 'restart', server: Server) => void;
   onViewDetails: (server: Server) => void;
+  onConfigClick?: (server: Server) => void;
 }
 
 const ServerCard: React.FC<ServerCardProps> = ({
@@ -41,7 +42,8 @@ const ServerCard: React.FC<ServerCardProps> = ({
   actionLoading,
   actionStatus,
   onAction,
-  onViewDetails
+  onViewDetails,
+  onConfigClick
 }) => {
   // Safety check - if server is invalid, don't render
   if (!server || typeof server !== 'object') {
@@ -265,6 +267,15 @@ const ServerCard: React.FC<ServerCardProps> = ({
             '🔄'
           )}
         </button>
+        {onConfigClick && (
+          <button
+            title="Edit Configuration"
+            onClick={() => onConfigClick(server)}
+            className="btn btn-info btn-xs"
+          >
+            ⚙️
+          </button>
+        )}
       </div>
       
       <div className="mt-3">
