@@ -233,44 +233,47 @@ const ServerCard: React.FC<ServerCardProps> = ({
           title={`Start ${server.type === 'cluster' ? 'cluster' : 'server'}`}
           onClick={() => onAction('start', server)}
           disabled={server.status === 'running' || actionLoading === server.name}
-          className="btn btn-success btn-xs flex-1"
+          className="btn btn-success btn-xs"
         >
           {actionLoading === server.name ? (
             <span className="loading loading-spinner loading-xs"></span>
           ) : (
-            '▶️ Start'
+            '▶️'
           )}
         </button>
         <button
           title={`Stop ${server.type === 'cluster' ? 'cluster' : 'server'}`}
           onClick={() => onAction('stop', server)}
           disabled={server.status === 'stopped' || actionLoading === server.name}
-          className="btn btn-error btn-xs flex-1"
+          className="btn btn-error btn-xs"
         >
           {actionLoading === server.name ? (
             <span className="loading loading-spinner loading-xs"></span>
           ) : (
-            '⏹️ Stop'
+            '⏹️'
           )}
         </button>
         <button
           title={`Restart ${server.type === 'cluster' ? 'cluster' : 'server'}`}
           onClick={() => onAction('restart', server)}
           disabled={server.status === 'stopped' || actionLoading === server.name}
-          className="btn btn-warning btn-xs flex-1"
+          className="btn btn-warning btn-xs"
         >
           {actionLoading === server.name ? (
             <span className="loading loading-spinner loading-xs"></span>
           ) : (
-            '🔄 Restart'
+            '🔄'
           )}
         </button>
+      </div>
+      
+      <div className="mt-3">
         <button
           title="View Details"
           onClick={() => onViewDetails(server)}
-          className="btn btn-info btn-xs flex-1"
+          className="btn btn-info btn-sm w-full"
         >
-          🔍
+          🔍 View Details
         </button>
       </div>
 

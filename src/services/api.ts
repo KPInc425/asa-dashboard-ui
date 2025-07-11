@@ -1108,21 +1108,107 @@ export const provisioningApi = {
   },
 
   /**
-   * Update ASA binaries
+   * Get shared mods configuration
    */
-  updateASABinaries: async (): Promise<{ success: boolean; message: string }> => {
+  getSharedMods: async (): Promise<{ success: boolean; sharedMods: number[] }> => {
     if (FRONTEND_ONLY_MODE) {
       return new Promise((resolve) => {
         setTimeout(() => {
           resolve({
             success: true,
-            message: 'ASA binaries updated successfully (mock)'
+            sharedMods: [928102085, 1404697612]
           });
-        }, 3000);
+        }, 500);
       });
     }
 
-    const response = await api.post('/api/provisioning/update-asa');
+    const response = await api.get('/api/provisioning/shared-mods');
+    return response.data;
+  },
+
+  /**
+   * Update shared mods configuration
+   */
+  updateSharedMods: async (modList: number[]): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Shared mods updated successfully (mock)'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put('/api/provisioning/shared-mods', { modList });
+    return response.data;
+  },
+
+  /**
+   * Get server-specific mods configuration
+   */
+  getServerMods: async (serverName: string): Promise<{ success: boolean; serverConfig: { additionalMods: number[]; excludeSharedMods: boolean } }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            serverConfig: {
+              additionalMods: [1609138312, 215527665],
+              excludeSharedMods: false
+            }
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get(`/api/provisioning/server-mods/${serverName}`);
+    return response.data;
+  },
+
+  /**
+   * Update server-specific mods configuration
+   */
+  updateServerMods: async (serverName: string, config: { additionalMods: number[]; excludeSharedMods: boolean }): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Server mods for ${serverName} updated successfully (mock)`
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put(`/api/provisioning/server-mods/${serverName}`, config);
+    return response.data;
+  },
+
+  /**
+   * Get mods overview
+   */
+  getModsOverview: async (): Promise<{ success: boolean; overview: { sharedMods: number[]; serverMods: Record<string, any>; totalServers: number } }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            overview: {
+              sharedMods: [928102085, 1404697612, 1565015734],
+              serverMods: {
+                'MyServer1': { additionalMods: [1609138312], excludeSharedMods: false },
+                'MyServer2': { additionalMods: [215527665], excludeSharedMods: true }
+              },
+              totalServers: 2
+            }
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/mods-overview');
     return response.data;
   },
 

@@ -376,6 +376,10 @@ const Servers: React.FC = () => {
     return server.status;
   };
 
+  const handleViewDetails = (server: Server) => {
+    setSelectedServer(server);
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -479,7 +483,7 @@ const Servers: React.FC = () => {
                   actionLoading={actionLoading}
                   actionStatus={actionStatus}
                   onAction={handleAction}
-                  onViewDetails={setSelectedServer}
+                  onViewDetails={handleViewDetails}
                 />
               ))}
             </div>
@@ -489,7 +493,7 @@ const Servers: React.FC = () => {
               servers={servers}
               actionLoading={actionLoading}
               onAction={handleAction}
-              onViewDetails={setSelectedServer}
+              onViewDetails={handleViewDetails}
             />
           )}
         </div>

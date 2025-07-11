@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, apiService } from '../services/api';
+import { api } from '../services/api';
+import { apiService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ConfigEditor from '../components/ConfigEditor';
+import GlobalModManager from '../components/GlobalModManager';
+import ServerDetailsModal from '../components/ServerDetailsModal';
+import { Server } from '../utils/serverUtils';
 
 interface SystemInfo {
   mode: string;
@@ -33,13 +37,26 @@ interface Server {
   maxPlayers: number;
 }
 
+interface NativeServer {
+  name: string;
+  status: string;
+  type: string;
+  map?: string;
+  clusterName?: string;
+  gamePort?: number;
+  maxPlayers?: number;
+}
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [clusters, setClusters] = useState<Cluster[]>([]);
+  const [nativeServers, setNativeServers] = useState<NativeServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showConfigEditor, setShowConfigEditor] = useState(false);
+  const [showModManager, setShowModManager] = useState(false);
+  const [selectedServer, setSelectedServer] = useState<Server | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -50,9 +67,10 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [systemResponse, clustersResponse] = await Promise.all([
+      const [systemResponse, clustersResponse, nativeServersResponse] = await Promise.all([
         api.get('/api/system/info'),
-        apiService.provisioning.listClusters()
+        apiService.provisioning.listClusters().catch(() => ({ success: false, clusters: [] })),
+        api.get('/api/native-servers').catch(() => ({ data: { success: false, servers: [] } }))
       ]);
 
       if (systemResponse.data.success) {
@@ -61,6 +79,10 @@ const Dashboard: React.FC = () => {
 
       if (clustersResponse.success) {
         setClusters(clustersResponse.clusters);
+      }
+
+      if (nativeServersResponse.data.success) {
+        setNativeServers(nativeServersResponse.data.servers);
       }
     } catch (err: any) {
       setError('Failed to load dashboard data');
@@ -115,8 +137,21 @@ const Dashboard: React.FC = () => {
   };
 
   const formatMemoryUsage = (usage: any) => {
-    const mb = usage.used / 1024 / 1024;
-    return `${mb.toFixed(1)} MB`;
+    if (!usage) return 'N/A';
+    
+    // Handle system memory (has total, free, used properties)
+    if (usage.total && usage.used) {
+      const gb = usage.used / 1024 / 1024 / 1024;
+      return `${gb.toFixed(1)} GB`;
+    }
+    
+    // Handle API memory usage (has heapUsed property)
+    if (usage.heapUsed && typeof usage.heapUsed === 'number' && !isNaN(usage.heapUsed)) {
+      const mb = usage.heapUsed / 1024 / 1024;
+      return `${mb.toFixed(1)} MB (API)`;
+    }
+    
+    return 'N/A';
   };
 
   if (loading) {
@@ -283,8 +318,14 @@ const Dashboard: React.FC = () => {
               >
                 Refresh Data
               </button>
+              <button
+                onClick={() => setShowModManager(true)}
+                className="btn btn-info"
+              >
+                Manage Mods
+              </button>
             </div>
-            {systemInfo && !systemInfo.dockerEnabled && (
+            {systemInfo && !systemInfo.dockerEnabled && clusters.length === 0 && systemInfo.mode === 'native' && (
               <div className="mt-4 alert alert-warning">
                 <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -331,52 +372,265 @@ const Dashboard: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {clusters.map((cluster) => (
-                <div key={cluster.name} className="card bg-base-100 shadow-sm">
+                <div key={cluster.name} className="card bg-base-100 shadow-lg hover:shadow-xl transition-all duration-200 border border-base-300">
                   <div className="card-body">
+                    {/* Header */}
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="card-title text-base-content">{cluster.name}</h3>
-                      <span className="text-sm text-base-content/70">
-                        {cluster.servers ? cluster.servers.length : 0} servers
+                      <div className="flex items-center space-x-3">
+                        <div className="avatar placeholder">
+                          <div className="bg-gradient-to-br from-primary to-accent text-primary-content rounded-full w-12">
+                            <span className="text-lg">🦖</span>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="card-title text-base-content text-lg">{cluster.name}</h3>
+                          <p className="text-sm text-base-content/60">
+                            {cluster.servers ? cluster.servers.length : 0} servers
+                          </p>
+                        </div>
+                      </div>
+                      <div className="dropdown dropdown-end">
+                        <div tabIndex={0} role="button" className="btn btn-ghost btn-sm">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                          </svg>
+                        </div>
+                        <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                          <li><a>View Details</a></li>
+                          <li><a>Manage Servers</a></li>
+                          <li><a>Edit Configuration</a></li>
+                          <li><a className="text-error">Delete Cluster</a></li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="mb-4">
+                      <span className={`badge badge-lg ${
+                        cluster.servers && cluster.servers.some(s => s.status === 'running') 
+                          ? 'badge-success' 
+                          : 'badge-error'
+                      }`}>
+                        {cluster.servers && cluster.servers.some(s => s.status === 'running') ? '🟢 Active' : '🔴 Inactive'}
                       </span>
                     </div>
-                    <div className="space-y-2">
-                      <div className="text-sm text-base-content/70">
-                        <span className="font-medium">Path:</span> {cluster.path}
-                      </div>
-                      <div className="text-sm text-base-content/70">
-                        <span className="font-medium">Status:</span>
-                        <span className={`ml-1 badge ${getStatusColor(
-                          cluster.servers && cluster.servers.some(s => s.status === 'running') ? 'running' : 'stopped'
-                        )}`}>
-                          {cluster.servers && cluster.servers.some(s => s.status === 'running') ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
+
+                    {/* Details */}
+                    <div className="space-y-3">
                       {cluster.config && cluster.config.description && (
-                        <div className="text-sm text-base-content/70">
-                          <span className="font-medium">Description:</span> {cluster.config.description}
+                        <div className="text-sm">
+                          <p className="text-base-content/70">{cluster.config.description}</p>
                         </div>
                       )}
-                      {cluster.created && (
-                        <div className="text-sm text-base-content/70">
-                          <span className="font-medium">Created:</span> {new Date(cluster.created).toLocaleDateString()}
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-base-content/60">Created:</span>
+                          <div className="font-medium">
+                            {cluster.created ? new Date(cluster.created).toLocaleDateString() : 'Unknown'}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-base-content/60">Path:</span>
+                          <div className="font-mono text-xs truncate" title={cluster.path}>
+                            {cluster.path}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Server Status Summary */}
+                      {cluster.servers && cluster.servers.length > 0 && (
+                        <div className="stats stats-horizontal shadow-sm">
+                          <div className="stat">
+                            <div className="stat-title text-xs">Running</div>
+                            <div className="stat-value text-success text-lg">
+                              {cluster.servers.filter(s => s.status === 'running').length}
+                            </div>
+                          </div>
+                          <div className="stat">
+                            <div className="stat-title text-xs">Stopped</div>
+                            <div className="stat-value text-error text-lg">
+                              {cluster.servers.filter(s => s.status === 'stopped').length}
+                            </div>
+                          </div>
                         </div>
                       )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="card-actions justify-end mt-4">
+                      <button 
+                        className="btn btn-primary btn-sm"
+                        onClick={() => navigate('/servers')}
+                      >
+                        Manage
+                      </button>
+                      <button 
+                        className="btn btn-outline btn-sm"
+                        onClick={() => navigate('/logs')}
+                      >
+                        View Logs
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
+          {systemInfo && clusters.length === 0 && systemInfo.mode === 'native' && (
+            <div className="mt-4 alert alert-warning">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span>
+                <strong>No Clusters Found:</strong> You haven't created any clusters yet. 
+                Go to the <button onClick={() => navigate('/provisioning')} className="link link-primary">Provisioning page</button> to create your first cluster.
+              </span>
+            </div>
+          )}
         </div>
+
+        {/* Servers */}
+        {nativeServers.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-base-content">Servers</h2>
+              <span className="text-sm text-base-content/70">{nativeServers.length} servers</span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {nativeServers.map((server) => (
+                <div key={server.name} className="card bg-base-100 shadow-lg hover:shadow-xl transition-all duration-200 border border-base-300">
+                  <div className="card-body">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="avatar placeholder">
+                          <div className="bg-gradient-to-br from-secondary to-accent text-secondary-content rounded-full w-12">
+                            <span className="text-lg">🖥️</span>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="card-title text-base-content text-lg">{server.name}</h3>
+                          <p className="text-sm text-base-content/60">
+                            {server.type === 'cluster-server' ? 'Cluster Server' : 'Individual Server'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="dropdown dropdown-end">
+                        <div tabIndex={0} role="button" className="btn btn-ghost btn-sm">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                          </svg>
+                        </div>
+                        <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                          <li><button onClick={() => navigate(`/rcon/${server.name}`)}>RCON Console</button></li>
+                          <li><button onClick={() => navigate(`/logs/${server.name}`)}>View Logs</button></li>
+                          <li><button onClick={() => navigate(`/configs?server=${encodeURIComponent(server.name)}`)}>Edit Config</button></li>
+                          <li><button className="text-error">Delete Server</button></li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="mb-4">
+                      <span className={`badge badge-lg ${
+                        server.status === 'running' 
+                          ? 'badge-success' 
+                          : 'badge-error'
+                      }`}>
+                        {server.status === 'running' ? '🟢 Active' : '🔴 Inactive'}
+                      </span>
+                    </div>
+
+                    {/* Details */}
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-base-content/60">Name:</span>
+                          <div className="font-medium">{server.name}</div>
+                        </div>
+                        <div>
+                          <span className="text-base-content/60">Type:</span>
+                          <div className="font-medium">{server.type === 'cluster-server' ? 'Cluster Server' : 'Individual Server'}</div>
+                        </div>
+                        <div>
+                          <span className="text-base-content/60">Status:</span>
+                          <div className="font-medium">{server.status}</div>
+                        </div>
+                        <div>
+                          <span className="text-base-content/60">Map:</span>
+                          <div className="font-medium">{server.map || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <span className="text-base-content/60">Players:</span>
+                          <div className="font-medium">{server.players || 0}/{server.maxPlayers || 0}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="card-actions justify-end mt-4">
+                      <button 
+                        className="btn btn-primary btn-sm"
+                        onClick={() => {
+                          // Convert NativeServer to Server format for the modal
+                          const serverForModal: Server = {
+                            name: server.name,
+                            status: server.status,
+                            type: server.type as any,
+                            map: server.map,
+                            clusterName: server.clusterName,
+                            gamePort: server.gamePort,
+                            maxPlayers: server.maxPlayers
+                          };
+                          setSelectedServer(serverForModal);
+                        }}
+                      >
+                        Details
+                      </button>
+                      <button 
+                        className="btn btn-outline btn-sm"
+                        onClick={() => navigate(`/rcon/${server.name}`)}
+                      >
+                        RCON
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {nativeServers.length === 0 && (
+          <div className="mt-4 alert alert-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <span>
+              <strong>No Servers Found:</strong> You haven't created any servers yet. 
+              Go to the <button onClick={() => navigate('/provisioning')} className="link link-primary">Provisioning page</button> to create your first server.
+            </span>
+          </div>
+        )}
 
         {/* Modals */}
         {showConfigEditor && (
           <ConfigEditor onClose={() => setShowConfigEditor(false)} />
         )}
-        
+        {showModManager && (
+          <GlobalModManager onClose={() => setShowModManager(false)} />
+        )}
+        {selectedServer && (
+          <ServerDetailsModal
+            server={selectedServer}
+            isOpen={!!selectedServer}
+            onClose={() => setSelectedServer(null)}
+          />
+        )}
       </div>
     </div>
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

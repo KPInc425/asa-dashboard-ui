@@ -18,7 +18,8 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newModId, setNewModId] = useState('');
+  const [newSharedModId, setNewSharedModId] = useState('');
+  const [newServerModId, setNewServerModId] = useState('');
 
   const popularMods = [
     { id: 928102085, name: 'Structures Plus (S+)', description: 'Enhanced building system' },
@@ -28,7 +29,8 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
     { id: 215527665, name: 'Death Helper', description: 'Death location and recovery tools' },
     { id: 558651608, name: 'Pet Finder', description: 'Find lost tames easily' },
     { id: 731604991, name: 'Stairs Mod', description: 'Additional stair variants' },
-    { id: 566885854, name: 'Bridge', description: 'Bridge building system' }
+    { id: 566885854, name: 'Bridge', description: 'Bridge building system' },
+    { id: 1005639, name: 'Club ARK', description: 'Club ARK official mod' }
   ];
 
   useEffect(() => {
@@ -52,6 +54,14 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
         if (serverResponse.success) {
           setServerMods(serverResponse.serverConfig.additionalMods);
           setExcludeSharedMods(serverResponse.serverConfig.excludeSharedMods);
+        } else {
+          // Set defaults for Club ARK servers
+          const isClubArkServer = serverName.toLowerCase().includes('club') || 
+                                 serverName.toLowerCase().includes('bobs');
+          if (isClubArkServer) {
+            setServerMods([1005639]); // Club ARK mod
+            setExcludeSharedMods(true); // Exclude shared mods
+          }
         }
       }
     } catch (err: any) {
@@ -75,7 +85,6 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
         });
 
         if (response.success) {
-          alert('Server mods configuration saved successfully!');
           onClose();
         } else {
           setError(response.message || 'Failed to save server mods');
@@ -87,7 +96,6 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
         });
 
         if (response.success) {
-          alert('Shared mods configuration saved successfully!');
           onClose();
         } else {
           setError(response.message || 'Failed to save shared mods');
@@ -122,10 +130,14 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
   };
 
   const handleAddCustomMod = (isShared: boolean = true) => {
-    const modId = parseInt(newModId.trim());
+    const modId = isShared ? parseInt(newSharedModId.trim()) : parseInt(newServerModId.trim());
     if (modId && !isNaN(modId)) {
       handleAddMod(modId, isShared);
-      setNewModId('');
+      if (isShared) {
+        setNewSharedModId('');
+      } else {
+        setNewServerModId('');
+      }
     }
   };
 
@@ -137,21 +149,24 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
   const renderModList = (mods: number[], isShared: boolean = true) => (
     <div className="space-y-2">
       {mods.map(modId => (
-        <div key={modId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+        <div key={modId} className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
           <div>
-            <span className="font-medium">{getModName(modId)}</span>
-            <span className="text-sm text-gray-500 ml-2">(ID: {modId})</span>
+            <span className="font-medium text-base-content">{getModName(modId)}</span>
+            <span className="text-sm text-base-content/60 ml-2">(ID: {modId})</span>
           </div>
           <button
             onClick={() => handleRemoveMod(modId, isShared)}
-            className="text-red-500 hover:text-red-700 text-sm"
+            className="btn btn-xs btn-error"
           >
             Remove
           </button>
         </div>
       ))}
       {mods.length === 0 && (
-        <p className="text-gray-500 text-sm italic">No mods configured</p>
+        <div className="text-center py-4 text-base-content/60">
+          <div className="text-4xl mb-2">🎮</div>
+          <p className="text-sm italic">No mods configured</p>
+        </div>
       )}
     </div>
   );
@@ -160,15 +175,15 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
     <div className="flex gap-2">
       <input
         type="text"
-        value={newModId}
-        onChange={(e) => setNewModId(e.target.value)}
+        value={isShared ? newSharedModId : newServerModId}
+        onChange={(e) => isShared ? setNewSharedModId(e.target.value) : setNewServerModId(e.target.value)}
         placeholder="Enter CurseForge Project ID"
-        className="flex-1 px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        className="input input-bordered flex-1"
       />
       <button
         onClick={() => handleAddCustomMod(isShared)}
-        disabled={!newModId.trim() || isNaN(parseInt(newModId.trim()))}
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+        disabled={!((isShared ? newSharedModId : newServerModId).trim()) || isNaN(parseInt((isShared ? newSharedModId : newServerModId).trim()))}
+        className="btn btn-primary"
       >
         Add
       </button>
@@ -177,155 +192,212 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading mods...</p>
+      <div className="modal modal-open">
+        <div className="modal-box">
+          <div className="flex flex-col items-center justify-center py-8">
+            <span className="loading loading-spinner loading-lg text-primary"></span>
+            <p className="mt-4 text-base-content/70">Loading mods...</p>
+          </div>
         </div>
+        <div className="modal-backdrop" onClick={onClose}></div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="modal modal-open">
+      <div className="modal-box max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">
-            {serverName ? `Mods for ${serverName}` : 'Shared Mods Management'}
+          <h2 className="text-2xl font-bold text-base-content">
+            {serverName ? `🎮 Mods for ${serverName}` : '🎮 Shared Mods Management'}
           </h2>
           <button
             onClick={onClose}
-            className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+            className="btn btn-circle btn-sm"
           >
-            Close
+            ✕
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
+          <div className="alert alert-error mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Shared Mods Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Shared Mods</h3>
-            <p className="text-sm text-gray-600">
-              These mods will be applied to all servers unless excluded
-            </p>
-            
-            {renderModList(sharedMods, true)}
-            
-            <div className="space-y-3">
-              <h4 className="font-medium">Add Popular Mods</h4>
-              <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
-                {popularMods.map(mod => (
-                  <button
-                    key={mod.id}
-                    onClick={() => handleAddMod(mod.id, true)}
-                    disabled={sharedMods.includes(mod.id)}
-                    className={`text-left p-2 rounded border ${
-                      sharedMods.includes(mod.id)
-                        ? 'bg-green-50 border-green-200 text-green-700 cursor-not-allowed'
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div className="font-medium">{mod.name}</div>
-                    <div className="text-sm text-gray-600">{mod.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="font-medium">Add Custom Mod</h4>
-              {renderModInput(true)}
-            </div>
-          </div>
-
-          {/* Server-Specific Mods Section */}
-          {serverName && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Server-Specific Mods</h3>
-              <p className="text-sm text-gray-600">
-                Additional mods for this server only
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <h3 className="card-title text-primary">Shared Mods</h3>
+              <p className="text-sm text-base-content/70">
+                These mods will be applied to all servers unless excluded
               </p>
-
-              <div className="space-y-3">
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={excludeSharedMods}
-                    onChange={(e) => setExcludeSharedMods(e.target.checked)}
-                    className="rounded"
-                  />
-                  <span className="text-sm">Exclude shared mods for this server</span>
-                </label>
-              </div>
               
-              {renderModList(serverMods, false)}
+              <div className="divider"></div>
+              
+              {renderModList(sharedMods, true)}
               
               <div className="space-y-3">
-                <h4 className="font-medium">Add Popular Mods</h4>
+                <h4 className="font-medium text-base-content">Add Popular Mods</h4>
                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
                   {popularMods.map(mod => (
                     <button
                       key={mod.id}
-                      onClick={() => handleAddMod(mod.id, false)}
-                      disabled={serverMods.includes(mod.id)}
-                      className={`text-left p-2 rounded border ${
-                        serverMods.includes(mod.id)
-                          ? 'bg-green-50 border-green-200 text-green-700 cursor-not-allowed'
-                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      onClick={() => handleAddMod(mod.id, true)}
+                      disabled={sharedMods.includes(mod.id)}
+                      className={`btn btn-outline btn-sm justify-start text-left h-auto p-3 ${
+                        sharedMods.includes(mod.id)
+                          ? 'btn-success cursor-not-allowed'
+                          : 'hover:btn-primary'
                       }`}
                     >
-                      <div className="font-medium">{mod.name}</div>
-                      <div className="text-sm text-gray-600">{mod.description}</div>
+                      <div>
+                        <div className="font-medium">{mod.name}</div>
+                        <div className="text-xs opacity-70">{mod.description}</div>
+                      </div>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <h4 className="font-medium">Add Custom Mod</h4>
-                {renderModInput(false)}
+                <h4 className="font-medium text-base-content">Add Custom Mod</h4>
+                {renderModInput(true)}
+              </div>
+            </div>
+          </div>
+
+          {/* Server-Specific Mods Section */}
+          {serverName ? (
+            <div className="card bg-base-100 shadow-sm">
+              <div className="card-body">
+                <h3 className="card-title text-secondary">Server-Specific Mods</h3>
+                <p className="text-sm text-base-content/70">
+                  Additional mods for {serverName} only
+                </p>
+
+                <div className="divider"></div>
+
+                <div className="form-control">
+                  <label className="label cursor-pointer">
+                    <span className="label-text">Exclude shared mods for this server</span>
+                    <input
+                      type="checkbox"
+                      checked={excludeSharedMods}
+                      onChange={(e) => setExcludeSharedMods(e.target.checked)}
+                      className="checkbox checkbox-warning"
+                    />
+                  </label>
+                </div>
+                
+                {renderModList(serverMods, false)}
+                
+                <div className="space-y-3">
+                  <h4 className="font-medium text-base-content">Add Popular Mods</h4>
+                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                    {popularMods.map(mod => (
+                      <button
+                        key={mod.id}
+                        onClick={() => handleAddMod(mod.id, false)}
+                        disabled={serverMods.includes(mod.id)}
+                        className={`btn btn-outline btn-sm justify-start text-left h-auto p-3 ${
+                          serverMods.includes(mod.id)
+                            ? 'btn-success cursor-not-allowed'
+                            : 'hover:btn-secondary'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-medium">{mod.name}</div>
+                          <div className="text-xs opacity-70">{mod.description}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium text-base-content">Add Custom Mod</h4>
+                  {renderModInput(false)}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="card bg-base-100 shadow-sm">
+              <div className="card-body">
+                <h3 className="card-title text-secondary">Server-Specific Mods</h3>
+                <p className="text-sm text-base-content/70">
+                  Select a server to manage its specific mods
+                </p>
+                <div className="text-center py-8 text-base-content/60">
+                  <div className="text-4xl mb-2">🖥️</div>
+                  <p>Click the 🎮 button on any server in the server list to manage its mods</p>
+                  <div className="mt-4 text-sm">
+                    <p>• Desktop: Look for the 🎮 button in the Actions column</p>
+                    <p>• Mobile: Look for the "🎮 Mods" button in the server card</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Summary */}
-        <div className="mt-6 p-4 bg-blue-50 rounded border border-blue-200">
-          <h4 className="font-medium text-blue-900 mb-2">Summary</h4>
-          <div className="text-sm text-blue-800 space-y-1">
-            <div>Shared Mods: {sharedMods.length} mods</div>
-            {serverName && (
-              <>
-                <div>Server Mods: {serverMods.length} mods</div>
-                <div>Exclude Shared: {excludeSharedMods ? 'Yes' : 'No'}</div>
-                <div>Total for this server: {excludeSharedMods ? serverMods.length : sharedMods.length + serverMods.length} mods</div>
-              </>
-            )}
+        <div className="card bg-info/10 border-info/20 mt-6">
+          <div className="card-body">
+            <h4 className="card-title text-info">📊 Summary</h4>
+            <div className="stats stats-horizontal shadow">
+              <div className="stat">
+                <div className="stat-title">Shared Mods</div>
+                <div className="stat-value text-primary">{sharedMods.length}</div>
+              </div>
+              {serverName && (
+                <>
+                  <div className="stat">
+                    <div className="stat-title">Server Mods</div>
+                    <div className="stat-value text-secondary">{serverMods.length}</div>
+                  </div>
+                  <div className="stat">
+                    <div className="stat-title">Exclude Shared</div>
+                    <div className="stat-value text-warning">{excludeSharedMods ? 'Yes' : 'No'}</div>
+                  </div>
+                  <div className="stat">
+                    <div className="stat-title">Total for Server</div>
+                    <div className="stat-value text-accent">{excludeSharedMods ? serverMods.length : sharedMods.length + serverMods.length}</div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-2 mt-6">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
-          >
-            {saving ? 'Saving...' : 'Save Configuration'}
-          </button>
+        <div className="modal-action">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+            className="btn btn-ghost"
           >
             Cancel
           </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn btn-primary"
+          >
+            {saving ? (
+              <>
+                <span className="loading loading-spinner loading-sm"></span>
+                Saving...
+              </>
+            ) : (
+              'Save Configuration'
+            )}
+          </button>
         </div>
       </div>
+      <div className="modal-backdrop" onClick={onClose}></div>
     </div>
   );
 };

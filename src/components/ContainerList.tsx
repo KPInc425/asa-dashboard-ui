@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { containerApi, environmentApi, type Container } from '../services';
 import { containerNameToServerName } from '../utils';
 import ArkServerEditor from './ArkServerEditor';
+import GlobalModManager from './GlobalModManager';
 // Use containerApi.sendRconCommand for RCON
 
 const API_SUITE_NAMES = [
@@ -54,6 +55,10 @@ const ContainerList = () => {
   const [isEditingServer, setIsEditingServer] = useState(false);
   const [selectedServer, setSelectedServer] = useState<any>(null);
   const [serverConfigs, setServerConfigs] = useState<any[]>([]);
+  
+  // Mod management state
+  const [showModManager, setShowModManager] = useState(false);
+  const [selectedServerForMods, setSelectedServerForMods] = useState<string | null>(null);
 
   useEffect(() => {
     fetchContainers();
@@ -274,6 +279,15 @@ const ContainerList = () => {
               >
                 Add New Server
               </button>
+              <button
+                onClick={() => {
+                  setSelectedServerForMods(null);
+                  setShowModManager(true);
+                }}
+                className="btn btn-info btn-sm"
+              >
+                Manage Global Mods
+              </button>
             </div>
           </div>
         </div>
@@ -293,6 +307,16 @@ const ContainerList = () => {
               setIsAddingServer(false);
               setIsEditingServer(false);
               setSelectedServer(null);
+            }}
+          />
+        )}
+
+        {/* Mod Management Modal */}
+        {showModManager && (
+          <GlobalModManager
+            onClose={() => {
+              setShowModManager(false);
+              setSelectedServerForMods(null);
             }}
           />
         )}
@@ -487,6 +511,16 @@ const ContainerList = () => {
                             >
                               ⚙️
                             </Link>
+                            <button
+                              className="btn btn-xs btn-outline btn-info"
+                              title="Manage Mods"
+                              onClick={() => {
+                                setSelectedServerForMods(container.name);
+                                setShowModManager(true);
+                              }}
+                            >
+                              🎮
+                            </button>
                             {isAsaServer(container.name) && (
                               <button
                                 className="btn btn-xs btn-outline btn-accent"
@@ -616,7 +650,7 @@ const ContainerList = () => {
                       </button>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-2 mt-2">
+                    <div className="grid grid-cols-2 gap-2 mt-2">
                       <Link
                         to={`/logs/${container.name}`}
                         className="btn btn-xs btn-info"
@@ -631,6 +665,9 @@ const ContainerList = () => {
                       >
                         ⌨️ RCON
                       </Link>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 mt-2">
                       <Link
                         to={`/configs?server=${encodeURIComponent(containerNameToServerName(container.name))}`}
                         className="btn btn-xs btn-secondary"
@@ -638,6 +675,16 @@ const ContainerList = () => {
                       >
                         ⚙️ Config
                       </Link>
+                      <button
+                        className="btn btn-xs btn-outline btn-info"
+                        title="Manage Mods"
+                        onClick={() => {
+                          setSelectedServerForMods(container.name);
+                          setShowModManager(true);
+                        }}
+                      >
+                        🎮 Mods
+                      </button>
                     </div>
                     
                     {isAsaServer(container.name) && (

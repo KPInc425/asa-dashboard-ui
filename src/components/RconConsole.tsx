@@ -65,7 +65,14 @@ const RconConsole = () => {
     setError('');
 
     try {
-      const response: RconResponse = await containerApi.sendRconCommand(containerName, command);
+      // Try native server RCON first, fallback to container RCON
+      let response: RconResponse;
+      try {
+        response = await containerApi.sendNativeRconCommand(containerName, command);
+      } catch (nativeError) {
+        // If native RCON fails, try container RCON
+        response = await containerApi.sendRconCommand(containerName, command);
+      }
       
       const newEntry: CommandHistory = {
         command: command,
@@ -167,50 +174,78 @@ const RconConsole = () => {
         </div>
 
         {/* Console Output */}
-                  <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl flex-1 flex flex-col animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.1s' }}>
-          <div className="flex items-center justify-between p-4 border-b border-base-300">
-            <h2 className="text-lg font-semibold text-primary">Console Output</h2>
+        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl flex-1 flex flex-col animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.1s' }}>
+          <div className="flex items-center justify-between p-4 border-b border-base-300 bg-base-300/50">
+            <div className="flex items-center space-x-3">
+              <h2 className="text-lg font-semibold text-primary">🖥️ Console Window</h2>
+              <div className="flex space-x-1">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              </div>
+            </div>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-base-content/70">
-                {history.length} commands
+                {history.length} messages
               </span>
               <button
                 onClick={clearHistory}
                 className="btn btn-sm btn-outline btn-error hover:shadow-lg hover:shadow-error/25"
               >
-                Clear
+                🗑️ Clear Console
               </button>
             </div>
           </div>
 
           <div 
             ref={consoleRef}
-            className="flex-1 p-4 overflow-y-auto font-mono text-sm space-y-2"
-            style={{ minHeight: '400px' }}
+            className="flex-1 p-4 overflow-y-auto font-mono text-sm space-y-3 bg-black/90 text-green-400"
+            style={{ minHeight: '500px' }}
           >
             {history.length === 0 ? (
-              <div className="text-center py-12 text-base-content/50">
-                <div className="text-4xl mb-4">💬</div>
-                <p>No commands executed yet</p>
-                <p className="text-sm">Start by typing a command below</p>
+              <div className="text-center py-12 text-green-400/60">
+                <div className="text-4xl mb-4">💻</div>
+                <p className="text-lg">Console Ready</p>
+                <p className="text-sm">Type a command below to get started</p>
+                <div className="mt-4 text-xs text-green-400/40">
+                  <p>Use ↑↓ arrow keys to navigate command history</p>
+                  <p>Press Tab for command suggestions</p>
+                </div>
               </div>
             ) : (
               history.map((entry, index) => (
-                <div key={index} className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-primary font-bold">$</span>
-                    <span className="text-accent">{entry.command}</span>
-                    <span className="text-base-content/30 text-xs">
-                      {entry.timestamp.toLocaleTimeString()}
+                <div key={index} className="space-y-2">
+                  {/* Command Input */}
+                  <div className="flex items-center space-x-2 bg-blue-900/30 p-2 rounded border-l-4 border-blue-500">
+                    <span className="text-blue-400 font-bold">$</span>
+                    <span className="text-yellow-400 font-medium">{entry.command}</span>
+                    <span className="text-blue-400/50 text-xs">
+                      [{entry.timestamp.toLocaleTimeString()}]
                     </span>
                   </div>
-                  <div className={`ml-4 ${getLogLevelColor(entry.response)}`}>
+                  
+                  {/* Response Output */}
+                  <div className={`ml-4 p-2 rounded border-l-4 ${
+                    entry.success 
+                      ? 'bg-green-900/30 border-green-500 text-green-400' 
+                      : 'bg-red-900/30 border-red-500 text-red-400'
+                  }`}>
                     {entry.response.split('\n').map((line, lineIndex) => (
-                      <div key={lineIndex}>{line}</div>
+                      <div key={lineIndex} className="text-sm">
+                        {line || '\u00A0'}
+                      </div>
                     ))}
                   </div>
                 </div>
               ))
+            )}
+            
+            {/* Cursor indicator when no history */}
+            {history.length === 0 && (
+              <div className="flex items-center space-x-2 text-green-400">
+                <span className="text-green-400 font-bold">$</span>
+                <span className="animate-pulse">█</span>
+              </div>
             )}
           </div>
         </div>

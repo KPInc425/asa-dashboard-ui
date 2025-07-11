@@ -304,6 +304,114 @@ class SocketManager {
   getCurrentContainer(): string | null {
     return this.containerName;
   }
+
+  /**
+   * Connect to system logs WebSocket
+   */
+  connectToSystemLogs(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.socket?.connected) {
+        this.disconnect();
+      }
+
+      // Use relative URL for socket.io (handled by reverse proxy)
+      const socketUrl = import.meta.env.VITE_API_URL || '/';
+      const token = localStorage.getItem('auth_token');
+      
+      this.socket = io(socketUrl, {
+        path: '/socket.io',
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        forceNew: true,
+        withCredentials: true,
+        auth: {
+          token: token || ''
+        }
+      });
+
+      // Set up event listeners
+      this.socket.on('connect', async () => {
+        console.log('Connected to Socket.IO server for system logs');
+        this.reconnectAttempts = 0;
+        this.reconnectDelay = 1000;
+        
+        try {
+          // Start system log streaming
+          const socket = this.socket;
+          if (socket) {
+            socket.emit('start-system-logs');
+          }
+          
+          resolve();
+        } catch (error: unknown) {
+          console.error('Error in system logs connection setup:', error);
+          resolve();
+        }
+      });
+
+      this.socket.on('disconnect', (reason: string) => {
+        console.log(`Disconnected from system logs: ${reason}`);
+        if (reason === 'io server disconnect') {
+          this.socket = null;
+        }
+      });
+
+      this.socket.on('connect_error', (error: Error) => {
+        console.error('System logs socket connection error:', error);
+        reject(error);
+      });
+
+      this.socket.on('error', (error: Error) => {
+        console.error('System logs socket error:', error);
+      });
+
+      // Handle reconnection
+      this.socket.on('disconnect', (reason: string) => {
+        if (reason === 'io client disconnect') {
+          return;
+        }
+
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.reconnectAttempts++;
+          console.log(`Attempting to reconnect system logs (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+          
+          setTimeout(() => {
+            this.connectToSystemLogs().catch(console.error);
+          }, this.reconnectDelay);
+          
+          this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
+        } else {
+          console.error('Max reconnection attempts reached for system logs');
+        }
+      });
+    });
+  }
+
+  /**
+   * Subscribe to system log events
+   */
+  onSystemLog(callback: (data: LogMessage) => void): void {
+    if (this.socket) {
+      this.socket.on('system-log-data', (data) => {
+        const logMessage: LogMessage = {
+          timestamp: data.timestamp,
+          level: data.level,
+          message: data.message,
+          container: 'system'
+        };
+        callback(logMessage);
+      });
+    }
+  }
+
+  /**
+   * Unsubscribe from system log events
+   */
+  offSystemLog(): void {
+    if (this.socket) {
+      this.socket.off('system-log-data');
+    }
+  }
 }
 
 // Create singleton instance
@@ -326,6 +434,9 @@ export const socketService = {
   onError: (callback: (error: Error) => void) => socketManager.onError(callback),
   isConnected: () => socketManager.isConnected(),
   getCurrentContainer: () => socketManager.getCurrentContainer(),
+  connectToSystemLogs: () => socketManager.connectToSystemLogs(),
+  onSystemLog: (callback: (data: LogMessage) => void) => socketManager.onSystemLog(callback),
+  offSystemLog: () => socketManager.offSystemLog(),
 };
 
 export default socketService; 
