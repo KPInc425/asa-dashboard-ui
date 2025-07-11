@@ -62,3 +62,64 @@
   --depth: 1;
   --noise: 0;
 }
+
+/* daisyUI custom theme for ARK Tek Dashboard */
+@plugin "daisyui/theme" {
+  name: "arktek";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  /* Base - Deep obsidian tones */
+  --color-base-100: oklch(0.07 0.01 260); /* Very dark blue-black */
+  --color-base-200: oklch(0.10 0.015 260); /* Slightly lifted background */
+  --color-base-300: oklch(0.14 0.02 260); /* Card panels */
+  --color-base-content: oklch(0.92 0.01 260); /* Pale silver text */
+
+  /* Primary - Element Cyan */
+  --color-primary: oklch(70% 0.25 200); /* Bright cyan */
+  --color-primary-content: oklch(0.1 0.02 200); /* Dark text on cyan */
+
+  /* Secondary - Bio Green */
+  --color-secondary: oklch(65% 0.25 140); /* Neon green */
+  --color-secondary-content: oklch(0.1 0.02 140);
+
+  /* Accent - Tek Blue */
+  --color-accent: oklch(75% 0.2 250); /* Electric blue */
+  --color-accent-content: oklch(0.1 0.02 250);
+
+  /* Neutral - Graphite gray */
+  --color-neutral: oklch(0.25 0.015 260);
+  --color-neutral-content: oklch(0.85 0.015 260);
+
+  /* Info - Soft blue */
+  --color-info: oklch(65% 0.2 220);
+  --color-info-content: oklch(0.95 0.02 220);
+
+  /* Success - Jungle Lime */
+  --color-success: oklch(70% 0.25 130);
+  --color-success-content: oklch(0.1 0.02 130);
+
+  /* Warning - Amber Glow */
+  --color-warning: oklch(75% 0.25 80);
+  --color-warning-content: oklch(0.15 0.05 80);
+
+  /* Error - Dino Red */
+  --color-error: oklch(60% 0.3 25);
+  --color-error-content: oklch(0.95 0.02 25);
+
+  /* Border radius */
+  --radius-selector: 0.75rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+
+  /* Sizes */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  /* Border and effects */
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+

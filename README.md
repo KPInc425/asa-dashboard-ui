@@ -1,241 +1,317 @@
-# ARK: Survival Ascended Dashboard
+# ASA Servers Dashboard
 
-> 🔗 This is the frontend dashboard for the [ASA Control API](https://github.com/kpinc425/asa-control-api)
-
-A modern, feature-rich web dashboard for managing ARK: Survival Ascended Docker servers with real-time monitoring, RCON console, configuration editing, and log streaming.
-
-![ARK Dashboard](https://img.shields.io/badge/ARK-Survival%20Ascended-orange)
-![React](https://img.shields.io/badge/React-19.1.0-blue)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.1.11-38B2AC)
-![DaisyUI](https://img.shields.io/badge/DaisyUI-5.0.43-5A0EF8)
-
-## 🦖 Features
-
-### 🎮 Server Management
-- **Real-time Server Status** - Monitor all your ARK servers at a glance
-- **One-Click Controls** - Start, stop, and restart servers instantly
-- **Bulk Operations** - Manage multiple servers simultaneously
-- **Server Statistics** - View running/stopped server counts and status
-
-### 💬 RCON Console
-- **Interactive Console** - Send commands directly to your servers
-- **Command History** - Browse and reuse previous commands
-- **Auto-completion** - Built-in ARK command suggestions
-- **Real-time Responses** - See command results instantly
-
-### ⚙️ Configuration Editor
-- **Syntax Highlighting** - Monaco Editor with INI file support
-- **Live Editing** - Edit server configurations in real-time
-- **Auto-save** - Changes are saved automatically
-- **Map Support** - Support for all ARK maps with custom icons
-
-### 📋 Log Streaming
-- **Real-time Logs** - Live log streaming via WebSocket
-- **Log Filtering** - Filter by log level and search terms
-- **Auto-scroll** - Automatic scrolling to latest logs
-- **Export Functionality** - Download logs for analysis
-
-### 🔐 Authentication
-- **JWT-based Auth** - Secure login system
-- **Protected Routes** - Route protection for authenticated users
-- **Session Management** - Automatic token handling
-
-### 🎨 Modern UI/UX
-- **ARK-themed Design** - Custom color scheme inspired by ARK: Survival Ascended
-- **Responsive Layout** - Works on desktop, tablet, and mobile
-- **Smooth Animations** - Custom CSS animations and transitions
-- **Dark Mode** - Optimized for dark environments
-- **Glass Morphism** - Modern glass-like UI elements
+A React-based web dashboard for managing ARK: Survival Ascended servers, providing an intuitive interface for container management, RCON control, configuration editing, and real-time monitoring.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- Backend API server running (optional - see Frontend-Only Mode below)
-- Docker (for containerized deployment)
+- Node.js 18+
+- ASA Management API backend running (see backend documentation)
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone the repository:**
    ```bash
    git clone <repository-url>
    cd asa-servers-dashboard
    ```
 
-2. **Install dependencies**
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. **Create environment file**
+3. **Configure environment:**
    ```bash
-   # Create .env file
-   echo "VITE_FRONTEND_ONLY=true" > .env
-   ```
-   
-   For frontend-only testing, your `.env` should contain:
-   ```env
-   VITE_FRONTEND_ONLY=true
-   ```
-   
-   For backend mode, add your API URL:
-   ```env
-   VITE_FRONTEND_ONLY=false
-   VITE_API_URL=http://your-ark-server:4000
+   copy env.example .env
+   # Edit .env with your API endpoint
    ```
 
-4. **Start development server**
+4. **Start development server:**
    ```bash
    npm run dev
    ```
 
-5. **Open your browser**
-   Navigate to `http://localhost:5173`
-
-### 🔧 Frontend-Only Mode (Testing Without Backend)
-
-The dashboard includes a frontend-only mode for testing without a backend server:
-
-1. **Enable Frontend-Only Mode**
-   Add `VITE_FRONTEND_ONLY=true` to your `.env` file
-
-2. **Test Credentials**
-   - Username: `admin`
-   - Password: `admin123`
-
-3. **Features Available**
-   - ✅ Mock server data (4 sample ARK servers)
-   - ✅ Simulated API responses
-   - ✅ RCON command responses
-   - ✅ Configuration editing
-   - ✅ All UI interactions
-
-4. **Switch to Backend Mode**
-   When your backend is ready, set `VITE_FRONTEND_ONLY=false` or remove the variable from `.env`
-
-## Unified Startup (Optional)
-
-If you have both the backend and frontend repos in the same parent folder, you can use the `start-asa-suite.ps1` script and `docker-compose.unified.yml` to start both at once. These files are copies for convenience; the latest version is maintained at the root of the suite if you have one.
-
-- To start both: `powershell -ExecutionPolicy Bypass -File start-asa-suite.ps1 unified`
-- To start only backend: `powershell -ExecutionPolicy Bypass -File start-asa-suite.ps1 backend`
-- To start only frontend: `powershell -ExecutionPolicy Bypass -File start-asa-suite.ps1 frontend`
-
-Otherwise, use the individual scripts as usual.
-
-## 🏗️ Architecture
-
-### Frontend Stack
-- **React 19** - Modern React with hooks and functional components
-- **TypeScript** - Type-safe development
-- **Vite** - Fast build tool and dev server
-- **React Router** - Client-side routing
-- **Tailwind CSS v4** - Utility-first CSS framework
-- **DaisyUI v5** - Component library built on Tailwind
-- **Monaco Editor** - Code editor for configuration files
-- **Socket.IO Client** - Real-time WebSocket communication
-- **Axios** - HTTP client for API communication
-
-### Project Structure
-```
-src/
-├── components/          # Reusable UI components
-│   ├── ContainerList.tsx
-│   ├── RconConsole.tsx
-│   ├── ConfigEditor.tsx
-│   ├── LogViewer.tsx
-│   ├── Sidebar.tsx
-│   └── LoadingSpinner.tsx
-├── pages/              # Page-level components
-│   ├── Dashboard.tsx
-│   └── Login.tsx
-├── services/           # API and socket services
-│   ├── api.ts
-│   ├── socket.ts
-│   └── index.ts
-├── App.tsx            # Main app component
-└── main.tsx          # Entry point
-```
-
-## 🔌 API Integration
-
-### External Backend Configuration
-
-When your backend is hosted on a different server (e.g., your ARK server machine), configure the dashboard to connect to it:
-
-1. **Set Backend URL**
-   ```env
-   VITE_API_URL=http://your-ark-server-ip:4000
-   # or
-   BACKEND_API_URL=http://your-ark-server-ip:4000
+5. **Open in browser:**
+   ```
+   http://localhost:5173
    ```
 
-2. **CORS Configuration**
-   Your backend must allow CORS requests from the dashboard domain:
-   ```javascript
-   // Backend CORS configuration
-   app.use(cors({
-     origin: ['http://your-dashboard-domain:4010', 'http://localhost:4010'],
-     credentials: true
-   }));
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file with the following settings:
+
+```bash
+# API Configuration
+VITE_API_URL=http://localhost:4000
+VITE_API_TIMEOUT=30000
+
+# Development
+VITE_DEV_MODE=true
+VITE_LOG_LEVEL=info
+```
+
+### API Backend Setup
+
+The dashboard requires the ASA Management API backend to be running. See the backend documentation for setup instructions:
+
+1. **Install backend as Windows service (recommended):**
+   ```powershell
+   cd ../asa-docker-control-api
+   .\install-nssm-service.ps1
+   Start-Service ASA-API
    ```
 
-3. **Network Access**
-   Ensure the backend port (4000) is accessible from the dashboard server.
+2. **Or run backend manually:**
+   ```bash
+   cd ../asa-docker-control-api
+   npm start
+   ```
 
-### API Endpoints
+3. **Verify backend is running:**
+   ```bash
+   curl http://localhost:4000/health
+   ```
 
-The dashboard communicates with your backend API through the following endpoints:
+## 🏗️ Project Structure
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/containers` | List all containers |
-| POST | `/api/containers/:name/start` | Start container |
-| POST | `/api/containers/:name/stop` | Stop container |
-| POST | `/api/containers/:name/restart` | Restart container |
-| POST | `/api/containers/:name/rcon` | Send RCON command |
-| GET | `/api/configs/:map` | Load config file |
-| PUT | `/api/configs/:map` | Save config file |
-| GET | `/api/lock-status` | Get update lock status |
-| GET | `/api/logs/:container` | WebSocket log stream |
-| POST | `/api/auth/login` | User login |
-| GET | `/api/auth/me` | Get current user |
-
-## 🎨 Customization
-
-### Theme Colors
-The dashboard uses a custom ARK-themed color palette defined in `src/index.css`:
-
-- **Primary**: Warm orange (#FF6B35)
-- **Secondary**: Deep red (#DA0000) 
-- **Accent**: Gold (#FFD700)
-- **Background**: Dark blue-gray
-- **Text**: Light gray
-
-### Animations
-Custom CSS animations are available:
-- `.ark-glow` - Pulsing glow effect
-- `.ark-pulse` - Scale pulse animation
-- `.ark-slide-in` - Slide-in entrance animation
-- `.ark-fade-in` - Fade-in animation
-- `.ark-rotate` - Continuous rotation
-- `.ark-bounce` - Bounce animation
+```
+asa-servers-dashboard/
+├── src/
+│   ├── components/          # React components
+│   │   ├── ContainerList.tsx
+│   │   ├── RconConsole.tsx
+│   │   ├── ConfigEditor.tsx
+│   │   ├── LogViewer.tsx
+│   │   ├── NativeServerManager.tsx
+│   │   ├── ServerProvisioner.tsx
+│   │   └── Sidebar.tsx
+│   ├── pages/              # Page components
+│   │   ├── Dashboard.tsx
+│   │   ├── Configs.tsx
+│   │   └── Login.tsx
+│   ├── services/           # API services
+│   │   ├── api.ts
+│   │   └── socket.ts
+│   └── utils.ts            # Utility functions
+├── public/                 # Static assets
+├── docker-compose.unified.yml  # Unified Docker setup
+├── docker-compose.env      # Docker environment
+├── start-asa-suite.ps1     # Suite startup script
+└── package.json
+```
 
 ## 🐳 Docker Deployment
 
-### Quick Start with Docker
+### Using Docker Compose
 
-1. **Build and run with Docker Compose:**
+```bash
+# Start with unified compose
+docker-compose -f docker-compose.unified.yml up -d
+
+# Check status
+docker-compose -f docker-compose.unified.yml ps
+
+# View logs
+docker-compose -f docker-compose.unified.yml logs -f
+```
+
+### Manual Docker Build
+
+```bash
+# Build image
+docker build -t asa-dashboard .
+
+# Run container
+docker run -d \
+  --name asa-dashboard \
+  -p 3000:3000 \
+  -e VITE_API_URL=http://your-api-host:4000 \
+  asa-dashboard
+```
+
+## 🔧 Development
+
+### Available Scripts
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+npm run type-check   # Run TypeScript checks
+```
+
+### Development Server
+
+```bash
+# Start development server
+npm run dev
+
+# The dashboard will be available at:
+# http://localhost:5173
+```
+
+### API Integration
+
+The dashboard connects to the ASA Management API backend. Ensure the backend is running and accessible at the configured URL.
+
+## 📡 Features
+
+### Container Management
+- View running Docker containers
+- Start, stop, and restart containers
+- Monitor container status and resources
+
+### RCON Control
+- Send RCON commands to servers
+- View real-time server responses
+- Command history and favorites
+
+### Configuration Management
+- Edit server configuration files
+- Syntax highlighting and validation
+- Backup and restore configurations
+
+### Native Server Management
+- Manage native ASA servers
+- Start and stop servers
+- Monitor server processes
+
+### Real-time Monitoring
+- Live log streaming
+- Server status monitoring
+- Performance metrics
+
+### User Interface
+- Modern, responsive design
+- Dark/light theme support
+- Mobile-friendly layout
+
+## 🔐 Authentication
+
+The dashboard uses JWT-based authentication. Login credentials are managed by the backend API.
+
+## 🌐 CORS Configuration
+
+The backend API is configured to allow requests from:
+- `http://localhost:3000` (Production build)
+- `http://localhost:5173` (Development server)
+- `http://localhost:4000` (API server)
+- `http://localhost:4010` (Alternative port)
+
+## 🚀 Production Deployment
+
+### Build for Production
+
+```bash
+# Build the application
+npm run build
+
+# The built files will be in the dist/ directory
+```
+
+### Serve Production Build
+
+```bash
+# Using a static file server
+npx serve -s dist -l 3000
+
+# Or using nginx
+# Copy dist/ contents to nginx web root
+```
+
+### Environment Configuration
+
+For production, update the environment variables:
+
+```bash
+# Production settings
+VITE_API_URL=https://your-api-domain.com
+VITE_DEV_MODE=false
+VITE_LOG_LEVEL=warn
+```
+
+## 🔍 Troubleshooting
+
+### Dashboard Won't Load
+
+1. **Check if development server is running:**
    ```bash
-   # Build and start the container
-   docker compose up -d
-   
-   # Or use the deployment script
-   chmod +x deploy.sh
-   ./deploy.sh
+   npm run dev
    ```
 
-2. **Access the dashboard:**
-   - Frontend-only mode: `http://localhost:4010`
+2. **Verify API backend is accessible:**
+   ```bash
+   curl http://localhost:4000/health
+   ```
+
+3. **Check browser console for errors**
+
+4. **Verify environment configuration:**
+   ```bash
+   # Check .env file
+   cat .env
+   ```
+
+### API Connection Issues
+
+1. **Verify API URL in .env:**
+   ```bash
+   VITE_API_URL=http://localhost:4000
+   ```
+
+2. **Check if API is running:**
+   ```bash
+   # For Windows service
+   Get-Service ASA-API
+   
+   # For manual operation
+   curl http://localhost:4000/health
+   ```
+
+3. **Check CORS configuration in backend**
+
+### Build Issues
+
+1. **Clear node_modules and reinstall:**
+   ```bash
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
+
+2. **Check TypeScript errors:**
+   ```bash
+   npm run type-check
+   ```
+
+3. **Check linting errors:**
+   ```bash
+   npm run lint
+   ```
+
+## 🔗 Related Projects
+
+- [ASA Management API](https://github.com/your-org/asa-docker-control-api) - Backend API for ASA management
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📞 Support
+
+For issues and questions:
+1. Check the troubleshooting section above
+2. Verify the backend API is running
+3. Check browser console for errors
+4. Review the backend documentation
