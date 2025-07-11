@@ -99,11 +99,26 @@ const ServerModManager: React.FC<ServerModManagerProps> = ({ serverName, onClose
   };
 
   const handleAddCustomMod = () => {
-    const modId = parseInt(newModId.trim());
-    if (modId && !isNaN(modId)) {
+    const inputValue = newModId.trim();
+    
+    if (!inputValue) return;
+    
+    // Split by comma and clean up each mod ID
+    const modIds = inputValue
+      .split(',')
+      .map(id => id.trim())
+      .filter(id => id && !isNaN(parseInt(id)))
+      .map(id => parseInt(id));
+    
+    if (modIds.length === 0) return;
+    
+    // Add each valid mod ID
+    modIds.forEach(modId => {
       handleAddMod(modId);
-      setNewModId('');
-    }
+    });
+    
+    // Clear the input
+    setNewModId('');
   };
 
   const getModName = (modId: number) => {
@@ -237,12 +252,12 @@ const ServerModManager: React.FC<ServerModManagerProps> = ({ serverName, onClose
                   type="text"
                   value={newModId}
                   onChange={(e) => setNewModId(e.target.value)}
-                  placeholder="Enter CurseForge Project ID"
+                  placeholder="Enter mod ID(s) - separate multiple with commas (e.g., 731604991, 1404697612)"
                   className="input input-bordered flex-1"
                 />
                 <button
                   onClick={handleAddCustomMod}
-                  disabled={!newModId.trim() || isNaN(parseInt(newModId.trim()))}
+                  disabled={!newModId.trim()}
                   className="btn btn-secondary"
                 >
                   Add

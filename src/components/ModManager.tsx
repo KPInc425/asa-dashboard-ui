@@ -130,14 +130,29 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
   };
 
   const handleAddCustomMod = (isShared: boolean = true) => {
-    const modId = isShared ? parseInt(newSharedModId.trim()) : parseInt(newServerModId.trim());
-    if (modId && !isNaN(modId)) {
+    const inputValue = isShared ? newSharedModId.trim() : newServerModId.trim();
+    
+    if (!inputValue) return;
+    
+    // Split by comma and clean up each mod ID
+    const modIds = inputValue
+      .split(',')
+      .map(id => id.trim())
+      .filter(id => id && !isNaN(parseInt(id)))
+      .map(id => parseInt(id));
+    
+    if (modIds.length === 0) return;
+    
+    // Add each valid mod ID
+    modIds.forEach(modId => {
       handleAddMod(modId, isShared);
-      if (isShared) {
-        setNewSharedModId('');
-      } else {
-        setNewServerModId('');
-      }
+    });
+    
+    // Clear the input
+    if (isShared) {
+      setNewSharedModId('');
+    } else {
+      setNewServerModId('');
     }
   };
 
@@ -177,12 +192,12 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
         type="text"
         value={isShared ? newSharedModId : newServerModId}
         onChange={(e) => isShared ? setNewSharedModId(e.target.value) : setNewServerModId(e.target.value)}
-        placeholder="Enter CurseForge Project ID"
+        placeholder="Enter mod ID(s) - separate multiple with commas (e.g., 731604991, 1404697612)"
         className="input input-bordered flex-1"
       />
       <button
         onClick={() => handleAddCustomMod(isShared)}
-        disabled={!((isShared ? newSharedModId : newServerModId).trim()) || isNaN(parseInt((isShared ? newSharedModId : newServerModId).trim()))}
+        disabled={!((isShared ? newSharedModId : newServerModId).trim())}
         className="btn btn-primary"
       >
         Add

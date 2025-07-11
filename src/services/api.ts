@@ -450,6 +450,52 @@ export const containerApi = {
       return response.data;
     }
   },
+
+  /**
+   * Get server mods configuration
+   */
+  getServerMods: async (serverName: string): Promise<{ success: boolean; serverConfig: { additionalMods: number[]; excludeSharedMods: boolean } }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            serverConfig: {
+              additionalMods: [1609138312, 215527665],
+              excludeSharedMods: false
+            }
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get(`/api/provisioning/server-mods/${serverName}`);
+    return response.data;
+  },
+
+  /**
+   * Get native server start.bat content
+   */
+  getNativeServerStartBat: async (serverName: string): Promise<{ success: boolean; content: string; path: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            content: `@echo off
+echo Starting ${serverName}...
+"ArkAscendedServer.exe" "TheIsland?listen?SessionName=${serverName}?Port=7777?QueryPort=27015?RCONPort=32330?RCONEnabled=True?MaxPlayers=70?ServerPassword=?ServerAdminPassword=admin123" -mods=928102085,1404697612 -servergamelog -NotifyAdminCommandsInChat -UseDynamicConfig -ClusterDirOverride=C:\\ARK\\clusters\\MyCluster\\clusterdata -NoTransferFromFiltering -clusterid=MyCluster -NoBattleEye
+echo Server ${serverName} has stopped.
+pause`,
+            path: `C:\\ARK\\clusters\\MyCluster\\${serverName}\\start.bat`
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get(`/api/native-servers/${serverName}/start-bat`);
+    return response.data;
+  },
 };
 
 // Configuration Management API
@@ -683,8 +729,21 @@ export const logsApi = {
   },
 };
 
-// Export the main API instance for custom requests
-export { api };
+// ARK Config File API
+export const getArkConfigFile = async (serverName: string, fileName: 'Game.ini' | 'GameUserSettings.ini') => {
+  const response = await api.get(`/api/configs/ark/${encodeURIComponent(serverName)}/${encodeURIComponent(fileName)}`);
+  return response.data;
+};
+
+export const updateArkConfigFile = async (serverName: string, fileName: 'Game.ini' | 'GameUserSettings.ini', content: string) => {
+  const response = await api.put(`/api/configs/ark/${encodeURIComponent(serverName)}/${encodeURIComponent(fileName)}`, { content });
+  return response.data;
+};
+
+export const getServerConfigInfo = async (serverName: string) => {
+  const response = await api.get(`/api/configs/ark/${encodeURIComponent(serverName)}/info`);
+  return response.data;
+};
 
 // Environment Management API
 export const environmentApi = {
@@ -1401,5 +1460,7 @@ export const apiService = {
   environment: environmentApi,
   provisioning: provisioningApi,
 };
+
+export { api };
 
 export default apiService; 

@@ -107,8 +107,8 @@ const ServerList: React.FC<ServerListProps> = ({
               <td>
                 <div className="flex items-center space-x-3">
                   <div className="avatar placeholder">
-                    <div className="bg-gradient-to-br from-primary to-accent text-primary-content rounded-full w-10">
-                      <span className="text-lg">🦖</span>
+                    <div className="bg-gradient-to-br from-primary to-accent text-primary-content rounded-full w-10 pt-1">
+                      <span className="text-lg pl-2">🦖</span>
                     </div>
                   </div>
                   <div>
@@ -120,7 +120,7 @@ const ServerList: React.FC<ServerListProps> = ({
                 </div>
               </td>
               <td>
-                <div className="flex gap-1">
+                <div className="flex gap-1 items-center">
                   <span className={`badge ${getTypeColor(server.type)}`}>
                     {getTypeLabel(server.type)}
                   </span>

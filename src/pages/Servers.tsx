@@ -504,6 +504,7 @@ const Servers: React.FC = () => {
           server={selectedServer}
           isOpen={!!selectedServer}
           onClose={() => setSelectedServer(null)}
+          onRefresh={loadAllServers}
         />
       )}
     </div>
