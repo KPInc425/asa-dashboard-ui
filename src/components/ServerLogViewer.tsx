@@ -83,66 +83,130 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
     setError('');
 
     try {
-      await socketService.connect(serverName, selectedLogFile);
-      setIsConnected(true);
-
-      // Set up event listeners for server logs
-      socketService.onServerLog((logMessage: LogMessage) => {
-        setLogs(prev => [...prev, logMessage]);
-      });
-
-      socketService.onConnect(() => {
+      // First, try to load static logs to ensure we have something to show
+      await loadStaticLogs();
+      
+      // Then try Socket.IO for real-time updates (but don't fail if it doesn't work)
+      try {
+        await socketService.connect(serverName, selectedLogFile);
         setIsConnected(true);
-        setError('');
-      });
 
-      socketService.onDisconnect((reason: string) => {
-        setIsConnected(false);
-        if (reason !== 'io client disconnect') {
-          setError(`Disconnected: ${reason}`);
-          // Try to load static logs as fallback
-          loadStaticLogs();
-        }
-      });
+        // Set up event listeners for server logs
+        socketService.onServerLog((logMessage: LogMessage) => {
+          setLogs(prev => [...prev, logMessage]);
+        });
 
-      socketService.onError((error: Error) => {
-        setError(`Connection error: ${error.message}`);
+        socketService.onConnect(() => {
+          setIsConnected(true);
+          setError('');
+        });
+
+        socketService.onDisconnect((reason: string) => {
+          setIsConnected(false);
+          if (reason !== 'io client disconnect') {
+            console.warn(`Socket.IO disconnected: ${reason}`);
+            // Don't set error since we have static logs
+          }
+        });
+
+        socketService.onError((error: Error) => {
+          console.warn(`Socket.IO error: ${error.message}`);
+          setIsConnected(false);
+          // Don't set error since we have static logs
+        });
+
+      } catch (socketErr) {
+        console.warn('Socket.IO connection failed, using static logs only:', socketErr);
         setIsConnected(false);
-        // Try to load static logs as fallback
-        loadStaticLogs();
-      });
+        // Don't set error since we have static logs
+      }
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect to server logs');
+      setError(err instanceof Error ? err.message : 'Failed to load server logs');
       setIsConnected(false);
-      // Try to load static logs as fallback
-      loadStaticLogs();
     } finally {
       setIsLoading(false);
     }
   };
 
   const loadStaticLogs = async () => {
-    if (!serverName || !selectedLogFile) return;
+    if (!serverName) return;
     
     try {
       // Try to load recent logs from the API as a fallback
-      const response = await logsApi.getLogContent(serverName, selectedLogFile, 100);
-      if (response.success && response.content) {
-        // Parse the log content and convert to LogMessage format
-        const logLines = response.content.split('\n').filter(line => line.trim());
-        const staticLogs: LogMessage[] = logLines.map((line, index) => ({
-          timestamp: new Date(Date.now() - (logLines.length - index) * 1000).toISOString(),
-          level: 'info',
-          message: line,
-          container: serverName || 'unknown'
-        }));
-        
-        setLogs(staticLogs);
-        setError('Using static log content (real-time connection unavailable)');
+      // Use the first available log file if none is selected
+      const logFileName = selectedLogFile === 'server' ? 'ShooterGame.log' : selectedLogFile;
+      
+      if (!logFileName) {
+        // If no log file is selected, try to get the first available one
+        const filesResponse = await logsApi.getLogFiles(serverName);
+        if (filesResponse.success && filesResponse.logFiles.length > 0) {
+          const firstFile = filesResponse.logFiles[0];
+          const response = await logsApi.getLogContent(serverName, firstFile.name, 100);
+          if (response.success && response.content) {
+            const logLines = response.content.split('\n').filter(line => line.trim());
+            const staticLogs: LogMessage[] = logLines.map((line, index) => {
+              try {
+                // Try to parse as JSON log entry
+                const logEntry = JSON.parse(line);
+                return {
+                  timestamp: new Date(logEntry.time || Date.now() - (logLines.length - index) * 1000).toISOString(),
+                  level: logEntry.level?.toString() || 'info',
+                  message: logEntry.msg || line,
+                  container: serverName || 'unknown'
+                };
+              } catch {
+                // Fall back to plain text
+                return {
+                  timestamp: new Date(Date.now() - (logLines.length - index) * 1000).toISOString(),
+                  level: 'info',
+                  message: line,
+                  container: serverName || 'unknown'
+                };
+              }
+            });
+            
+            setLogs(staticLogs);
+            setError(`Using static log content from ${firstFile.name} (real-time connection unavailable)`);
+            return;
+          }
+        }
+      } else {
+        const response = await logsApi.getLogContent(serverName, logFileName, 100);
+        if (response.success && response.content) {
+          const logLines = response.content.split('\n').filter(line => line.trim());
+          const staticLogs: LogMessage[] = logLines.map((line, index) => {
+            try {
+              // Try to parse as JSON log entry
+              const logEntry = JSON.parse(line);
+              return {
+                timestamp: new Date(logEntry.time || Date.now() - (logLines.length - index) * 1000).toISOString(),
+                level: logEntry.level?.toString() || 'info',
+                message: logEntry.msg || line,
+                container: serverName || 'unknown'
+              };
+            } catch {
+              // Fall back to plain text
+              return {
+                timestamp: new Date(Date.now() - (logLines.length - index) * 1000).toISOString(),
+                level: 'info',
+                message: line,
+                container: serverName || 'unknown'
+              };
+            }
+          });
+          
+          setLogs(staticLogs);
+          setError(`Using static log content from ${logFileName} (real-time connection unavailable)`);
+          return;
+        }
       }
+      
+      // If we get here, no logs were loaded
+      setError('No log content available');
     } catch (err) {
       console.error('Failed to load static logs:', err);
+      setError('Failed to load log content');
     }
   };
 
@@ -167,9 +231,20 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
   };
 
   const getLogLevelColor = (level: string) => {
-    switch (level) {
+    // Handle numeric levels from JSON logs
+    const numericLevel = parseInt(level);
+    if (!isNaN(numericLevel)) {
+      // Pino log levels: 10=debug, 20=info, 30=warn, 40=error, 50=fatal
+      if (numericLevel >= 40) return 'text-error';
+      if (numericLevel >= 30) return 'text-warning';
+      if (numericLevel >= 20) return 'text-info';
+      return 'text-base-content/50'; // debug
+    }
+    
+    // Handle string levels
+    switch (level.toLowerCase()) {
       case 'error': return 'text-error';
-      case 'warn': return 'text-warning';
+      case 'warn': case 'warning': return 'text-warning';
       case 'info': return 'text-info';
       case 'debug': return 'text-base-content/50';
       default: return 'text-base-content';
@@ -177,9 +252,20 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
   };
 
   const getLogLevelIcon = (level: string) => {
-    switch (level) {
+    // Handle numeric levels from JSON logs
+    const numericLevel = parseInt(level);
+    if (!isNaN(numericLevel)) {
+      // Pino log levels: 10=debug, 20=info, 30=warn, 40=error, 50=fatal
+      if (numericLevel >= 40) return '🔴';
+      if (numericLevel >= 30) return '🟡';
+      if (numericLevel >= 20) return '🔵';
+      return '⚪'; // debug
+    }
+    
+    // Handle string levels
+    switch (level.toLowerCase()) {
       case 'error': return '🔴';
-      case 'warn': return '🟡';
+      case 'warn': case 'warning': return '🟡';
       case 'info': return '🔵';
       case 'debug': return '⚪';
       default: return '⚪';

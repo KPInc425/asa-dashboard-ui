@@ -61,14 +61,34 @@ const SystemLogs: React.FC = () => {
     if (!content) return 'No logs available';
     
     return content.split('\n').map((line, index) => {
-      const isError = line.toLowerCase().includes('error') || line.toLowerCase().includes('failed');
-      const isWarning = line.toLowerCase().includes('warn') || line.toLowerCase().includes('warning');
-      const isInfo = line.toLowerCase().includes('info');
+      // For JSON logs, parse the level field
+      let logLevel = 'info';
+      try {
+        if (line.trim() && line.includes('"level"')) {
+          const match = line.match(/"level":"([^"]+)"/);
+          if (match) {
+            logLevel = match[1];
+          }
+        }
+      } catch (error) {
+        // Fallback to text-based detection
+      }
+      
+      // Fallback to text-based detection for non-JSON logs
+      if (logLevel === 'info') {
+        const isError = line.toLowerCase().includes('error') || line.toLowerCase().includes('failed');
+        const isWarning = line.toLowerCase().includes('warn') || line.toLowerCase().includes('warning');
+        const isInfo = line.toLowerCase().includes('info');
+        
+        if (isError) logLevel = 'error';
+        else if (isWarning) logLevel = 'warn';
+        else if (isInfo) logLevel = 'info';
+      }
       
       let className = 'font-mono text-sm';
-      if (isError) className += ' text-error';
-      else if (isWarning) className += ' text-warning';
-      else if (isInfo) className += ' text-info';
+      if (logLevel === 'error') className += ' text-error';
+      else if (logLevel === 'warn') className += ' text-warning';
+      else if (logLevel === 'info') className += ' text-info';
       else className += ' text-base-content';
       
       return (
