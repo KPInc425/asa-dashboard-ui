@@ -4,9 +4,8 @@ import { provisioningApi } from '../services/api';
 
 interface SystemLogs {
   api?: string;
-  server?: string;
+  service?: string;
   docker?: string;
-  system?: string;
 }
 
 const SystemLogs: React.FC = () => {
@@ -150,9 +149,8 @@ const SystemLogs: React.FC = () => {
                 >
                   <option value="all">All Logs</option>
                   <option value="api">API Logs</option>
-                  <option value="server">Server Logs</option>
+                  <option value="service">Service Logs</option>
                   <option value="docker">Docker Logs</option>
-                  <option value="system">System Logs</option>
                 </select>
               </div>
 
