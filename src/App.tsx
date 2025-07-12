@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -11,6 +11,9 @@ import LogViewer from './components/LogViewer';
 import ServerLogViewer from './components/ServerLogViewer';
 import Provisioning from './pages/Provisioning';
 import Login from './pages/Login';
+import UserProfile from './components/UserProfile';
+import UserManagement from './components/UserManagement';
+import FirstTimeSetup from './components/FirstTimeSetup';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -71,8 +74,30 @@ const Header: React.FC<{ sidebarOpen: boolean; setSidebarOpen: (open: boolean) =
                   </li>
                   <li className="divider"></li>
                   <li>
-                    <button onClick={logout} className="text-error">
-                      Logout
+                    <Link to="/profile" className="flex items-center space-x-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span>Profile</span>
+                    </Link>
+                  </li>
+                  {user.permissions?.includes('user_management') && (
+                    <li>
+                      <Link to="/users" className="flex items-center space-x-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                        <span>User Management</span>
+                      </Link>
+                    </li>
+                  )}
+                  <li className="divider"></li>
+                  <li>
+                    <button onClick={logout} className="text-error flex items-center space-x-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span>Logout</span>
                     </button>
                   </li>
                 </ul>
@@ -89,7 +114,7 @@ const Header: React.FC<{ sidebarOpen: boolean; setSidebarOpen: (open: boolean) =
 
 const AppContent: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, needsFirstTimeSetup, completeFirstTimeSetup } = useAuth();
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -115,6 +140,11 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // If user needs first-time setup, show setup page
+  if (needsFirstTimeSetup) {
+    return <FirstTimeSetup onComplete={completeFirstTimeSetup} />;
+  }
+
   return (
     <div className="flex h-screen bg-base-200">
       {/* Sidebar */}
@@ -135,6 +165,8 @@ const AppContent: React.FC = () => {
             <Route path="/logs" element={<LogViewer />} />
             <Route path="/logs/:serverName" element={<ServerLogViewer />} />
             <Route path="/provisioning" element={<Provisioning />} />
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/users" element={<UserManagement />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

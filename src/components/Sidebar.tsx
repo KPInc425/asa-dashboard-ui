@@ -48,6 +48,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     }
   ];
 
+  // Add admin-only menu items
+  const adminMenuItems = user?.permissions?.includes('user_management') ? [
+    {
+      path: '/users',
+      label: 'User Management',
+      icon: '👥',
+      description: 'Manage users and permissions'
+    }
+  ] : [];
+
   return (
     <>
       {/* Mobile overlay */}
@@ -107,6 +117,39 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 </div>
               </Link>
             ))}
+            
+            {/* Admin-only section */}
+            {adminMenuItems.length > 0 && (
+              <>
+                <div className="pt-4 pb-2">
+                  <div className="text-xs font-medium text-base-content/50 uppercase tracking-wider">
+                    Administration
+                  </div>
+                </div>
+                {adminMenuItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={onClose}
+                    className={`
+                      flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 group
+                      ${isActive(item.path) 
+                        ? 'bg-primary text-primary-content shadow-lg' 
+                        : 'hover:bg-base-200 text-base-content'
+                      }
+                    `}
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <div className="flex-1">
+                      <div className="font-medium">{item.label}</div>
+                      <div className={`text-xs ${isActive(item.path) ? 'text-primary-content/70' : 'text-base-content/50'}`}>
+                        {item.description}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </>
+            )}
           </nav>
 
           {/* Footer */}

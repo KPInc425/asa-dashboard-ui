@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiService } from '../services/api';
 import { socketService } from '../services/socket';
 import type { JobProgress } from '../services/socket';
+import PasswordInput from './PasswordInput';
 
 interface SystemInfo {
   diskSpace: {
@@ -688,12 +689,10 @@ const ServerConfigStep: React.FC<StepProps> = ({ wizardData, setWizardData, gene
                   <label className="label">
                     <span className="label-text font-semibold">Admin Password</span>
                   </label>
-                  <input
-                    type="password"
-                    className="input input-bordered"
-                    placeholder="admin123"
+                  <PasswordInput
                     value={wizardData.adminPassword}
-                    onChange={(e) => setWizardData(prev => ({ ...prev, adminPassword: e.target.value }))}
+                    onChange={(value) => setWizardData(prev => ({ ...prev, adminPassword: value }))}
+                    placeholder="admin123"
                   />
                 </div>
                 
@@ -701,12 +700,10 @@ const ServerConfigStep: React.FC<StepProps> = ({ wizardData, setWizardData, gene
                   <label className="label">
                     <span className="label-text font-semibold">Server Password (Optional)</span>
                   </label>
-                  <input
-                    type="password"
-                    className="input input-bordered"
-                    placeholder="Leave empty for public server"
+                  <PasswordInput
                     value={wizardData.serverPassword}
-                    onChange={(e) => setWizardData(prev => ({ ...prev, serverPassword: e.target.value }))}
+                    onChange={(value) => setWizardData(prev => ({ ...prev, serverPassword: value }))}
+                    placeholder="Leave empty for public server"
                   />
                 </div>
                 
@@ -714,12 +711,10 @@ const ServerConfigStep: React.FC<StepProps> = ({ wizardData, setWizardData, gene
                   <label className="label">
                     <span className="label-text font-semibold">Cluster Password (Optional)</span>
                   </label>
-                  <input
-                    type="password"
-                    className="input input-bordered"
-                    placeholder="For cluster transfers"
+                  <PasswordInput
                     value={wizardData.clusterPassword}
-                    onChange={(e) => setWizardData(prev => ({ ...prev, clusterPassword: e.target.value }))}
+                    onChange={(value) => setWizardData(prev => ({ ...prev, clusterPassword: value }))}
+                    placeholder="For cluster transfers"
                   />
                 </div>
               </div>

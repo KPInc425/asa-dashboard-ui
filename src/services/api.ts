@@ -52,15 +52,21 @@ export interface LockStatus {
 
 export interface AuthResponse {
   token: string;
-  user: {
-    username: string;
-    role?: string;
-  };
+  user: User;
 }
 
 export interface User {
   username: string;
   role?: string;
+  permissions?: string[];
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    email?: string;
+    timezone?: string;
+    language?: string;
+  };
 }
 
 export interface LogFile {
@@ -596,7 +602,16 @@ const FRONTEND_ONLY_MODE = import.meta.env.VITE_FRONTEND_ONLY === 'true';
 // Mock user data for frontend-only mode
 const MOCK_USER: User = {
   username: 'admin',
-  role: 'admin'
+  role: 'admin',
+  permissions: ['read', 'write', 'admin', 'user_management'],
+  profile: {
+    firstName: 'Admin',
+    lastName: 'User',
+    displayName: 'Administrator',
+    email: 'admin@example.com',
+    timezone: 'UTC',
+    language: 'en'
+  }
 };
 
 // Health check function
@@ -646,7 +661,9 @@ export const authApi = {
           token: response.data.token,
           user: {
             username: response.data.user.username,
-            role: response.data.user.role
+            role: response.data.user.role,
+            permissions: response.data.user.permissions,
+            profile: response.data.user.profile
           }
         };
         
@@ -676,7 +693,9 @@ export const authApi = {
       if (response.data.success && response.data.user) {
         return {
           username: response.data.user.username,
-          role: response.data.user.role
+          role: response.data.user.role,
+          permissions: response.data.user.permissions,
+          profile: response.data.user.profile
         };
       } else {
         throw new Error('Failed to get user info');

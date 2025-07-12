@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import PasswordInput from '../components/PasswordInput';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -68,13 +69,11 @@ const Login = () => {
               <label className="label">
                 <span className="label-text">Password</span>
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input input-bordered hover:scale-105 transition-transform duration-200"
+                onChange={setPassword}
                 placeholder="Enter password"
-                autoComplete="current-password"
+                className="hover:scale-105 transition-transform duration-200"
                 required
               />
             </div>

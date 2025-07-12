@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { environmentApi } from '../services';
+import PasswordInput from './PasswordInput';
 
 interface ArkServerFormData {
   name: string;
@@ -303,11 +304,9 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
               <label className="label">
                 <span className="label-text">Server Password</span>
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={formData.serverPassword}
-                onChange={(e) => handleInputChange('serverPassword', e.target.value)}
-                className="input input-bordered w-full"
+                onChange={(value) => handleInputChange('serverPassword', value)}
                 placeholder="Leave empty for public server"
               />
             </div>
@@ -316,11 +315,9 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
               <label className="label">
                 <span className="label-text">Admin Password</span>
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={formData.adminPassword}
-                onChange={(e) => handleInputChange('adminPassword', e.target.value)}
-                className="input input-bordered w-full"
+                onChange={(value) => handleInputChange('adminPassword', value)}
                 placeholder="admin123"
               />
             </div>

@@ -1,317 +1,95 @@
-# ASA Servers Dashboard
+# ASA Management Suite Dashboard
 
-A React-based web dashboard for managing ARK: Survival Ascended servers, providing an intuitive interface for container management, RCON control, configuration editing, and real-time monitoring.
+A React-based web interface for managing ARK: Survival Ascended (ASA) Docker clusters and native servers.
 
-## 🚀 Quick Start
+## Features
+
+- **Container Management**: Start, stop, and monitor ASA Docker containers
+- **RCON Console**: Send commands directly to servers
+- **Config Editor**: Edit server configuration files with Monaco Editor
+- **Real-time Logs**: Stream server logs with WebSocket connections
+- **User Management**: Role-based access control with user management
+- **First-Time Setup**: Secure initial configuration for default admin user
+
+## First-Time Setup
+
+When you first log in with the default admin credentials (`admin` / `admin123`), the system will automatically detect this and require you to complete a first-time setup process. This includes:
+
+- **Password Change**: Mandatory strong password update
+- **Username Change**: Optional username change for better security
+- **Profile Information**: Personal details and preferences
+- **Email Setup**: Contact information for notifications
+
+### Security Benefits
+
+- Prevents continued use of default credentials
+- Ensures strong password policies are enforced
+- Allows customization of admin account details
+- Maintains audit trail of initial setup
+
+### Setup Process
+
+1. Log in with default credentials (`admin` / `admin123`)
+2. Complete the mandatory setup form
+3. Choose a strong password (validated in real-time)
+4. Optionally change your username
+5. Add personal information and preferences
+6. Submit to complete setup
+
+After setup completion, you'll have full access to the ASA Management Suite with your new secure credentials.
+
+## Development
 
 ### Prerequisites
-- Node.js 18+
-- ASA Management API backend running (see backend documentation)
+
+- Node.js 18+ 
+- npm or yarn
 
 ### Installation
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd asa-servers-dashboard
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment:**
-   ```bash
-   copy env.example .env
-   # Edit .env with your API endpoint
-   ```
-
-4. **Start development server:**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open in browser:**
-   ```
-   http://localhost:5173
-   ```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Create a `.env` file with the following settings:
-
 ```bash
-# API Configuration
-VITE_API_URL=http://localhost:4000
-VITE_API_TIMEOUT=30000
-
-# Development
-VITE_DEV_MODE=true
-VITE_LOG_LEVEL=info
-```
-
-### API Backend Setup
-
-The dashboard requires the ASA Management API backend to be running. See the backend documentation for setup instructions:
-
-1. **Install backend as Windows service (recommended):**
-   ```powershell
-   cd ../asa-docker-control-api
-   .\install-nssm-service.ps1
-   Start-Service ASA-API
-   ```
-
-2. **Or run backend manually:**
-   ```bash
-   cd ../asa-docker-control-api
-   npm start
-   ```
-
-3. **Verify backend is running:**
-   ```bash
-   curl http://localhost:4000/health
-   ```
-
-## 🏗️ Project Structure
-
-```
-asa-servers-dashboard/
-├── src/
-│   ├── components/          # React components
-│   │   ├── ContainerList.tsx
-│   │   ├── RconConsole.tsx
-│   │   ├── ConfigEditor.tsx
-│   │   ├── LogViewer.tsx
-│   │   ├── NativeServerManager.tsx
-│   │   ├── ServerProvisioner.tsx
-│   │   └── Sidebar.tsx
-│   ├── pages/              # Page components
-│   │   ├── Dashboard.tsx
-│   │   ├── Configs.tsx
-│   │   └── Login.tsx
-│   ├── services/           # API services
-│   │   ├── api.ts
-│   │   └── socket.ts
-│   └── utils.ts            # Utility functions
-├── public/                 # Static assets
-├── docker-compose.unified.yml  # Unified Docker setup
-├── docker-compose.env      # Docker environment
-├── start-asa-suite.ps1     # Suite startup script
-└── package.json
-```
-
-## 🐳 Docker Deployment
-
-### Using Docker Compose
-
-```bash
-# Start with unified compose
-docker-compose -f docker-compose.unified.yml up -d
-
-# Check status
-docker-compose -f docker-compose.unified.yml ps
-
-# View logs
-docker-compose -f docker-compose.unified.yml logs -f
-```
-
-### Manual Docker Build
-
-```bash
-# Build image
-docker build -t asa-dashboard .
-
-# Run container
-docker run -d \
-  --name asa-dashboard \
-  -p 3000:3000 \
-  -e VITE_API_URL=http://your-api-host:4000 \
-  asa-dashboard
-```
-
-## 🔧 Development
-
-### Available Scripts
-
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-npm run type-check   # Run TypeScript checks
+npm install
 ```
 
 ### Development Server
 
 ```bash
-# Start development server
 npm run dev
-
-# The dashboard will be available at:
-# http://localhost:5173
 ```
 
-### API Integration
+The application will be available at `http://localhost:5173`
 
-The dashboard connects to the ASA Management API backend. Ensure the backend is running and accessible at the configured URL.
+### Environment Variables
 
-## 📡 Features
+Create a `.env` file in the root directory:
 
-### Container Management
-- View running Docker containers
-- Start, stop, and restart containers
-- Monitor container status and resources
+```env
+VITE_API_URL=http://localhost:4000
+VITE_FRONTEND_ONLY=false
+```
 
-### RCON Control
-- Send RCON commands to servers
-- View real-time server responses
-- Command history and favorites
-
-### Configuration Management
-- Edit server configuration files
-- Syntax highlighting and validation
-- Backup and restore configurations
-
-### Native Server Management
-- Manage native ASA servers
-- Start and stop servers
-- Monitor server processes
-
-### Real-time Monitoring
-- Live log streaming
-- Server status monitoring
-- Performance metrics
-
-### User Interface
-- Modern, responsive design
-- Dark/light theme support
-- Mobile-friendly layout
-
-## 🔐 Authentication
-
-The dashboard uses JWT-based authentication. Login credentials are managed by the backend API.
-
-## 🌐 CORS Configuration
-
-The backend API is configured to allow requests from:
-- `http://localhost:3000` (Production build)
-- `http://localhost:5173` (Development server)
-- `http://localhost:4000` (API server)
-- `http://localhost:4010` (Alternative port)
-
-## 🚀 Production Deployment
-
-### Build for Production
+### Building for Production
 
 ```bash
-# Build the application
 npm run build
-
-# The built files will be in the dist/ directory
 ```
 
-### Serve Production Build
+## API Integration
 
-```bash
-# Using a static file server
-npx serve -s dist -l 3000
+The dashboard communicates with the ASA Control API backend for all server management operations. Ensure the backend is running and accessible at the configured API URL.
 
-# Or using nginx
-# Copy dist/ contents to nginx web root
-```
+## Authentication
 
-### Environment Configuration
+The dashboard uses JWT-based authentication with the following features:
 
-For production, update the environment variables:
+- Secure token storage
+- Automatic token refresh
+- Role-based access control
+- Session management
+- First-time setup enforcement
 
-```bash
-# Production settings
-VITE_API_URL=https://your-api-domain.com
-VITE_DEV_MODE=false
-VITE_LOG_LEVEL=warn
-```
+## User Roles
 
-## 🔍 Troubleshooting
-
-### Dashboard Won't Load
-
-1. **Check if development server is running:**
-   ```bash
-   npm run dev
-   ```
-
-2. **Verify API backend is accessible:**
-   ```bash
-   curl http://localhost:4000/health
-   ```
-
-3. **Check browser console for errors**
-
-4. **Verify environment configuration:**
-   ```bash
-   # Check .env file
-   cat .env
-   ```
-
-### API Connection Issues
-
-1. **Verify API URL in .env:**
-   ```bash
-   VITE_API_URL=http://localhost:4000
-   ```
-
-2. **Check if API is running:**
-   ```bash
-   # For Windows service
-   Get-Service ASA-API
-   
-   # For manual operation
-   curl http://localhost:4000/health
-   ```
-
-3. **Check CORS configuration in backend**
-
-### Build Issues
-
-1. **Clear node_modules and reinstall:**
-   ```bash
-   rm -rf node_modules package-lock.json
-   npm install
-   ```
-
-2. **Check TypeScript errors:**
-   ```bash
-   npm run type-check
-   ```
-
-3. **Check linting errors:**
-   ```bash
-   npm run lint
-   ```
-
-## 🔗 Related Projects
-
-- [ASA Management API](https://github.com/your-org/asa-docker-control-api) - Backend API for ASA management
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📞 Support
-
-For issues and questions:
-1. Check the troubleshooting section above
-2. Verify the backend API is running
-3. Check browser console for errors
-4. Review the backend documentation
+- **Admin**: Full access to all features including user management
+- **Operator**: Can manage servers and configurations
+- **Viewer**: Read-only access to server status and logs
