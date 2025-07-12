@@ -138,19 +138,19 @@ const RconConsole = () => {
     setHistory([]);
   };
 
-  const getLogLevelColor = (response: string) => {
-    const lowerResponse = response.toLowerCase();
-    if (lowerResponse.includes('error') || lowerResponse.includes('failed')) {
-      return 'text-error';
-    }
-    if (lowerResponse.includes('warning')) {
-      return 'text-warning';
-    }
-    if (lowerResponse.includes('success') || lowerResponse.includes('saved')) {
-      return 'text-success';
-    }
-    return 'text-base-content';
-  };
+  // const getLogLevelColor = (response: string) => {
+  //   const lowerResponse = response.toLowerCase();
+  //   if (lowerResponse.includes('error') || lowerResponse.includes('failed')) {
+  //     return 'text-error';
+  //   }
+  //   if (lowerResponse.includes('warning')) {
+  //     return 'text-warning';
+  //   }
+  //   if (lowerResponse.includes('success') || lowerResponse.includes('saved')) {
+  //     return 'text-success';
+  //   }
+  //   return 'text-base-content';
+  // };
 
   return (
     <div className="h-full flex flex-col p-6">

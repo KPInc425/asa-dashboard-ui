@@ -669,7 +669,7 @@ export const authApi = {
         
         return authResponse;
       } else {
-        throw new Error(response.data.message || 'Authentication failed');
+        throw new Error('Authentication failed');
       }
     }
   },

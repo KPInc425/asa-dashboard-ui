@@ -44,7 +44,7 @@ const ServerDetails: React.FC = () => {
           const containers = await containerApi.getContainers();
           const foundContainer = containers.find(c => c.name === serverName);
           if (foundContainer) {
-            serverData = foundContainer;
+            serverData = foundContainer as any;
           }
         } catch (error) {
           console.log(`Error getting containers for ${serverName}:`, error);
@@ -55,7 +55,7 @@ const ServerDetails: React.FC = () => {
             const nativeServers = await containerApi.getNativeServers();
             const foundNativeServer = nativeServers.find(s => s.name === serverName);
             if (foundNativeServer) {
-              serverData = foundNativeServer;
+              serverData = foundNativeServer as any;
             }
           } catch (error) {
             console.log(`Error getting native servers for ${serverName}:`, error);
@@ -228,7 +228,7 @@ const ServerDetails: React.FC = () => {
         endpoint = `/api/native-servers/${encodedName}/${action}`;
       }
 
-      const response = await containerApi.api.post(endpoint);
+      const response = await (containerApi as any).api.post(endpoint);
       
       if (response.data.success) {
         // Reload server data after action

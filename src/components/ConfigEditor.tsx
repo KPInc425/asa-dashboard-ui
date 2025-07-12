@@ -39,8 +39,8 @@ const ConfigEditor: React.FC<ConfigEditorProps> = ({ onClose }) => {
       const endpoint = showFullConfig ? '/api/configs/full' : '/api/configs';
       const response = await api.get(endpoint);
       
-      if (response.success) {
-        setConfig(response);
+      if (response.data) {
+        setConfig(response.data);
         
         // Initialize editing config with current values
         const initialEditing: Record<string, string> = {};
@@ -73,11 +73,11 @@ const ConfigEditor: React.FC<ConfigEditorProps> = ({ onClose }) => {
         restart: restartAfterSave
       });
 
-      if (response.success) {
-        alert(response.message);
+      if (response.data?.success) {
+        alert(response.data.message || 'Configuration saved successfully');
         onClose();
       } else {
-        setError(response.message || 'Failed to save configuration');
+        setError(response.data?.message || 'Failed to save configuration');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save configuration');
@@ -94,10 +94,10 @@ const ConfigEditor: React.FC<ConfigEditorProps> = ({ onClose }) => {
 
       const response = await api.post('/api/restart');
 
-      if (response.success) {
+      if (response.data?.success) {
         alert('API restart initiated successfully');
       } else {
-        setError(response.message || 'Failed to restart API');
+        setError(response.data?.message || 'Failed to restart API');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to restart API');
@@ -127,7 +127,7 @@ const ConfigEditor: React.FC<ConfigEditorProps> = ({ onClose }) => {
     }
   };
 
-  const getVariableDisplayValue = (key: string, value: string | ConfigVariable): string => {
+  const getVariableDisplayValue = (_key: string, value: string | ConfigVariable): string => {
     if (typeof value === 'string') {
       return value;
     } else if (value && typeof value === 'object' && 'value' in value) {
@@ -286,7 +286,7 @@ const ConfigEditor: React.FC<ConfigEditorProps> = ({ onClose }) => {
           </button>
         </div>
 
-        {sensitive && (
+        {Object.keys(config.config).some(key => isVariableSensitive(key)) && (
           <div className="mt-4 p-2 bg-yellow-50 border border-yellow-200 rounded">
             <p className="text-sm text-yellow-800">
               <strong>Note:</strong> Variables marked with * are sensitive and should be handled with care.

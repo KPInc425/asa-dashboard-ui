@@ -6,7 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ConfigEditor from '../components/ConfigEditor';
 import GlobalModManager from '../components/GlobalModManager';
 import ServerDetailsModal from '../components/ServerDetailsModal';
-import { Server } from '../utils/serverUtils';
+// import type { Server } from '../utils/serverUtils';
 
 interface SystemInfo {
   mode: string;
@@ -116,15 +116,15 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'running': return 'badge-success';
-      case 'stopped': return 'badge-error';
-      case 'starting': return 'badge-warning';
-      case 'stopping': return 'badge-info';
-      default: return 'badge-neutral';
-    }
-  };
+  // const getStatusColor = (status: string) => {
+  //   switch (status) {
+  //     case 'running': return 'badge-success';
+  //     case 'stopped': return 'badge-error';
+  //     case 'starting': return 'badge-warning';
+  //     case 'stopping': return 'badge-info';
+  //     default: return 'badge-neutral';
+  //   }
+  // };
 
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400);
@@ -564,7 +564,7 @@ const Dashboard: React.FC = () => {
                         </div>
                         <div>
                           <span className="text-base-content/60">Players:</span>
-                          <div className="font-medium">{server.players || 0}/{server.maxPlayers || 0}</div>
+                          <div className="font-medium">0/{server.maxPlayers || 0}</div>
                         </div>
                       </div>
                     </div>
@@ -577,12 +577,11 @@ const Dashboard: React.FC = () => {
                           // Convert NativeServer to Server format for the modal
                           const serverForModal: Server = {
                             name: server.name,
-                            status: server.status,
-                            type: server.type as any,
-                            map: server.map,
-                            clusterName: server.clusterName,
-                            gamePort: server.gamePort,
-                            maxPlayers: server.maxPlayers
+                            status: server.status as 'running' | 'stopped' | 'starting' | 'stopping',
+                            map: server.map || '',
+                            port: 0, // or a valid port if available
+                            players: 0, // or a valid value if available
+                            maxPlayers: server.maxPlayers || 0
                           };
                           setSelectedServer(serverForModal);
                         }}
@@ -623,7 +622,7 @@ const Dashboard: React.FC = () => {
         )}
         {selectedServer && (
           <ServerDetailsModal
-            server={selectedServer}
+            server={selectedServer as any}
             isOpen={!!selectedServer}
             onClose={() => setSelectedServer(null)}
           />

@@ -137,8 +137,6 @@ const ServerCard: React.FC<ServerCardProps> = ({
       'Valguero': 'Valguero',
       'LostIsland': 'Lost Island',
       'Fjordur': 'Fjordur',
-      'Genesis': 'Genesis',
-      'Genesis2': 'Genesis Part 2',
       'BobsMissions_WP': 'Club ARK'
     };
     

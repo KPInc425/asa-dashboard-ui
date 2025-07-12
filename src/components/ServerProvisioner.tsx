@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiService } from '../services/api';
 import { socketService } from '../services/socket';
 import type { JobProgress } from '../services/socket';
@@ -874,7 +874,7 @@ const GameSettingsStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
 
 const ReviewStep: React.FC<StepProps> = ({ wizardData, setWizardData, generateServers, availableMaps }) => {
   const servers = generateServers();
-  const totalSpace = servers.length * 30; // 30GB per server
+  // const totalSpace = servers.length * 30; // 30GB per server
   
   return (
     <div className="space-y-6">
@@ -988,14 +988,14 @@ const CreatingStep: React.FC<CreatingStepProps> = ({ jobId, jobProgress }) => {
   const [currentStep, setCurrentStep] = useState<string>('Validating configuration');
   const [progress, setProgress] = useState<number>(0);
   const [message, setMessage] = useState<string>('Installing ASA server files and configuring your cluster...');
-  const [status, setStatus] = useState<'running' | 'completed' | 'failed' | 'cancelled'>('running');
+  // const [status, setStatus] = useState<'running' | 'completed' | 'failed' | 'cancelled'>('running');
 
   // Update progress from job progress
   useEffect(() => {
     if (jobProgress) {
       setProgress(jobProgress.progress);
       setMessage(jobProgress.message);
-      setStatus(jobProgress.status);
+      // setStatus(jobProgress.status);
       
       if (jobProgress.step) {
         setCurrentStep(jobProgress.step);
@@ -1204,7 +1204,7 @@ const ServerProvisioner: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load system info:', error);
-      setStatusMessage(`❌ Failed to refresh system status: ${error.message || 'Unknown error'}`);
+      setStatusMessage(`❌ Failed to refresh system status: ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
       
       // Auto-hide error message after 5 seconds
@@ -1237,49 +1237,19 @@ const ServerProvisioner: React.FC = () => {
       setInstalling(true);
       setStatusMessage('Initializing system...');
       setStatusType('info');
-      
       const response = await apiService.provisioning.initialize();
       if (response.success) {
-        // Update system info with the returned data
-        if (response.data?.systemInfo) {
-          setSystemInfo(response.data.systemInfo);
-        }
-        
-        // Show detailed success message
-        const details = [];
-        if (response.data?.systemInfo?.steamCmdInstalled) {
-          details.push('✅ SteamCMD found');
-        } else {
-          details.push('⚠️ SteamCMD not found');
-          details.push('   → Click "Install SteamCMD" to download and install');
-          details.push('   → Or manually install SteamCMD to any location');
-        }
-        
-        if (response.data?.systemInfo?.asaBinariesInstalled) {
-          details.push('✅ ASA binaries found');
-        } else {
-          details.push('ℹ️ ASA binaries will be installed when creating first cluster');
-        }
-        
-        details.push('✅ Directory structure created');
-        
-        setStatusMessage(`System initialized successfully!\n\n${details.join('\n')}`);
+        // After initialization, refresh system info
+        await loadSystemInfo();
+        setStatusMessage('System initialized successfully!');
         setStatusType('success');
-        
-        // Auto-hide success message after 5 seconds
-        setTimeout(() => {
-          setStatusMessage(null);
-        }, 5000);
+        setTimeout(() => setStatusMessage(null), 5000);
       }
     } catch (error) {
       console.error('Failed to initialize system:', error);
-      setStatusMessage(`Failed to initialize system: ${error.message || 'Unknown error'}`);
+      setStatusMessage(`Failed to initialize system: ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
-      
-      // Auto-hide error message after 8 seconds
-      setTimeout(() => {
-        setStatusMessage(null);
-      }, 8000);
+      setTimeout(() => { setStatusMessage(null); }, 8000);
     } finally {
       setInstalling(false);
     }
@@ -1306,7 +1276,7 @@ const ServerProvisioner: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to install SteamCMD:', error);
-      setStatusMessage(`❌ Failed to install SteamCMD: ${error.message || 'Unknown error'}`);
+      setStatusMessage(`❌ Failed to install SteamCMD: ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
       
       // Auto-hide error message after 8 seconds
@@ -1353,20 +1323,20 @@ const ServerProvisioner: React.FC = () => {
           setTimeout(() => setStatusMessage(null), 10000);
         }
       } else {
-        setStatusMessage(`❌ Failed to force delete cluster "${clusterName}": ${error.message || 'Unknown error'}`);
+        setStatusMessage(`❌ Failed to force delete cluster "${clusterName}": ${error instanceof Error ? error.message : String(error)}`);
         setStatusType('error');
         setTimeout(() => setStatusMessage(null), 10000);
       }
     }
   };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  // const formatBytes = (bytes: number) => {
+  //   if (bytes === 0) return '0 Bytes';
+  //   const k = 1024;
+  //   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  //   const i = Math.floor(Math.log(bytes) / Math.log(k));
+  //   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  // };
 
   const formatGB = (bytes: number) => {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
@@ -1677,7 +1647,7 @@ const ServerProvisioner: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to create cluster:', error);
-      setStatusMessage(`❌ Failed to create cluster: ${error.message || 'Unknown error'}`);
+      setStatusMessage(`❌ Failed to create cluster: ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
       
       // Auto-hide error message after 8 seconds

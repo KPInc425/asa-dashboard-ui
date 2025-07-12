@@ -30,7 +30,7 @@ const LogViewer = () => {
     setError('');
 
     try {
-      await socketService.connect();
+      await socketService.connect('system', 'combined.log');
       setIsConnected(true);
 
       // Set up event listeners for system logs

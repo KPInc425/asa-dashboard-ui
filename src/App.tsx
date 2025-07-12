@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Servers from './pages/Servers';
 import ServerDetails from './pages/ServerDetails';
 import Configs from './pages/Configs';
-import RconConsole from './components/RconConsole';
+// import RconConsole from './components/RconConsole';
 import LogViewer from './components/LogViewer';
 import ServerLogViewer from './components/ServerLogViewer';
 import Provisioning from './pages/Provisioning';
@@ -15,29 +15,29 @@ import UserProfile from './components/UserProfile';
 import UserManagement from './components/UserManagement';
 import FirstTimeSetup from './components/FirstTimeSetup';
 
-// Protected Route Component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+// Protected Route Component (currently unused but kept for future use)
+// const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+//   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-base-200">
-        <div className="text-center">
-          <div className="loading loading-spinner loading-lg text-primary"></div>
-          <p className="mt-4 text-base-content">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+//   if (isLoading) {
+//     return (
+//       <div className="flex items-center justify-center h-screen bg-base-200">
+//         <div className="text-center">
+//           <div className="loading loading-spinner loading-lg text-primary"></div>
+//           <p className="mt-4 text-base-content">Loading...</p>
+//         </div>
+//       </div>
+//     );
+//   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+//   if (!isAuthenticated) {
+//     return <Navigate to="/login" replace />;
+//   }
 
-  return <>{children}</>;
-};
+//   return <>{children}</>;
+// };
 
-const Header: React.FC<{ sidebarOpen: boolean; setSidebarOpen: (open: boolean) => void }> = ({ sidebarOpen, setSidebarOpen }) => {
+const Header: React.FC<{ sidebarOpen: boolean; setSidebarOpen: (open: boolean) => void }> = ({ setSidebarOpen }) => {
   const { user, logout } = useAuth();
 
   return (

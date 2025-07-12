@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { containerApi, environmentApi, type Container } from '../services';
 import { containerNameToServerName } from '../utils';
@@ -58,7 +58,7 @@ const ContainerList = () => {
   
   // Mod management state
   const [showModManager, setShowModManager] = useState(false);
-  const [selectedServerForMods, setSelectedServerForMods] = useState<string | null>(null);
+  // const [selectedServerForMods, setSelectedServerForMods] = useState<string | null>(null);
 
   useEffect(() => {
     fetchContainers();
@@ -281,7 +281,7 @@ const ContainerList = () => {
               </button>
               <button
                 onClick={() => {
-                  setSelectedServerForMods(null);
+                  // setSelectedServerForMods(null);
                   setShowModManager(true);
                 }}
                 className="btn btn-info btn-sm"
@@ -316,7 +316,7 @@ const ContainerList = () => {
           <GlobalModManager
             onClose={() => {
               setShowModManager(false);
-              setSelectedServerForMods(null);
+              // setSelectedServerForMods(null);
             }}
           />
         )}
@@ -515,7 +515,7 @@ const ContainerList = () => {
                               className="btn btn-xs btn-outline btn-info"
                               title="Manage Mods"
                               onClick={() => {
-                                setSelectedServerForMods(container.name);
+                                // setSelectedServerForMods(container.name);
                                 setShowModManager(true);
                               }}
                             >
@@ -679,7 +679,7 @@ const ContainerList = () => {
                         className="btn btn-xs btn-outline btn-info"
                         title="Manage Mods"
                         onClick={() => {
-                          setSelectedServerForMods(container.name);
+                          // setSelectedServerForMods(container.name);
                           setShowModManager(true);
                         }}
                       >

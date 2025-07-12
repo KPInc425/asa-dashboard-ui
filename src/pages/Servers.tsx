@@ -42,7 +42,7 @@ const Servers: React.FC = () => {
       
       // Only add containers that don't have a matching native server
       for (const container of containers) {
-        const existingNative = nativeServers.find(ns => ns.name === container.name);
+        const existingNative = nativeServers.find((ns: Server) => ns.name === container.name);
         if (!existingNative) {
           allServers.push(container);
         } else {
@@ -138,7 +138,7 @@ const Servers: React.FC = () => {
         action === 'stop' ? 'Stopping...'
         : action === 'start' ? 'Starting...'
         : action === 'restart' ? 'Restarting...'
-        : `${action.charAt(0).toUpperCase() + action.slice(1)}ing...`;
+        : `${(action as string).charAt(0).toUpperCase() + (action as string).slice(1)}ing...`;
       setActionStatus(prev => ({ ...prev, [server.name]: actionStatusText }));
 
       let endpoint = '';
@@ -204,9 +204,10 @@ const Servers: React.FC = () => {
         setError(`Failed to ${action} server: ${response.data.message || 'Unknown error'}`);
         setActionStatus(prev => ({ ...prev, [server.name]: 'Failed' }));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(`Failed to ${action} server:`, err);
-      setError(`Failed to ${action} server: ${err.response?.data?.message || err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to ${action} server: ${errorMessage}`);
       setActionStatus(prev => ({ ...prev, [server.name]: 'Failed' }));
     } finally {
       setActionLoading(null);
@@ -278,65 +279,6 @@ const Servers: React.FC = () => {
         return newStatus;
       });
     }, 30000); // Reduced timeout to 30 seconds
-  };
-
-  const checkServerStatus = async (serverName: string, action: string, serverType: string): Promise<boolean> => {
-    try {
-      const encodedName = encodeURIComponent(serverName);
-      let statusResponse;
-      
-      console.log(`Checking status for ${serverName} (${serverType}) - action: ${action}`);
-      
-      if (serverType === 'container') {
-        // For containers, use the containers status endpoint
-        statusResponse = await api.get(`/api/containers/${encodedName}/status`);
-      } else {
-        // For native servers, use the native-servers status endpoint
-        statusResponse = await api.get(`/api/native-servers/${encodedName}/status`);
-      }
-      
-      console.log(`Status response for ${serverName}:`, statusResponse.data);
-      
-      if (statusResponse.data.success) {
-        const status = statusResponse.data.status;
-        
-        // Check for crash detection (native servers only)
-        if (serverType !== 'container' && status.crashInfo) {
-          console.error(`Server ${serverName} crashed:`, status.crashInfo);
-          setError(`Server ${serverName} crashed with exit code ${status.crashInfo.exitCode}. ${status.crashInfo.error || ''}`);
-          return true; // Consider action complete if server crashed
-        }
-        
-        // Check for startup errors (native servers only)
-        if (serverType !== 'container' && status.startupErrors) {
-          console.error(`Server ${serverName} startup errors:`, status.startupErrors);
-          setError(`Server ${serverName} failed to start: ${status.startupErrors}`);
-          return true; // Consider action complete if startup failed
-        }
-        
-        // Check action completion based on status
-        if (action === 'start') {
-          const isRunning = status.status === 'running';
-          console.log(`Start action for ${serverName}: status=${status.status}, isRunning=${isRunning}`);
-          return isRunning;
-        } else if (action === 'stop') {
-          const isStopped = status.status === 'stopped';
-          console.log(`Stop action for ${serverName}: status=${status.status}, isStopped=${isStopped}`);
-          return isStopped;
-        } else if (action === 'restart') {
-          const isRunning = status.status === 'running';
-          console.log(`Restart action for ${serverName}: status=${status.status}, isRunning=${isRunning}`);
-          return isRunning;
-        }
-      } else {
-        console.warn(`Status check failed for ${serverName}:`, statusResponse.data);
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error checking server status:', error);
-      return false;
-    }
   };
 
   // Simple status check for faster updates
@@ -504,8 +446,6 @@ const Servers: React.FC = () => {
           )}
         </div>
       </div>
-
-
     </div>
   );
 };

@@ -36,7 +36,7 @@ const ServerLogViewer = () => {
       
       // Switch to the selected log file
       if (selectedLogFile === 'server') {
-        socketService.switchToServerLogs(serverName);
+        // socketService.switchToServerLogs(serverName);
       } else {
         socketService.switchLogFile(selectedLogFile);
       }
@@ -76,13 +76,13 @@ const ServerLogViewer = () => {
     setError('');
 
     try {
-      await socketService.connect();
+      await socketService.connect(serverName, selectedLogFile);
       setIsConnected(true);
 
       // Set up event listeners for server logs
-      socketService.onServerLog((logMessage: LogMessage) => {
-        setLogs(prev => [...prev, logMessage]);
-      });
+      // socketService.onServerLog((logMessage: LogMessage) => {
+                  // setLogs(prev => [...prev, logMessage]);
+        // });
 
       socketService.onConnect(() => {
         setIsConnected(true);

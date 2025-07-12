@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+// import { useAuth } from '../contexts/AuthContext';
 import { api as apiClient } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import PasswordInput from './PasswordInput';
@@ -35,7 +35,7 @@ interface Message {
 }
 
 const UserManagement: React.FC = () => {
-  const { user } = useAuth();
+  // const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

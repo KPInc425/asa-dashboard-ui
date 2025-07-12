@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import Editor from '@monaco-editor/react';
 import { getArkConfigFile, updateArkConfigFile } from '../services/api';
 
@@ -239,10 +240,10 @@ const ServerConfigEditor: React.FC<ServerConfigEditorProps> = ({ serverName, onC
                   // Successfully mounted
                   console.log('Monaco Editor mounted successfully');
                 }}
-                onError={(error) => {
-                  console.error('Monaco Editor error:', error);
-                  setUseTextarea(true);
-                }}
+                // onError={(error) => {
+                  // console.error('Monaco Editor error:', error);
+                  // setUseTextarea(true);
+                // }}
                 loading={
                   <div className="flex items-center justify-center h-96">
                     <div className="text-center">

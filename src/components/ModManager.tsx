@@ -6,10 +6,10 @@ interface ModManagerProps {
   serverName?: string; // If provided, manage server-specific mods
 }
 
-interface ServerModConfig {
-  additionalMods: number[];
-  excludeSharedMods: boolean;
-}
+// interface ServerModConfig {
+//   additionalMods: number[];
+//   excludeSharedMods: boolean;
+// }
 
 const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
   const [sharedMods, setSharedMods] = useState<number[]>([]);
@@ -44,16 +44,16 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
 
       // Load shared mods
       const sharedResponse = await api.get('/api/provisioning/shared-mods');
-      if (sharedResponse.success) {
-        setSharedMods(sharedResponse.sharedMods);
+      if (sharedResponse.data?.success) {
+        setSharedMods(sharedResponse.data.sharedMods);
       }
 
       // Load server-specific mods if serverName is provided
       if (serverName) {
         const serverResponse = await api.get(`/api/provisioning/server-mods/${serverName}`);
-        if (serverResponse.success) {
-          setServerMods(serverResponse.serverConfig.additionalMods);
-          setExcludeSharedMods(serverResponse.serverConfig.excludeSharedMods);
+        if (serverResponse.data?.success) {
+          setServerMods(serverResponse.data.serverConfig.additionalMods);
+          setExcludeSharedMods(serverResponse.data.serverConfig.excludeSharedMods);
         } else {
           // Set defaults for Club ARK servers
           const isClubArkServer = serverName.toLowerCase().includes('club') || 
@@ -84,10 +84,10 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
           excludeSharedMods
         });
 
-        if (response.success) {
+        if (response.data?.success) {
           onClose();
         } else {
-          setError(response.message || 'Failed to save server mods');
+          setError(response.data?.message || 'Failed to save server mods');
         }
       } else {
         // Save shared mods
@@ -95,10 +95,10 @@ const ModManager: React.FC<ModManagerProps> = ({ onClose, serverName }) => {
           modList: sharedMods
         });
 
-        if (response.success) {
+        if (response.data?.success) {
           onClose();
         } else {
-          setError(response.message || 'Failed to save shared mods');
+          setError(response.data?.message || 'Failed to save shared mods');
         }
       }
     } catch (err: any) {

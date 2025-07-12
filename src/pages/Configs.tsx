@@ -16,11 +16,11 @@ interface DockerComposeFile {
   path: string;
 }
 
-interface ConfigFile {
-  content: string;
-  filename: string;
-  map: string;
-}
+// interface ConfigFile {
+//   content: string;
+//   filename: string;
+//   map: string;
+// }
 
 interface Server {
   name: string;
@@ -29,11 +29,11 @@ interface Server {
   endLine: number;
 }
 
-interface ArkServerConfigs {
-  success: boolean;
-  servers: Server[];
-  count: number;
-}
+// interface ArkServerConfigs {
+//   success: boolean;
+//   servers: Server[];
+//   count: number;
+// }
 
 const Configs: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -58,7 +58,7 @@ const Configs: React.FC = () => {
   const [selectedMap, setSelectedMap] = useState<string>('TheIsland');
 
   // System config state
-  const [systemConfig, setSystemConfig] = useState<Record<string, string>>({});
+  // const [systemConfig, setSystemConfig] = useState<Record<string, string>>({});
   const [editingSystemConfig, setEditingSystemConfig] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -108,7 +108,7 @@ const Configs: React.FC = () => {
       const response = await fetch('/api/configs');
       const data = await response.json();
       if (data.success) {
-        setSystemConfig(data.config);
+        // setSystemConfig(data.config);
         setEditingSystemConfig(data.config);
       }
     } catch (err) {
@@ -187,7 +187,7 @@ const Configs: React.FC = () => {
       
       if (data.success) {
         alert('System configuration saved successfully!');
-        setSystemConfig(editingSystemConfig);
+        // setSystemConfig(editingSystemConfig);
       } else {
         setError(data.message || 'Failed to save system configuration');
       }

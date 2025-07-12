@@ -179,14 +179,14 @@ const UserProfile: React.FC = () => {
     }
   };
 
-  const handlePasswordInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPasswordForm(prev => ({ ...prev, [name]: value }));
-    
-    if (name === 'newPassword') {
-      validatePassword(value);
-    }
-  };
+  // const handlePasswordInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const { name, value } = e.target;
+  //   setPasswordForm(prev => ({ ...prev, [name]: value }));
+  //   
+  //   if (name === 'newPassword') {
+  //     validatePassword(value);
+  //   }
+  // };
 
   const handleNewPasswordChange = (value: string) => {
     setPasswordForm(prev => ({ ...prev, newPassword: value }));
