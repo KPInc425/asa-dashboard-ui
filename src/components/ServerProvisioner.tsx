@@ -1187,6 +1187,47 @@ const ServerProvisioner: React.FC = () => {
     };
   }, []);
 
+  // Poll for job status if Socket.IO isn't working
+  useEffect(() => {
+    if (currentJobId && !jobProgress) {
+      const pollInterval = setInterval(async () => {
+        try {
+          const response = await apiService.provisioning.getJobStatus(currentJobId);
+          if (response.success && response.job) {
+            const job = response.job;
+            console.log('Job status polled:', job);
+            
+            if (job.status === 'completed') {
+              setStatusMessage('✅ Cluster created successfully!');
+              setStatusType('success');
+              setCurrentJobId(null);
+              setJobProgress(null);
+              loadClusters();
+              setTimeout(() => {
+                setStatusMessage(null);
+                setShowWizard(false);
+                setCurrentStep('welcome');
+              }, 3000);
+            } else if (job.status === 'failed') {
+              setStatusMessage(`❌ Cluster creation failed: ${job.error || 'Unknown error'}`);
+              setStatusType('error');
+              setCurrentJobId(null);
+              setJobProgress(null);
+              setTimeout(() => {
+                setStatusMessage(null);
+                setCurrentStep('review');
+              }, 10000);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to poll job status:', error);
+        }
+      }, 2000); // Poll every 2 seconds
+      
+      return () => clearInterval(pollInterval);
+    }
+  }, [currentJobId, jobProgress]);
+
   const loadSystemInfo = async () => {
     try {
       console.log('Loading system info...');
