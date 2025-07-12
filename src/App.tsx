@@ -8,8 +8,7 @@ import ServerDetails from './pages/ServerDetails';
 import ClusterDetails from './pages/ClusterDetails';
 import Configs from './pages/Configs';
 // import RconConsole from './components/RconConsole';
-import LogViewer from './components/LogViewer';
-import ServerLogViewer from './components/ServerLogViewer';
+
 import Provisioning from './pages/Provisioning';
 import SystemLogs from './pages/SystemLogs';
 import Login from './pages/Login';
@@ -165,8 +164,7 @@ const AppContent: React.FC = () => {
             <Route path="/servers/:serverName" element={<ServerDetails />} />
             <Route path="/clusters/:clusterName" element={<ClusterDetails />} />
             <Route path="/configs" element={<Configs />} />
-            <Route path="/logs" element={<LogViewer />} />
-            <Route path="/logs/:serverName" element={<ServerLogViewer />} />
+
             <Route path="/system-logs" element={<SystemLogs />} />
             <Route path="/provisioning" element={<Provisioning />} />
             <Route path="/profile" element={<UserProfile />} />
