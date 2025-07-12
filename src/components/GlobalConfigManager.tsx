@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Editor } from '@monaco-editor/react';
-import { api } from '../services/api';
+import { apiService } from '../services/api';
 
 interface GlobalConfigManagerProps {
   onClose: () => void;
@@ -26,20 +26,20 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ onClose }) =>
       setError(null);
 
       // Load global configs
-      const configsResponse = await api.provisioning.getGlobalConfigs();
+      const configsResponse = await apiService.provisioning.getGlobalConfigs();
       if (configsResponse.success) {
         setGameIni(configsResponse.gameIni || '');
         setGameUserSettingsIni(configsResponse.gameUserSettingsIni || '');
       }
 
       // Load config exclusions
-      const exclusionsResponse = await api.provisioning.getConfigExclusions();
+      const exclusionsResponse = await apiService.provisioning.getConfigExclusions();
       if (exclusionsResponse.success) {
         setExcludedServers(exclusionsResponse.excludedServers);
       }
 
       // Load available servers
-      const clustersResponse = await api.provisioning.getClusters();
+      const clustersResponse = await apiService.provisioning.listClusters();
       if (clustersResponse.success) {
         const servers: string[] = [];
         clustersResponse.clusters.forEach((cluster: any) => {
@@ -65,7 +65,7 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ onClose }) =>
       setError(null);
 
       // Save global configs
-      const configsResponse = await api.provisioning.updateGlobalConfigs({
+      const configsResponse = await apiService.provisioning.updateGlobalConfigs({
         gameIni: gameIni,
         gameUserSettingsIni: gameUserSettingsIni
       });
@@ -76,7 +76,7 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ onClose }) =>
       }
 
       // Save config exclusions
-      const exclusionsResponse = await api.provisioning.updateConfigExclusions(excludedServers);
+      const exclusionsResponse = await apiService.provisioning.updateConfigExclusions(excludedServers);
 
       if (!exclusionsResponse.success) {
         setError(exclusionsResponse.message || 'Failed to save config exclusions');
@@ -102,11 +102,7 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ onClose }) =>
     });
   };
 
-  const handleAddCustomServer = (serverName: string) => {
-    if (serverName.trim() && !availableServers.includes(serverName.trim())) {
-      setAvailableServers(prev => [...prev, serverName.trim()]);
-    }
-  };
+
 
   if (loading) {
     return (
