@@ -4,6 +4,7 @@ import { socketService } from '../services/socket';
 import type { JobProgress } from '../services/socket';
 import PasswordInput from './PasswordInput';
 import GlobalConfigManager from './GlobalConfigManager';
+import GlobalModManager from './GlobalModManager';
 
 interface SystemInfo {
   diskSpace: {
@@ -1099,6 +1100,7 @@ const ServerProvisioner: React.FC = () => {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [jobProgress, setJobProgress] = useState<JobProgress | null>(null);
   const [showGlobalConfigManager, setShowGlobalConfigManager] = useState(false);
+  const [showGlobalModManager, setShowGlobalModManager] = useState(false);
   const [wizardData, setWizardData] = useState<WizardData>({
     // Cluster basic info
     clusterName: '',
@@ -1997,7 +1999,7 @@ const ServerProvisioner: React.FC = () => {
             </button>
             
             <button
-              onClick={() => {/* TODO: Add Global Mod Manager */}}
+              onClick={() => setShowGlobalModManager(true)}
               className="btn btn-info w-full"
             >
               🎮 Global Mods
@@ -2162,6 +2164,11 @@ const ServerProvisioner: React.FC = () => {
       {/* Global Config Manager Modal */}
       {showGlobalConfigManager && (
         <GlobalConfigManager onClose={() => setShowGlobalConfigManager(false)} />
+      )}
+
+      {/* Global Mod Manager Modal */}
+      {showGlobalModManager && (
+        <GlobalModManager onClose={() => setShowGlobalModManager(false)} />
       )}
     </div>
   );

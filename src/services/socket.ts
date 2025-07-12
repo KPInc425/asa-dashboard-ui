@@ -79,8 +79,8 @@ class SocketManager {
           const socket = this.socket;
           if (socket) {
             if (logFile) {
-              // Start streaming specific log file
-              socket.emit('start-ark-logs', { container: containerName, logFile });
+              // Start streaming specific log file for ARK servers
+              socket.emit('start-ark-logs', { serverName: containerName, logFileName: logFile });
             } else {
               // Start streaming container logs
               socket.emit('start-container-logs', { container: containerName });
@@ -152,7 +152,7 @@ class SocketManager {
       this.socket.emit('stop-ark-logs');
       
       // Start streaming the new log file
-      this.socket.emit('start-ark-logs', { container: this.containerName, logFile });
+      this.socket.emit('start-ark-logs', { serverName: this.containerName, logFileName: logFile });
     }
   }
 
@@ -167,6 +167,20 @@ class SocketManager {
       
       // Start streaming container logs
       this.socket.emit('start-container-logs', { container: this.containerName });
+    }
+  }
+
+  /**
+   * Switch to streaming server logs (ARK server logs)
+   */
+  switchToServerLogs(serverName: string): void {
+    if (this.socket?.connected) {
+      // Stop current streaming
+      this.socket.emit('stop-container-logs');
+      this.socket.emit('stop-ark-logs');
+      
+      // Start streaming ARK server logs
+      this.socket.emit('start-ark-logs', { serverName, logFileName: 'shootergame.log' });
     }
   }
 
@@ -235,6 +249,13 @@ class SocketManager {
   }
 
   /**
+   * Subscribe to server log events (alias for onArkLog)
+   */
+  onServerLog(callback: (data: LogMessage) => void): void {
+    this.onArkLog(callback);
+  }
+
+  /**
    * Subscribe to job progress events
    */
   onJobProgress(callback: (data: JobProgress) => void): void {
@@ -261,6 +282,13 @@ class SocketManager {
     if (this.socket) {
       this.socket.off('ark-log-data');
     }
+  }
+
+  /**
+   * Unsubscribe from server log events (alias for offArkLog)
+   */
+  offServerLog(): void {
+    this.offArkLog();
   }
 
   /**
@@ -432,11 +460,14 @@ export const socketService = {
   disconnect: () => socketManager.disconnect(),
   switchLogFile: (logFile: string) => socketManager.switchLogFile(logFile),
   switchToContainerLogs: () => socketManager.switchToContainerLogs(),
+  switchToServerLogs: (serverName: string) => socketManager.switchToServerLogs(serverName),
   onContainerLog: (callback: (data: LogMessage) => void) => socketManager.onContainerLog(callback),
   onArkLog: (callback: (data: LogMessage) => void) => socketManager.onArkLog(callback),
+  onServerLog: (callback: (data: LogMessage) => void) => socketManager.onServerLog(callback),
   onJobProgress: (callback: (data: JobProgress) => void) => socketManager.onJobProgress(callback),
   offContainerLog: () => socketManager.offContainerLog(),
   offArkLog: () => socketManager.offArkLog(),
+  offServerLog: () => socketManager.offServerLog(),
   offJobProgress: () => socketManager.offJobProgress(),
   onConnect: (callback: () => void) => socketManager.onConnect(callback),
   onDisconnect: (callback: (reason: string) => void) => socketManager.onDisconnect(callback),

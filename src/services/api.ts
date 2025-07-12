@@ -566,6 +566,25 @@ pause`,
     const response = await api.get(`/api/native-servers/${serverName}/start-bat`);
     return response.data;
   },
+
+  /**
+   * Regenerate start.bat for a native server with latest mods and config
+   */
+  regenerateNativeServerStartBat: async (serverName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Start.bat regenerated for server ${serverName} with latest mods and configuration (mock)`
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.post(`/api/native-servers/${serverName}/regenerate-start-bat`);
+    return response.data;
+  },
 };
 
 // Configuration Management API

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { containerApi } from '../services/api';
 
 interface NativeServerConfig {
   serverPath: string;
@@ -221,6 +222,22 @@ const NativeServerManager: React.FC = () => {
     } catch (error) {
       console.error('Failed to update start.bat:', error);
       alert('Failed to update start.bat file');
+    }
+  };
+
+  const handleRegenerateStartBat = async (serverName: string) => {
+    try {
+      const response = await containerApi.regenerateNativeServerStartBat(serverName);
+      if (response.success) {
+        alert(response.message);
+        // Optionally refresh the server list to show updated status
+        loadServers();
+      } else {
+        alert('Failed to regenerate start.bat: ' + response.message);
+      }
+    } catch (error) {
+      console.error('Failed to regenerate start.bat:', error);
+      alert('Failed to regenerate start.bat file');
     }
   };
 
@@ -454,6 +471,13 @@ const NativeServerManager: React.FC = () => {
                           className="btn btn-info btn-xs flex-1"
                         >
                           📄 Start.bat
+                        </button>
+                        <button
+                          title="Regenerate start.bat with latest mods and config"
+                          onClick={() => handleRegenerateStartBat(server.name)}
+                          className="btn btn-warning btn-xs flex-1"
+                        >
+                          🔄 Regenerate
                         </button>
                       </>
                     )}
