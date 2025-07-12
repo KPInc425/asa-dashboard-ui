@@ -146,6 +146,8 @@ const createApiInstance = (): AxiosInstance => {
   // Use the working base URL configuration
   const baseURL = import.meta.env.VITE_API_URL || '/';
   
+  console.log('Creating API instance with baseURL:', baseURL);
+  
   const instance = axios.create({
     baseURL: baseURL,
     timeout: 90000, // 90 seconds (increased from 30 to accommodate server startup)
@@ -209,8 +211,22 @@ const createApiInstance = (): AxiosInstance => {
   return instance;
 };
 
-// Create the API instance
-const api = createApiInstance();
+// Create the API instance with error handling
+let api: AxiosInstance;
+try {
+  api = createApiInstance();
+  console.log('API instance created successfully');
+} catch (error) {
+  console.error('Failed to create API instance:', error);
+  // Create a fallback instance
+  api = axios.create({
+    baseURL: '/',
+    timeout: 30000,
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+}
 
 // Mock data for frontend-only mode
 const MOCK_CONTAINERS: Container[] = [
@@ -310,10 +326,58 @@ export const containerApi = {
       await new Promise(resolve => setTimeout(resolve, 1000));
       return { success: true, message: `Native server ${name} started successfully` };
     } else {
-      const response = await api.post<{ success: boolean; message: string }>(
-        `/api/native-servers/${encodeURIComponent(name)}/start`
-      );
-      return response.data;
+      try {
+        if (!api) {
+          throw new Error('API instance not available');
+        }
+        
+        const response = await api.post<{ success: boolean; message: string }>(
+          `/api/native-servers/${encodeURIComponent(name)}/start`
+        );
+        return response.data;
+      } catch (error) {
+        console.error('Failed to start native server:', error);
+        
+        // Provide more specific error messages
+        if (error instanceof Error) {
+          if (error.message.includes('timeout')) {
+            throw new Error(`Server start request timed out. The server may still be starting in the background.`);
+          } else if (error.message.includes('Network Error')) {
+            throw new Error(`Network error. Please check your connection to the server.`);
+          } else if (error.message.includes('404')) {
+            throw new Error(`Server not found. Please check the server name.`);
+          } else {
+            throw new Error(`Failed to start server: ${error.message}`);
+          }
+        } else {
+          throw new Error('Failed to start server: Unknown error');
+        }
+      }
+    }
+  },
+
+  /**
+   * Check if a native server is running
+   */
+  isNativeServerRunning: async (name: string): Promise<boolean> => {
+    if (FRONTEND_ONLY_MODE) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return Math.random() > 0.5; // Random status for demo
+    } else {
+      try {
+        if (!api) {
+          throw new Error('API instance not available');
+        }
+        
+        const response = await api.get<{ success: boolean; running: boolean }>(
+          `/api/native-servers/${encodeURIComponent(name)}/running`
+        );
+        return response.data.success && response.data.running;
+      } catch (error) {
+        console.error('Failed to check native server running status:', error);
+        return false;
+      }
     }
   },
 
@@ -1261,6 +1325,83 @@ export const provisioningApi = {
     }
 
     const response = await api.put(`/api/provisioning/server-mods/${serverName}`, config);
+    return response.data;
+  },
+
+  /**
+   * Get global config files
+   */
+  getGlobalConfigs: async (): Promise<{ success: boolean; gameIni: string; gameUserSettingsIni: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            gameIni: '[ServerSettings]\nMaxPlayers=70\n\n[GameRules]\nAllowCaveBuildingPvE=true',
+            gameUserSettingsIni: '[/script/shootergame.shootergamemode]\nMatingIntervalMultiplier=1.0\nEggHatchSpeedMultiplier=1.0'
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/global-configs');
+    return response.data;
+  },
+
+  /**
+   * Update global config files
+   */
+  updateGlobalConfigs: async (configs: { gameIni?: string; gameUserSettingsIni?: string }): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Global configs updated successfully (mock)'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put('/api/provisioning/global-configs', configs);
+    return response.data;
+  },
+
+  /**
+   * Get config exclusions
+   */
+  getConfigExclusions: async (): Promise<{ success: boolean; excludedServers: string[] }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            excludedServers: ['Club ARK Server', 'Test Server']
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/config-exclusions');
+    return response.data;
+  },
+
+  /**
+   * Update config exclusions
+   */
+  updateConfigExclusions: async (excludedServers: string[]): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Config exclusions updated successfully (mock)'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put('/api/provisioning/config-exclusions', { excludedServers });
     return response.data;
   },
 

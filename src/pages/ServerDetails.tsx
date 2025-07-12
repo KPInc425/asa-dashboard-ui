@@ -219,25 +219,70 @@ const ServerDetails: React.FC = () => {
     setActionLoading(action);
     
     try {
-      let endpoint = '';
-      const encodedName = encodeURIComponent(server.name);
+      let response;
       
       if (server.type === 'container') {
-        endpoint = `/api/containers/${encodedName}/${action}`;
+        // Use container API methods
+        switch (action) {
+          case 'start':
+            response = await containerApi.startContainer(server.name);
+            break;
+          case 'stop':
+            response = await containerApi.stopContainer(server.name);
+            break;
+          case 'restart':
+            response = await containerApi.restartContainer(server.name);
+            break;
+        }
       } else {
-        endpoint = `/api/native-servers/${encodedName}/${action}`;
+        // Use native server API methods
+        switch (action) {
+          case 'start':
+            response = await containerApi.startNativeServer(server.name);
+            break;
+          case 'stop':
+            response = await containerApi.stopNativeServer(server.name);
+            break;
+          case 'restart':
+            response = await containerApi.restartNativeServer(server.name);
+            break;
+        }
       }
-
-      const response = await (containerApi as any).api.post(endpoint);
       
-      if (response.data.success) {
-        // Reload server data after action
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+      if (response.success) {
+        // For start actions, check if server is actually running after a delay
+        if (action === 'start' && server.type !== 'container') {
+          // Show immediate success message
+          console.log(response.message);
+          
+          // Check server status after a delay
+          setTimeout(async () => {
+            try {
+              const isRunning = await containerApi.isNativeServerRunning(server.name);
+              if (isRunning) {
+                console.log(`Server ${server.name} is now running`);
+              } else {
+                console.log(`Server ${server.name} may still be starting up`);
+              }
+              // Reload server data to update status
+              window.location.reload();
+            } catch (error) {
+              console.error('Error checking server status:', error);
+            }
+          }, 5000); // Check after 5 seconds
+        } else {
+          // For other actions, reload immediately
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
+      } else {
+        setError(`Failed to ${action} server: ${response.message || 'Unknown error'}`);
       }
-    } catch (error) {
-      console.error(`Failed to ${action} server:`, error);
+    } catch (err: unknown) {
+      console.error(`Failed to ${action} server:`, err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to ${action} server: ${errorMessage}`);
     } finally {
       setActionLoading(null);
     }

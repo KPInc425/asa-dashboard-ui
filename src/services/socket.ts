@@ -50,8 +50,11 @@ class SocketManager {
       // Use relative URL for socket.io (handled by reverse proxy)
 
       // Connect to the main Socket.IO server - use the same logic as API calls
-      const socketUrl = import.meta.env.VITE_API_URL || '/';
+      const socketUrl = import.meta.env.VITE_API_URL || window.location.origin;
       const token = localStorage.getItem('auth_token');
+      
+      console.log('Socket.IO connecting to:', socketUrl);
+      console.log('Socket.IO auth token:', token ? 'present' : 'missing');
       
       this.socket = io(socketUrl, {
         path: '/socket.io', // Explicitly set the Socket.IO path
@@ -66,7 +69,8 @@ class SocketManager {
 
       // Set up event listeners
       this.socket.on('connect', async () => {
-        console.log(`Connected to Socket.IO server for container: ${containerName}`);
+        console.log(`✅ Socket.IO connected successfully for container: ${containerName}`);
+        console.log(`Socket ID: ${this.socket?.id}`);
         this.reconnectAttempts = 0;
         this.reconnectDelay = 1000;
         
@@ -91,7 +95,7 @@ class SocketManager {
       });
 
       this.socket.on('disconnect', (reason: string) => {
-        console.log(`Disconnected from logs: ${reason}`);
+        console.log(`❌ Socket.IO disconnected: ${reason}`);
         if (reason === 'io server disconnect') {
           // Server disconnected us, don't try to reconnect
           this.socket = null;
@@ -99,7 +103,12 @@ class SocketManager {
       });
 
       this.socket.on('connect_error', (error: Error) => {
-        console.error('Socket connection error:', error);
+        console.error('❌ Socket.IO connection error:', error);
+        console.error('Connection details:', {
+          url: socketUrl,
+          hasToken: !!token,
+          error: error.message
+        });
         reject(error);
       });
 

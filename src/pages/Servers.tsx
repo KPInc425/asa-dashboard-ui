@@ -153,7 +153,14 @@ const Servers: React.FC = () => {
       const response = await api.post(endpoint);
       
       if (response.data.success) {
-        // Start polling for status updates
+        // For start actions on native servers, the server starts in background
+        // Use the existing status polling to monitor progress
+        if (action === 'start' && server.type !== 'container') {
+          console.log('Server start initiated in background:', response.data.message);
+          // The existing status polling will detect when the server is running
+        }
+        
+        // Start polling for status updates using existing mechanism
         startStatusPolling(server.name, action, server.type);
         
         // Also do an immediate status check to update the UI right away
@@ -199,7 +206,7 @@ const Servers: React.FC = () => {
           } catch (error) {
             console.error('Immediate status check failed:', error);
           }
-        }, 1000); // Check after 1 second for faster response
+        }, 1000);
       } else {
         setError(`Failed to ${action} server: ${response.data.message || 'Unknown error'}`);
         setActionStatus(prev => ({ ...prev, [server.name]: 'Failed' }));
@@ -262,6 +269,14 @@ const Servers: React.FC = () => {
           
           // Reload servers to get updated status immediately
           loadAllServers(false);
+        } else {
+          // Update status message to show progress
+          if (action === 'start' && serverType !== 'container') {
+            setActionStatus(prev => ({ 
+              ...prev, 
+              [serverName]: `Starting... (checking in ${Math.floor((Date.now() - Date.now()) / 1000)}s)` 
+            }));
+          }
         }
       } catch (error) {
         console.error('Status polling error:', error);
@@ -270,7 +285,7 @@ const Servers: React.FC = () => {
       }
     }, 2000); // Poll every 2 seconds for faster response
 
-    // Stop polling after 30 seconds to prevent infinite polling
+    // Stop polling after 60 seconds to prevent infinite polling
     setTimeout(() => {
       clearInterval(pollInterval);
       setActionStatus(prev => {
@@ -278,7 +293,12 @@ const Servers: React.FC = () => {
         delete newStatus[serverName];
         return newStatus;
       });
-    }, 30000); // Reduced timeout to 30 seconds
+      
+      // For start actions, show a message that the server may still be starting
+      if (action === 'start') {
+        console.log(`Server ${serverName} may still be starting up. Check server status manually.`);
+      }
+    }, 60000); // Increased timeout to 60 seconds for server startup
   };
 
   // Simple status check for faster updates
@@ -290,6 +310,7 @@ const Servers: React.FC = () => {
       if (serverType === 'container') {
         response = await api.get(`/api/containers/${encodedName}/running`);
       } else {
+        // Use the new running endpoint for native servers
         response = await api.get(`/api/native-servers/${encodedName}/running`);
       }
       

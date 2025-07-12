@@ -114,9 +114,15 @@ const GlobalModManager: React.FC<GlobalModManagerProps> = ({ onClose }) => {
     
     if (modIds.length === 0) return;
     
-    // Add each valid mod ID
-    modIds.forEach(modId => {
-      handleAddMod(modId);
+    // Add all valid mod IDs at once using functional state update
+    setSharedMods(prevMods => {
+      const newMods = [...prevMods];
+      modIds.forEach(modId => {
+        if (!newMods.includes(modId)) {
+          newMods.push(modId);
+        }
+      });
+      return newMods;
     });
     
     // Clear the input

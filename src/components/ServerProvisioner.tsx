@@ -3,6 +3,7 @@ import { apiService } from '../services/api';
 import { socketService } from '../services/socket';
 import type { JobProgress } from '../services/socket';
 import PasswordInput from './PasswordInput';
+import GlobalConfigManager from './GlobalConfigManager';
 
 interface SystemInfo {
   diskSpace: {
@@ -992,7 +993,10 @@ const CreatingStep: React.FC<CreatingStepProps> = ({ jobId, jobProgress }) => {
 
   // Update progress from job progress
   useEffect(() => {
+    console.log('CreatingStep: jobProgress updated:', jobProgress);
     if (jobProgress) {
+      console.log('CreatingStep: Setting progress to:', jobProgress.progress);
+      console.log('CreatingStep: Setting message to:', jobProgress.message);
       setProgress(jobProgress.progress);
       setMessage(jobProgress.message);
       // setStatus(jobProgress.status);
@@ -1029,6 +1033,7 @@ const CreatingStep: React.FC<CreatingStepProps> = ({ jobId, jobProgress }) => {
       <div className="text-6xl mb-4">🚀</div>
       <h2 className="text-3xl font-bold text-primary">Creating Your Cluster</h2>
       <p className="text-base-content/70 text-lg">{message}</p>
+      <p className="text-xs text-base-content/50">Debug: Progress={progress}%, Message="{message}"</p>
       
       {/* Progress Bar */}
       <div className="w-full max-w-2xl mx-auto">
@@ -1093,6 +1098,7 @@ const ServerProvisioner: React.FC = () => {
   const [statusType, setStatusType] = useState<'success' | 'error' | 'info'>('info');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [jobProgress, setJobProgress] = useState<JobProgress | null>(null);
+  const [showGlobalConfigManager, setShowGlobalConfigManager] = useState(false);
   const [wizardData, setWizardData] = useState<WizardData>({
     // Cluster basic info
     clusterName: '',
@@ -1154,7 +1160,7 @@ const ServerProvisioner: React.FC = () => {
     
     // Set up Socket.IO job progress listener
     socketService.onJobProgress((progress) => {
-      console.log('Job progress received:', progress);
+      console.log('Job progress received via Socket.IO:', progress);
       setJobProgress(progress);
       
       // If job is completed or failed, update status
@@ -1181,21 +1187,62 @@ const ServerProvisioner: React.FC = () => {
       }
     });
     
+    // Add Socket.IO connection status logging
+    socketService.onConnect(() => {
+      console.log('Socket.IO connected - job progress updates should work');
+    });
+    
+    socketService.onDisconnect((reason) => {
+      console.log('Socket.IO disconnected:', reason);
+    });
+    
+    socketService.onError((error) => {
+      console.error('Socket.IO error:', error);
+    });
+    
     // Cleanup Socket.IO listeners on unmount
     return () => {
       socketService.offJobProgress();
     };
   }, []);
 
-  // Poll for job status if Socket.IO isn't working
+  // Poll for job status as fallback for Socket.IO
   useEffect(() => {
-    if (currentJobId && !jobProgress) {
+    if (currentJobId) {
       const pollInterval = setInterval(async () => {
         try {
           const response = await apiService.provisioning.getJobStatus(currentJobId);
           if (response.success && response.job) {
             const job = response.job;
             console.log('Job status polled:', job);
+            
+            // Update job progress with the latest information
+            if (job.progress && job.progress.length > 0) {
+              const latestProgress = job.progress[job.progress.length - 1];
+              
+              // Calculate progress based on the number of progress entries and job status
+              let progressPercent = 0;
+              if (job.status === 'completed') {
+                progressPercent = 100;
+              } else if (job.status === 'failed') {
+                progressPercent = 0;
+              } else {
+                // Estimate progress based on typical cluster creation steps
+                const totalSteps = 5; // validation, directory creation, server installation, config creation, finalization
+                const currentStep = Math.min(job.progress.length, totalSteps);
+                progressPercent = Math.round((currentStep / totalSteps) * 100);
+              }
+              
+              const progressData = {
+                jobId: job.id,
+                status: job.status,
+                progress: progressPercent,
+                message: latestProgress.message,
+                error: job.error
+              };
+              console.log('Main component: Setting jobProgress to:', progressData);
+              setJobProgress(progressData);
+            }
             
             if (job.status === 'completed') {
               setStatusMessage('✅ Cluster created successfully!');
@@ -1226,7 +1273,7 @@ const ServerProvisioner: React.FC = () => {
       
       return () => clearInterval(pollInterval);
     }
-  }, [currentJobId, jobProgress]);
+  }, [currentJobId]);
 
   const loadSystemInfo = async () => {
     try {
@@ -1938,6 +1985,31 @@ const ServerProvisioner: React.FC = () => {
               🔄 Refresh Status
             </button>
           </div>
+
+          <div className="divider"></div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button
+              onClick={() => setShowGlobalConfigManager(true)}
+              className="btn btn-accent w-full"
+            >
+              ⚙️ Global Configs
+            </button>
+            
+            <button
+              onClick={() => {/* TODO: Add Global Mod Manager */}}
+              className="btn btn-info w-full"
+            >
+              🎮 Global Mods
+            </button>
+            
+            <button
+              onClick={() => {/* TODO: Add other management tools */}}
+              className="btn btn-warning w-full"
+            >
+              🔧 Manage Tools
+            </button>
+          </div>
         </div>
 
         {/* Existing Clusters */}
@@ -2085,6 +2157,11 @@ const ServerProvisioner: React.FC = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Global Config Manager Modal */}
+      {showGlobalConfigManager && (
+        <GlobalConfigManager onClose={() => setShowGlobalConfigManager(false)} />
       )}
     </div>
   );
