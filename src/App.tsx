@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Servers from './pages/Servers';
 import ServerDetails from './pages/ServerDetails';
+import ClusterDetails from './pages/ClusterDetails';
 import Configs from './pages/Configs';
 // import RconConsole from './components/RconConsole';
 import LogViewer from './components/LogViewer';
@@ -161,6 +162,7 @@ const AppContent: React.FC = () => {
             <Route path="/" element={<Dashboard />} />
             <Route path="/servers" element={<Servers />} />
             <Route path="/servers/:serverName" element={<ServerDetails />} />
+            <Route path="/clusters/:clusterName" element={<ClusterDetails />} />
             <Route path="/configs" element={<Configs />} />
             <Route path="/logs" element={<LogViewer />} />
             <Route path="/logs/:serverName" element={<ServerLogViewer />} />

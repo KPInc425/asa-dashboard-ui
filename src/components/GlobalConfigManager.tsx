@@ -1,370 +1,265 @@
 import React, { useState, useEffect } from 'react';
-import { Editor } from '@monaco-editor/react';
-import { apiService } from '../services/api';
+import Editor from '@monaco-editor/react';
+import { containerApi } from '../services/api';
 
 interface GlobalConfigManagerProps {
-  onClose: () => void;
+  clusterName: string;
 }
 
-const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ onClose }) => {
-  const [gameIni, setGameIni] = useState('');
-  const [gameUserSettingsIni, setGameUserSettingsIni] = useState('');
-  const [excludedServers, setExcludedServers] = useState<string[]>([]);
-  const [availableServers, setAvailableServers] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+interface ConfigFile {
+  content: string;
+  fileName: string;
+  serverName: string;
+  configPath: string;
+}
+
+const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ clusterName }) => {
+  const [activeTab, setActiveTab] = useState<'game' | 'gameusersettings'>('game');
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'game' | 'usersettings' | 'exclusions'>('game');
+  const [success, setSuccess] = useState<string | null>(null);
+  
+  const [gameIniContent, setGameIniContent] = useState('');
+  const [gameUserSettingsContent, setGameUserSettingsContent] = useState('');
+  const [originalGameIni, setOriginalGameIni] = useState('');
+  const [originalGameUserSettings, setOriginalGameUserSettings] = useState('');
 
   useEffect(() => {
     loadConfigs();
-  }, []);
+  }, [clusterName]);
 
   const loadConfigs = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
+      // Load both config files
+      const [gameIniResponse, gameUserSettingsResponse] = await Promise.all([
+        containerApi.getConfigFile(clusterName, 'Game.ini').catch(() => ({ content: '', fileName: 'Game.ini', serverName: clusterName, configPath: '' })),
+        containerApi.getConfigFile(clusterName, 'GameUserSettings.ini').catch(() => ({ content: '', fileName: 'GameUserSettings.ini', serverName: clusterName, configPath: '' }))
+      ]);
 
-      // Load global configs
-      const configsResponse = await apiService.provisioning.getGlobalConfigs();
-      if (configsResponse.success) {
-        setGameIni(configsResponse.gameIni || '');
-        setGameUserSettingsIni(configsResponse.gameUserSettingsIni || '');
-      }
-
-      // Load config exclusions
-      const exclusionsResponse = await apiService.provisioning.getConfigExclusions();
-      if (exclusionsResponse.success) {
-        setExcludedServers(exclusionsResponse.excludedServers);
-      }
-
-      // Load available servers
-      const clustersResponse = await apiService.provisioning.listClusters();
-      if (clustersResponse.success) {
-        const servers: string[] = [];
-        clustersResponse.clusters.forEach((cluster: any) => {
-          if (cluster.servers) {
-            cluster.servers.forEach((server: any) => {
-              servers.push(server.name);
-            });
-          }
-        });
-        setAvailableServers(servers);
-      }
-    } catch (err: any) {
-      setError('Failed to load global configs');
-      console.error('Error loading configs:', err);
+      setGameIniContent(gameIniResponse.content || '');
+      setGameUserSettingsContent(gameUserSettingsResponse.content || '');
+      setOriginalGameIni(gameIniResponse.content || '');
+      setOriginalGameUserSettings(gameUserSettingsResponse.content || '');
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load configuration files');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    
     try {
-      setSaving(true);
-      setError(null);
-
-      // Save global configs
-      const configsResponse = await apiService.provisioning.updateGlobalConfigs({
-        gameIni: gameIni,
-        gameUserSettingsIni: gameUserSettingsIni
-      });
-
-      if (!configsResponse.success) {
-        setError(configsResponse.message || 'Failed to save global configs');
-        return;
+      const fileName = activeTab === 'game' ? 'Game.ini' : 'GameUserSettings.ini';
+      const content = activeTab === 'game' ? gameIniContent : gameUserSettingsContent;
+      
+      await containerApi.updateConfigFile(clusterName, content, fileName);
+      
+      setSuccess(`${fileName} saved successfully!`);
+      
+      // Update original content
+      if (activeTab === 'game') {
+        setOriginalGameIni(gameIniContent);
+      } else {
+        setOriginalGameUserSettings(gameUserSettingsContent);
       }
-
-      // Save config exclusions
-      const exclusionsResponse = await apiService.provisioning.updateConfigExclusions(excludedServers);
-
-      if (!exclusionsResponse.success) {
-        setError(exclusionsResponse.message || 'Failed to save config exclusions');
-        return;
-      }
-
-      onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save global configs');
-      console.error('Error saving configs:', err);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save configuration');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleToggleServerExclusion = (serverName: string) => {
-    setExcludedServers(prev => {
-      if (prev.includes(serverName)) {
-        return prev.filter(name => name !== serverName);
-      } else {
-        return [...prev, serverName];
-      }
-    });
+  const handleReset = () => {
+    if (activeTab === 'game') {
+      setGameIniContent(originalGameIni);
+    } else {
+      setGameUserSettingsContent(originalGameUserSettings);
+    }
   };
 
+  const hasChanges = () => {
+    if (activeTab === 'game') {
+      return gameIniContent !== originalGameIni;
+    } else {
+      return gameUserSettingsContent !== originalGameUserSettings;
+    }
+  };
 
+  const getCurrentContent = () => {
+    return activeTab === 'game' ? gameIniContent : gameUserSettingsContent;
+  };
+
+  const setCurrentContent = (content: string) => {
+    if (activeTab === 'game') {
+      setGameIniContent(content);
+    } else {
+      setGameUserSettingsContent(content);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="modal modal-open">
-        <div className="modal-box">
-          <div className="flex flex-col items-center justify-center py-8">
-            <span className="loading loading-spinner loading-lg text-primary"></span>
-            <p className="mt-4 text-base-content/70">Loading global configs...</p>
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="loading loading-spinner loading-lg mb-4"></div>
+          <p className="text-base-content/70">Loading configuration files...</p>
         </div>
-        <div className="modal-backdrop" onClick={onClose}></div>
       </div>
     );
   }
 
   return (
-    <div className="modal modal-open">
-      <div className="modal-box max-w-6xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-base-content">
-            ⚙️ Global Configs Management
-          </h2>
-          <button
-            onClick={onClose}
-            className="btn btn-circle btn-sm"
-          >
-            ✕
-          </button>
-        </div>
-
-        {error && (
-          <div className="alert alert-error mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Tab Navigation */}
-        <div className="tabs tabs-boxed mb-6">
-          <button
-            className={`tab ${activeTab === 'game' ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab('game')}
-          >
-            Game.ini
-          </button>
-          <button
-            className={`tab ${activeTab === 'usersettings' ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab('usersettings')}
-          >
-            GameUserSettings.ini
-          </button>
-          <button
-            className={`tab ${activeTab === 'exclusions' ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab('exclusions')}
-          >
-            Server Exclusions
-          </button>
-        </div>
-
-        {/* Game.ini Tab */}
-        {activeTab === 'game' && (
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <h3 className="card-title text-primary">Global Game.ini</h3>
-              <p className="text-sm text-base-content/70 mb-4">
-                This configuration will be applied to all servers unless excluded. 
-                Common settings include server rules, game mechanics, and performance options.
-              </p>
-              
-              <div className="border rounded-lg overflow-hidden">
-                <Editor
-                  height="400px"
-                  language="ini"
-                  value={gameIni}
-                  onChange={(value) => setGameIni(value || '')}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    wordWrap: 'on',
-                    lineNumbers: 'on',
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true
-                  }}
-                  theme="vs-dark"
-                />
-              </div>
-
-              <div className="alert alert-info mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <div>
-                  <h3 className="font-bold">Common Game.ini Settings</h3>
-                  <div className="text-xs">
-                    <p>• [ServerSettings] - Server configuration</p>
-                    <p>• [GameRules] - Game mechanics and rules</p>
-                    <p>• [Engine.GameEngine] - Performance settings</p>
-                    <p>• [ShooterGame.ShooterGameMode] - Game mode settings</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* GameUserSettings.ini Tab */}
-        {activeTab === 'usersettings' && (
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <h3 className="card-title text-secondary">Global GameUserSettings.ini</h3>
-              <p className="text-sm text-base-content/70 mb-4">
-                This configuration contains user-specific settings and multipliers. 
-                Common settings include breeding rates, harvest rates, and experience multipliers.
-              </p>
-              
-              <div className="border rounded-lg overflow-hidden">
-                <Editor
-                  height="400px"
-                  language="ini"
-                  value={gameUserSettingsIni}
-                  onChange={(value) => setGameUserSettingsIni(value || '')}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    wordWrap: 'on',
-                    lineNumbers: 'on',
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true
-                  }}
-                  theme="vs-dark"
-                />
-              </div>
-
-              <div className="alert alert-info mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <div>
-                  <h3 className="font-bold">Common GameUserSettings.ini Settings</h3>
-                  <div className="text-xs">
-                    <p>• [/script/shootergame.shootergamemode] - Game mode multipliers</p>
-                    <p>• MatingIntervalMultiplier - Breeding cooldown</p>
-                    <p>• EggHatchSpeedMultiplier - Egg hatching speed</p>
-                    <p>• HarvestAmountMultiplier - Resource gathering</p>
-                    <p>• XPMultiplier - Experience gain rate</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Server Exclusions Tab */}
-        {activeTab === 'exclusions' && (
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <h3 className="card-title text-accent">Server Exclusions</h3>
-              <p className="text-sm text-base-content/70 mb-4">
-                Select servers that should NOT use the global configs. 
-                These servers will use their default configurations instead.
-              </p>
-              
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto">
-                  {availableServers.map(serverName => (
-                    <div key={serverName} className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
-                      <span className="font-medium text-base-content">{serverName}</span>
-                      <button
-                        onClick={() => handleToggleServerExclusion(serverName)}
-                        className={`btn btn-xs ${
-                          excludedServers.includes(serverName)
-                            ? 'btn-error'
-                            : 'btn-success'
-                        }`}
-                      >
-                        {excludedServers.includes(serverName) ? 'Excluded' : 'Included'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {availableServers.length === 0 && (
-                  <div className="text-center py-8 text-base-content/60">
-                    <div className="text-4xl mb-2">🖥️</div>
-                    <p className="text-sm italic">No servers found</p>
-                    <p className="text-xs">Create some servers first to manage exclusions</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="alert alert-warning mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                <div>
-                  <h3 className="font-bold">Excluded Servers</h3>
-                  <div className="text-xs">
-                    Excluded servers will use their default configurations and will not inherit global settings. 
-                    This is useful for special servers like Club ARK or test servers.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Summary */}
-        <div className="card bg-info/10 border-info/20 mt-6">
-          <div className="card-body">
-            <h4 className="card-title text-info">📊 Summary</h4>
-            <div className="stats stats-horizontal shadow">
-              <div className="stat">
-                <div className="stat-title">Total Servers</div>
-                <div className="stat-value text-primary">{availableServers.length}</div>
-              </div>
-              <div className="stat">
-                <div className="stat-title">Excluded Servers</div>
-                <div className="stat-value text-warning">{excludedServers.length}</div>
-              </div>
-              <div className="stat">
-                <div className="stat-title">Using Global Configs</div>
-                <div className="stat-value text-success">{availableServers.length - excludedServers.length}</div>
-              </div>
-            </div>
-            <div className="alert alert-info mt-4">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <div>
-                <h3 className="font-bold">Automatic Updates</h3>
-                <div className="text-xs">When you save global config changes, all server configurations are automatically regenerated. Excluded servers will maintain their individual settings.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="modal-action">
-          <button
-            onClick={onClose}
-            className="btn btn-ghost"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="btn btn-primary"
-          >
-            {saving ? (
-              <>
-                <span className="loading loading-spinner loading-sm"></span>
-                Saving...
-              </>
-            ) : (
-              'Save Global Configs'
-            )}
-          </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="card-title">Global Configuration Management</h2>
+        <div className="text-sm text-base-content/70">
+          Cluster: {clusterName}
         </div>
       </div>
-      <div className="modal-backdrop" onClick={onClose}></div>
+
+      {/* Info Alert */}
+      <div className="alert alert-info">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>
+          <strong>Global Configuration:</strong> Changes made here will apply to all servers in the cluster unless they are excluded from global configs.
+        </span>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="alert alert-error">
+          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Success Display */}
+      {success && (
+        <div className="alert alert-success">
+          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{success}</span>
+        </div>
+      )}
+
+      {/* Tab Navigation */}
+      <div className="tabs tabs-boxed bg-base-200">
+        <button
+          className={`tab ${activeTab === 'game' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('game')}
+        >
+          🎮 Game.ini
+        </button>
+        <button
+          className={`tab ${activeTab === 'gameusersettings' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('gameusersettings')}
+        >
+          👤 GameUserSettings.ini
+        </button>
+      </div>
+
+      {/* Editor */}
+      <div className="card bg-base-200">
+        <div className="card-body">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="card-title text-lg">
+              {activeTab === 'game' ? 'Game.ini' : 'GameUserSettings.ini'}
+            </h3>
+            <div className="flex items-center space-x-2">
+              {hasChanges() && (
+                <span className="badge badge-warning">Modified</span>
+              )}
+              <button
+                onClick={handleReset}
+                disabled={!hasChanges()}
+                className="btn btn-outline btn-sm"
+              >
+                🔄 Reset
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || !hasChanges()}
+                className="btn btn-primary btn-sm"
+              >
+                {saving ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Saving...
+                  </>
+                ) : (
+                  '💾 Save'
+                )}
+              </button>
+            </div>
+          </div>
+
+          <Editor
+            height="500px"
+            language="ini"
+            value={getCurrentContent()}
+            onChange={(value) => setCurrentContent(value || '')}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              wordWrap: 'on',
+              lineNumbers: 'on',
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              theme: 'vs-dark'
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Configuration Help */}
+      <div className="card bg-base-200">
+        <div className="card-body">
+          <h4 className="card-title text-lg">Configuration Help</h4>
+          <div className="space-y-4">
+            <div>
+              <h5 className="font-semibold text-primary">Game.ini</h5>
+              <p className="text-sm text-base-content/70">
+                Contains server game rules and settings like harvest multipliers, XP rates, taming speeds, etc.
+                These settings apply to all servers in the cluster.
+              </p>
+            </div>
+            <div>
+              <h5 className="font-semibold text-primary">GameUserSettings.ini</h5>
+              <p className="text-sm text-base-content/70">
+                Contains user-specific settings like server passwords, admin passwords, and other server configuration.
+                These settings apply to all servers in the cluster.
+              </p>
+            </div>
+            <div className="alert alert-warning">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span>
+                <strong>Important:</strong> Changes to these files will affect all servers in the cluster. 
+                Make sure to test your changes on a single server first before applying them globally.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

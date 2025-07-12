@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { environmentApi, configApi } from '../services/api';
+import { environmentApi } from '../services/api';
 
 interface EnvironmentFile {
   success: boolean;
@@ -22,12 +22,7 @@ interface DockerComposeFile {
 //   map: string;
 // }
 
-interface Server {
-  name: string;
-  lines: string[];
-  startLine: number;
-  endLine: number;
-}
+
 
 // interface ArkServerConfigs {
 //   success: boolean;
@@ -37,7 +32,7 @@ interface Server {
 
 const Configs: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'env' | 'docker' | 'server' | 'system'>('env');
+  const [activeTab, setActiveTab] = useState<'env' | 'docker' | 'system'>('env');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -45,17 +40,59 @@ const Configs: React.FC = () => {
   // Environment file state
   const [envFile, setEnvFile] = useState<EnvironmentFile | null>(null);
   const [envContent, setEnvContent] = useState('');
+  const [filteredEnvContent, setFilteredEnvContent] = useState('');
 
   // Docker compose state
   const [dockerCompose, setDockerCompose] = useState<DockerComposeFile | null>(null);
   const [dockerContent, setDockerContent] = useState('');
 
-  // Server configs state
-  const [servers, setServers] = useState<Server[]>([]);
-  const [selectedServer, setSelectedServer] = useState<string | null>(null);
-  const [serverConfigs, setServerConfigs] = useState<Record<string, string>>({});
-  const [availableMaps, setAvailableMaps] = useState<string[]>([]);
-  const [selectedMap, setSelectedMap] = useState<string>('TheIsland');
+  // System config state
+  const [editingSystemConfig, setEditingSystemConfig] = useState<Record<string, string>>({});
+
+  // List of sensitive environment variables to hide
+  const sensitiveEnvVars = [
+    'JWT_SECRET',
+    'JWT_EXPIRES_IN',
+    'RCON_PASSWORD',
+    'DB_PASSWORD',
+    'REDIS_PASSWORD',
+    'API_KEY',
+    'SECRET_KEY',
+    'PRIVATE_KEY',
+    'ACCESS_TOKEN',
+    'REFRESH_TOKEN',
+    'STEAM_API_KEY',
+    'DISCORD_TOKEN',
+    'EMAIL_PASSWORD',
+    'SMTP_PASSWORD',
+    'AWS_SECRET_KEY',
+    'AZURE_SECRET',
+    'GCP_SECRET',
+    'DOCKER_REGISTRY_PASSWORD',
+    'NEXUS_PASSWORD',
+    'ARTIFACTORY_PASSWORD'
+  ];
+
+  // List of safe environment variables that admins can edit
+  const safeEnvVars = [
+    'PORT',
+    'HOST',
+    'NODE_ENV',
+    'DOCKER_SOCKET_PATH',
+    'SERVER_MODE',
+    'NATIVE_BASE_PATH',
+    'NATIVE_CONFIG_FILE',
+    'STEAMCMD_PATH',
+    'AUTO_INSTALL_STEAMCMD',
+    'ASA_CONFIG_SUB_PATH',
+    'RCON_DEFAULT_PORT',
+    'RATE_LIMIT_MAX',
+    'RATE_LIMIT_TIME_WINDOW',
+    'CORS_ORIGIN',
+    'LOG_LEVEL',
+    'LOG_FILE_PATH',
+    'METRICS_ENABLED'
+  ];
 
   // System config state
   // const [systemConfig, setSystemConfig] = useState<Record<string, string>>({});
@@ -72,6 +109,55 @@ const Configs: React.FC = () => {
     loadInitialData();
   }, [searchParams]);
 
+  // Function to get environment variable descriptions
+  const getEnvVarDescription = (varName: string): string => {
+    const descriptions: Record<string, string> = {
+      'PORT': 'Server port for the API',
+      'HOST': 'Server host address',
+      'NODE_ENV': 'Node.js environment (development/production)',
+      'DOCKER_SOCKET_PATH': 'Path to Docker socket (Linux)',
+      'SERVER_MODE': 'Server mode (native/docker)',
+      'NATIVE_BASE_PATH': 'Base path for native servers',
+      'NATIVE_CONFIG_FILE': 'Native servers configuration file',
+      'STEAMCMD_PATH': 'Path to SteamCMD installation',
+      'AUTO_INSTALL_STEAMCMD': 'Auto-install SteamCMD if not found',
+      'ASA_CONFIG_SUB_PATH': 'ASA server config subdirectory',
+      'RCON_DEFAULT_PORT': 'Default RCON port for servers',
+      'RATE_LIMIT_MAX': 'Maximum API requests per time window',
+      'RATE_LIMIT_TIME_WINDOW': 'Rate limiting time window (ms)',
+      'CORS_ORIGIN': 'CORS allowed origin',
+      'LOG_LEVEL': 'Logging level (debug/info/warn/error)',
+      'LOG_FILE_PATH': 'Path to log file',
+      'METRICS_ENABLED': 'Enable metrics collection'
+    };
+    return descriptions[varName] || 'Configuration variable';
+  };
+
+  // Function to filter sensitive environment variables
+  const filterSensitiveEnvVars = (content: string): string => {
+    const lines = content.split('\n');
+    const filteredLines = lines.map(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('#') || trimmedLine === '') {
+        return line; // Keep comments and empty lines
+      }
+      
+      const equalIndex = trimmedLine.indexOf('=');
+      if (equalIndex === -1) {
+        return line; // Keep lines without equals sign
+      }
+      
+      const varName = trimmedLine.substring(0, equalIndex).trim();
+      if (sensitiveEnvVars.some(sensitive => varName.toUpperCase().includes(sensitive.toUpperCase()))) {
+        return `${varName}=***HIDDEN***`;
+      }
+      
+      return line;
+    });
+    
+    return filteredLines.join('\n');
+  };
+
   const loadInitialData = async () => {
     setLoading(true);
     setError(null);
@@ -81,16 +167,12 @@ const Configs: React.FC = () => {
       const envData = await environmentApi.getEnvironmentFile();
       setEnvFile(envData);
       setEnvContent(envData.content);
+      setFilteredEnvContent(filterSensitiveEnvVars(envData.content));
 
       // Load docker compose
       const dockerData = await environmentApi.getDockerComposeFile();
       setDockerCompose(dockerData);
       setDockerContent(dockerData.content);
-
-      // Load server configs
-      const serverData = await environmentApi.getArkServerConfigs();
-      setServers(serverData.servers);
-      setAvailableMaps(['TheIsland', 'TheCenter', 'ScorchedEarth', 'Ragnarok', 'Aberration', 'Extinction', 'Valguero', 'Genesis', 'CrystalIsles', 'Genesis2', 'LostIsland', 'Fjordur']);
 
       // Load system config
       await loadSystemConfig();
@@ -116,27 +198,30 @@ const Configs: React.FC = () => {
     }
   };
 
-  const loadServerConfig = async (serverName: string) => {
-    try {
-      const config = await configApi.getConfigFile(serverName, 'Game.ini');
-      setServerConfigs(prev => ({
-        ...prev,
-        [serverName]: config.content
-      }));
-    } catch (err) {
-      console.error(`Failed to load config for ${serverName}:`, err);
-    }
-  };
-
   const handleSaveEnv = async () => {
     setSaving(true);
     setError(null);
 
     try {
-      await environmentApi.updateEnvironmentFile(envContent);
-      alert('Environment file saved successfully!');
+      if (!envFile) {
+        throw new Error('No environment file loaded');
+      }
+
+      // Build the new environment content from the variables
+      const newContent = Object.entries(envFile.variables)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('\n');
+
+      await environmentApi.updateEnvironmentFile(newContent);
+      alert('Environment variables saved successfully!');
+      
+      // Reload the environment file to get the updated content
+      const updatedEnvData = await environmentApi.getEnvironmentFile();
+      setEnvFile(updatedEnvData);
+      setEnvContent(updatedEnvData.content);
+      setFilteredEnvContent(filterSensitiveEnvVars(updatedEnvData.content));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save environment file');
+      setError(err instanceof Error ? err.message : 'Failed to save environment variables');
     } finally {
       setSaving(false);
     }
@@ -151,23 +236,6 @@ const Configs: React.FC = () => {
       alert('Docker Compose file saved successfully!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save Docker Compose file');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveServerConfig = async (serverName: string) => {
-    setSaving(true);
-    setError(null);
-
-    try {
-      const content = serverConfigs[serverName];
-      if (content) {
-        await configApi.updateConfigFile(serverName, content, 'Game.ini');
-        alert(`Server config for ${serverName} saved successfully!`);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save server config');
     } finally {
       setSaving(false);
     }
@@ -198,25 +266,7 @@ const Configs: React.FC = () => {
     }
   };
 
-  const handleServerSelect = (serverName: string) => {
-    setSelectedServer(serverName);
-    if (!serverConfigs[serverName]) {
-      loadServerConfig(serverName);
-    }
-  };
 
-  const handleMapSelect = async (map: string) => {
-    setSelectedMap(map);
-    try {
-      const config = await configApi.loadConfig(map);
-      setServerConfigs(prev => ({
-        ...prev,
-        [map]: config.content
-      }));
-    } catch (err) {
-      console.error(`Failed to load config for map ${map}:`, err);
-    }
-  };
 
   if (loading) {
     return (
@@ -274,12 +324,6 @@ const Configs: React.FC = () => {
             🐳 Docker Compose
           </button>
           <button
-            className={`tab ${activeTab === 'server' ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab('server')}
-          >
-            🦖 Server Configs
-          </button>
-          <button
             className={`tab ${activeTab === 'system' ? 'tab-active' : ''}`}
             onClick={() => setActiveTab('system')}
           >
@@ -299,26 +343,46 @@ const Configs: React.FC = () => {
                     {envFile?.path && `Path: ${envFile.path}`}
                   </div>
                 </div>
-                
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Environment File Content</span>
-                  </label>
-                  <Editor
-                    height="400px"
-                    language="properties"
-                    value={envContent}
-                    onChange={(value) => setEnvContent(value || '')}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      wordWrap: 'on',
-                      lineNumbers: 'on',
-                      scrollBeyondLastLine: false,
-                      automaticLayout: true
-                    }}
-                    theme="vs-dark"
-                  />
+
+                <div className="alert alert-info">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span>
+                    <strong>Security Note:</strong> Only safe configuration variables are shown below. Sensitive variables (passwords, API keys, secrets) are hidden for security reasons.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {safeEnvVars.map((varName) => {
+                    const currentValue = envFile?.variables?.[varName] || '';
+                    return (
+                      <div key={varName} className="form-control">
+                        <label className="label">
+                          <span className="label-text font-medium">{varName}</span>
+                          <span className="label-text-alt text-base-content/60">
+                            {getEnvVarDescription(varName)}
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          value={currentValue}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setEnvFile(prev => prev ? {
+                              ...prev,
+                              variables: {
+                                ...prev.variables,
+                                [varName]: newValue
+                              }
+                            } : null);
+                          }}
+                          className="input input-bordered"
+                          placeholder={`Enter value for ${varName}`}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="flex justify-end space-x-2">
@@ -333,7 +397,7 @@ const Configs: React.FC = () => {
                         Saving...
                       </>
                     ) : (
-                      'Save Environment File'
+                      'Save Environment Variables'
                     )}
                   </button>
                 </div>
@@ -390,112 +454,7 @@ const Configs: React.FC = () => {
               </div>
             )}
 
-            {/* Server Configs Tab */}
-            {activeTab === 'server' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="card-title">Server Configurations</h2>
-                </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                  {/* Server List */}
-                  <div className="lg:col-span-1">
-                    <div className="card bg-base-200">
-                      <div className="card-body">
-                        <h3 className="card-title text-lg">Servers</h3>
-                        <div className="space-y-2">
-                          {servers.map((server) => (
-                            <button
-                              key={server.name}
-                              onClick={() => handleServerSelect(server.name)}
-                              className={`btn btn-sm w-full justify-start ${
-                                selectedServer === server.name ? 'btn-primary' : 'btn-ghost'
-                              }`}
-                            >
-                              🦖 {server.name}
-                            </button>
-                          ))}
-                        </div>
-
-                        <div className="divider">OR</div>
-
-                        <h3 className="card-title text-lg">Map Templates</h3>
-                        <div className="space-y-2">
-                          {availableMaps.map((map) => (
-                            <button
-                              key={map}
-                              onClick={() => handleMapSelect(map)}
-                              className={`btn btn-sm w-full justify-start ${
-                                selectedMap === map ? 'btn-secondary' : 'btn-ghost'
-                              }`}
-                            >
-                              🗺️ {map}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Config Editor */}
-                  <div className="lg:col-span-3">
-                    <div className="card bg-base-200">
-                      <div className="card-body">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="card-title text-lg">
-                            {selectedServer ? `Server: ${selectedServer}` : `Map: ${selectedMap}`}
-                          </h3>
-                          {selectedServer && (
-                            <button
-                              onClick={() => handleSaveServerConfig(selectedServer)}
-                              disabled={saving}
-                              className={`btn btn-primary btn-sm ${saving ? 'btn-disabled' : ''}`}
-                            >
-                              {saving ? (
-                                <>
-                                  <span className="loading loading-spinner loading-sm"></span>
-                                  Saving...
-                                </>
-                              ) : (
-                                'Save Config'
-                              )}
-                            </button>
-                          )}
-                        </div>
-
-                        <Editor
-                          height="500px"
-                          language="ini"
-                          value={selectedServer ? serverConfigs[selectedServer] || '' : serverConfigs[selectedMap] || ''}
-                          onChange={(value) => {
-                            if (selectedServer) {
-                              setServerConfigs(prev => ({
-                                ...prev,
-                                [selectedServer]: value || ''
-                              }));
-                            } else {
-                              setServerConfigs(prev => ({
-                                ...prev,
-                                [selectedMap]: value || ''
-                              }));
-                            }
-                          }}
-                          options={{
-                            minimap: { enabled: false },
-                            fontSize: 14,
-                            wordWrap: 'on',
-                            lineNumbers: 'on',
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true
-                          }}
-                          theme="vs-dark"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* System Config Tab */}
             {activeTab === 'system' && (

@@ -461,7 +461,7 @@ const Dashboard: React.FC = () => {
                     <div className="card-actions justify-end mt-4">
                       <button 
                         className="btn btn-primary btn-sm"
-                        onClick={() => navigate('/servers')}
+                        onClick={() => navigate(`/clusters/${cluster.name}`)}
                       >
                         Manage
                       </button>
