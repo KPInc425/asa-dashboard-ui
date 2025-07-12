@@ -36,8 +36,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     },
     {
       path: '/logs',
-      label: 'System Logs',
+      label: 'Server Logs',
       icon: '📋',
+      description: 'ARK server logs'
+    },
+    {
+      path: '/system-logs',
+      label: 'System Logs',
+      icon: '🔧',
       description: 'API and system logs'
     },
     {

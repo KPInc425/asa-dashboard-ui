@@ -632,6 +632,29 @@ pause`,
     } catch (error: any) {
       return { success: false, message: error.response?.data?.message || 'Failed to update config file' };
     }
+  },
+
+  /**
+   * Get server logs
+   */
+  getServerLogs: async (serverName: string, options: { follow?: boolean; lines?: number } = {}): Promise<{ success: boolean; content: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            content: `Mock server logs for ${serverName}...\n[INFO] Server started\n[INFO] Players connected: 5\n[INFO] World saved`
+          });
+        }, 500);
+      });
+    }
+
+    try {
+      const response = await api.get(`/api/native-servers/${encodeURIComponent(serverName)}/logs`, { params: options });
+      return response.data;
+    } catch (error: any) {
+      return { success: false, content: error.response?.data?.message || 'Failed to get server logs' };
+    }
   }
 };
 
@@ -875,6 +898,28 @@ export const logsApi = {
     const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/files/${encodeURIComponent(fileName)}`, {
       params: { lines }
     });
+    return response.data;
+  },
+
+  /**
+   * List log files for a server
+   */
+  listServerLogFiles: async (serverName: string): Promise<{ success: boolean; logFiles: Array<{ name: string; path: string; size: number; modified: string }> }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            logFiles: [
+              { name: 'ShooterGame.log', path: '/path/to/logs/ShooterGame.log', size: 1024, modified: new Date().toISOString() },
+              { name: 'WindowsServer.log', path: '/path/to/logs/WindowsServer.log', size: 2048, modified: new Date().toISOString() }
+            ]
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get(`/api/native-servers/${encodeURIComponent(serverName)}/log-files`);
     return response.data;
   },
 };
@@ -1499,6 +1544,32 @@ export const provisioningApi = {
   },
 
   /**
+   * Get system logs
+   */
+  getSystemLogs: async (type: string = 'all', lines: number = 100): Promise<{ success: boolean; logs: any; type: string; lines: number }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            logs: {
+              api: 'Mock API logs...\n[INFO] Server started\n[INFO] Request received',
+              server: 'Mock server logs...\n[INFO] Server process started\n[INFO] Port 7777 opened',
+              docker: 'Mock Docker logs...\n[INFO] Container started\n[INFO] Health check passed',
+              system: 'Mock system logs...\n[INFO] System initialized\n[INFO] Services started'
+            },
+            type,
+            lines
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get(`/api/provisioning/system-logs?type=${type}&lines=${lines}`);
+    return response.data;
+  },
+
+  /**
    * List clusters
    */
   listClusters: async (): Promise<{ success: boolean; clusters: any[] }> => {
@@ -1531,6 +1602,94 @@ export const provisioningApi = {
     console.log('API response.data:', response.data);
     console.log('API response.data.clusters:', response.data.clusters);
     console.log('API response.data.clusters[0]:', response.data.clusters?.[0]);
+    return response.data;
+  },
+
+  /**
+   * Get cluster details
+   */
+  getClusterDetails: async (clusterName: string): Promise<{ success: boolean; cluster: any }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            cluster: {
+              name: clusterName,
+              description: 'A test cluster',
+              basePort: 7777,
+              serverCount: 2,
+              created: new Date().toISOString(),
+              servers: [
+                { name: `${clusterName}-Server1`, gamePort: 7777, status: 'running' },
+                { name: `${clusterName}-Server2`, gamePort: 7778, status: 'stopped' }
+              ]
+            }
+          });
+        }, 500);
+      });
+    }
+
+    console.log(`Making API call to /api/provisioning/clusters/${clusterName}`);
+    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}`);
+    console.log('API response:', response);
+    return response.data;
+  },
+
+  /**
+   * Start cluster
+   */
+  startCluster: async (clusterName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${clusterName} started successfully (mock)`
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/start`);
+    return response.data;
+  },
+
+  /**
+   * Stop cluster
+   */
+  stopCluster: async (clusterName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${clusterName} stopped successfully (mock)`
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/stop`);
+    return response.data;
+  },
+
+  /**
+   * Restart cluster
+   */
+  restartCluster: async (clusterName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${clusterName} restarted successfully (mock)`
+          });
+        }, 3000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/restart`);
     return response.data;
   },
 

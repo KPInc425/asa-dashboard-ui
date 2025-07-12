@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { containerApi } from '../services/api';
+import { provisioningApi } from '../services/api';
 import GlobalModManager from '../components/GlobalModManager';
 import GlobalConfigManager from '../components/GlobalConfigManager';
 
@@ -44,11 +44,10 @@ const ClusterDetails: React.FC = () => {
       
       try {
         // Get cluster information from the API
-        const clusters = await containerApi.getNativeServers();
-        const foundCluster = clusters.find(c => c.name === clusterName && c.type === 'cluster');
+        const response = await provisioningApi.getClusterDetails(clusterName);
         
-        if (foundCluster) {
-          setCluster(foundCluster as any);
+        if (response.success && response.cluster) {
+          setCluster(response.cluster);
         } else {
           setError(`Cluster "${clusterName}" not found`);
         }
@@ -96,22 +95,23 @@ const ClusterDetails: React.FC = () => {
       let response;
       switch (action) {
         case 'start':
-          response = await containerApi.startNativeServer(cluster.name);
+          response = await provisioningApi.startCluster(cluster.name);
           break;
         case 'stop':
-          response = await containerApi.stopNativeServer(cluster.name);
+          response = await provisioningApi.stopCluster(cluster.name);
           break;
         case 'restart':
-          response = await containerApi.restartNativeServer(cluster.name);
+          response = await provisioningApi.restartCluster(cluster.name);
           break;
       }
       
       if (response.success) {
         // Reload cluster data
-        const clusters = await containerApi.getNativeServers();
-        const updatedCluster = clusters.find(c => c.name === clusterName);
-        if (updatedCluster) {
-          setCluster(updatedCluster as any);
+        if (clusterName) {
+          const clusterResponse = await provisioningApi.getClusterDetails(clusterName);
+          if (clusterResponse.success && clusterResponse.cluster) {
+            setCluster(clusterResponse.cluster);
+          }
         }
       }
     } catch (err) {

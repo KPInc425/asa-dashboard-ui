@@ -11,6 +11,7 @@ import Configs from './pages/Configs';
 import LogViewer from './components/LogViewer';
 import ServerLogViewer from './components/ServerLogViewer';
 import Provisioning from './pages/Provisioning';
+import SystemLogs from './pages/SystemLogs';
 import Login from './pages/Login';
 import UserProfile from './components/UserProfile';
 import UserManagement from './components/UserManagement';
@@ -166,6 +167,7 @@ const AppContent: React.FC = () => {
             <Route path="/configs" element={<Configs />} />
             <Route path="/logs" element={<LogViewer />} />
             <Route path="/logs/:serverName" element={<ServerLogViewer />} />
+            <Route path="/system-logs" element={<SystemLogs />} />
             <Route path="/provisioning" element={<Provisioning />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/users" element={<UserManagement />} />
