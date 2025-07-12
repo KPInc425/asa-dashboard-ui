@@ -39,8 +39,6 @@ const Configs: React.FC = () => {
 
   // Environment file state
   const [envFile, setEnvFile] = useState<EnvironmentFile | null>(null);
-  const [envContent, setEnvContent] = useState('');
-  const [filteredEnvContent, setFilteredEnvContent] = useState('');
 
   // Docker compose state
   const [dockerCompose, setDockerCompose] = useState<DockerComposeFile | null>(null);
@@ -49,29 +47,7 @@ const Configs: React.FC = () => {
   // System config state
   const [editingSystemConfig, setEditingSystemConfig] = useState<Record<string, string>>({});
 
-  // List of sensitive environment variables to hide
-  const sensitiveEnvVars = [
-    'JWT_SECRET',
-    'JWT_EXPIRES_IN',
-    'RCON_PASSWORD',
-    'DB_PASSWORD',
-    'REDIS_PASSWORD',
-    'API_KEY',
-    'SECRET_KEY',
-    'PRIVATE_KEY',
-    'ACCESS_TOKEN',
-    'REFRESH_TOKEN',
-    'STEAM_API_KEY',
-    'DISCORD_TOKEN',
-    'EMAIL_PASSWORD',
-    'SMTP_PASSWORD',
-    'AWS_SECRET_KEY',
-    'AZURE_SECRET',
-    'GCP_SECRET',
-    'DOCKER_REGISTRY_PASSWORD',
-    'NEXUS_PASSWORD',
-    'ARTIFACTORY_PASSWORD'
-  ];
+
 
   // List of safe environment variables that admins can edit
   const safeEnvVars = [
@@ -96,16 +72,8 @@ const Configs: React.FC = () => {
 
   // System config state
   // const [systemConfig, setSystemConfig] = useState<Record<string, string>>({});
-  const [editingSystemConfig, setEditingSystemConfig] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Check if a specific server was requested via URL params
-    const serverParam = searchParams.get('server');
-    if (serverParam) {
-      setSelectedServer(serverParam);
-      setActiveTab('server');
-    }
-
     loadInitialData();
   }, [searchParams]);
 
@@ -133,30 +101,7 @@ const Configs: React.FC = () => {
     return descriptions[varName] || 'Configuration variable';
   };
 
-  // Function to filter sensitive environment variables
-  const filterSensitiveEnvVars = (content: string): string => {
-    const lines = content.split('\n');
-    const filteredLines = lines.map(line => {
-      const trimmedLine = line.trim();
-      if (trimmedLine.startsWith('#') || trimmedLine === '') {
-        return line; // Keep comments and empty lines
-      }
-      
-      const equalIndex = trimmedLine.indexOf('=');
-      if (equalIndex === -1) {
-        return line; // Keep lines without equals sign
-      }
-      
-      const varName = trimmedLine.substring(0, equalIndex).trim();
-      if (sensitiveEnvVars.some(sensitive => varName.toUpperCase().includes(sensitive.toUpperCase()))) {
-        return `${varName}=***HIDDEN***`;
-      }
-      
-      return line;
-    });
-    
-    return filteredLines.join('\n');
-  };
+
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -166,8 +111,6 @@ const Configs: React.FC = () => {
       // Load environment file
       const envData = await environmentApi.getEnvironmentFile();
       setEnvFile(envData);
-      setEnvContent(envData.content);
-      setFilteredEnvContent(filterSensitiveEnvVars(envData.content));
 
       // Load docker compose
       const dockerData = await environmentApi.getDockerComposeFile();
@@ -218,8 +161,6 @@ const Configs: React.FC = () => {
       // Reload the environment file to get the updated content
       const updatedEnvData = await environmentApi.getEnvironmentFile();
       setEnvFile(updatedEnvData);
-      setEnvContent(updatedEnvData.content);
-      setFilteredEnvContent(filterSensitiveEnvVars(updatedEnvData.content));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save environment variables');
     } finally {

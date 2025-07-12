@@ -6,13 +6,6 @@ interface GlobalConfigManagerProps {
   clusterName: string;
 }
 
-interface ConfigFile {
-  content: string;
-  fileName: string;
-  serverName: string;
-  configPath: string;
-}
-
 const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ clusterName }) => {
   const [activeTab, setActiveTab] = useState<'game' | 'gameusersettings'>('game');
   const [loading, setLoading] = useState(false);

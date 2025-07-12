@@ -345,7 +345,7 @@ const ClusterDetails: React.FC = () => {
             )}
 
             {activeTab === 'mods' && (
-              <GlobalModManager clusterName={cluster.name} />
+              <GlobalModManager clusterName={cluster.name} onClose={() => handleTabChange('overview')} />
             )}
 
             {activeTab === 'configs' && (

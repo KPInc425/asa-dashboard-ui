@@ -585,6 +585,54 @@ pause`,
     const response = await api.post(`/api/native-servers/${serverName}/regenerate-start-bat`);
     return response.data;
   },
+
+  /**
+   * Get config file content for a server
+   */
+  getConfigFile: async (serverName: string, fileName: string): Promise<{ content: string; fileName: string; serverName: string; configPath: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            content: `# Mock config content for ${fileName}\n# This is a placeholder for frontend-only mode`,
+            fileName,
+            serverName,
+            configPath: `/mock/path/${fileName}`
+          });
+        }, 500);
+      });
+    }
+
+    try {
+      const response = await api.get(`/api/native-servers/${serverName}/config/${fileName}`);
+      return response.data;
+    } catch (error: any) {
+      return { content: '', fileName, serverName, configPath: '' };
+    }
+  },
+
+  /**
+   * Update config file content for a server
+   */
+  updateConfigFile: async (serverName: string, content: string, fileName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Config file ${fileName} updated successfully (mock)`
+          });
+        }, 500);
+      });
+    }
+
+    try {
+      const response = await api.put(`/api/native-servers/${serverName}/config/${fileName}`, { content });
+      return response.data;
+    } catch (error: any) {
+      return { success: false, message: error.response?.data?.message || 'Failed to update config file' };
+    }
+  }
 };
 
 // Configuration Management API

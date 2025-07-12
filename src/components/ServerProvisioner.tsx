@@ -2163,7 +2163,7 @@ const ServerProvisioner: React.FC = () => {
 
       {/* Global Config Manager Modal */}
       {showGlobalConfigManager && (
-        <GlobalConfigManager onClose={() => setShowGlobalConfigManager(false)} />
+        <GlobalConfigManager clusterName="MyCluster" />
       )}
 
       {/* Global Mod Manager Modal */}

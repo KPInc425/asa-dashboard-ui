@@ -3,6 +3,7 @@ import { api } from '../services/api';
 
 interface GlobalModManagerProps {
   onClose: () => void;
+  clusterName?: string;
 }
 
 const GlobalModManager: React.FC<GlobalModManagerProps> = ({ onClose }) => {
