@@ -148,10 +148,17 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
         console.log('📋 Files response:', filesResponse);
         
         if (filesResponse.success && filesResponse.logFiles.length > 0) {
-          const firstFile = filesResponse.logFiles[0];
-          console.log('📄 Getting content for first file:', firstFile.name);
+          // Prioritize actual log files over manifest files
+          const logFile = filesResponse.logFiles.find(file => 
+            file.name.toLowerCase().includes('shootergame.log') ||
+            file.name.toLowerCase().includes('servergame') ||
+            file.name.toLowerCase().includes('windowsserver.log') ||
+            (file.name.toLowerCase().endsWith('.log') && !file.name.toLowerCase().includes('manifest'))
+          ) || filesResponse.logFiles[0];
           
-          const response = await logsApi.getLogContent(serverName, firstFile.name, 100);
+          console.log('📄 Getting content for selected file:', logFile.name);
+          
+          const response = await logsApi.getLogContent(serverName, logFile.name, 100);
           console.log('📄 Content response:', response);
           
           if (response.success && response.content) {
@@ -180,7 +187,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
             });
             
             setLogs(staticLogs);
-            setError(`Using static log content from ${firstFile.name} (real-time connection unavailable)`);
+            setError(`Using static log content from ${logFile.name} (real-time connection unavailable)`);
             return;
           } else {
             console.error('❌ Content response not successful:', response);

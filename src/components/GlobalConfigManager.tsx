@@ -23,9 +23,9 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ clusterName }
   }, [clusterName]);
 
   const loadConfigs = async () => {
-    setLoading(true);
-    setError(null);
-    
+      setLoading(true);
+      setError(null);
+
     try {
       // Load both config files
       const [gameIniResponse, gameUserSettingsResponse] = await Promise.all([
@@ -46,8 +46,8 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ clusterName }
   };
 
   const handleSave = async () => {
-    setSaving(true);
-    setError(null);
+      setSaving(true);
+      setError(null);
     setSuccess(null);
     
     try {
@@ -86,9 +86,9 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ clusterName }
   const hasChanges = () => {
     if (activeTab === 'game') {
       return gameIniContent !== originalGameIni;
-    } else {
+      } else {
       return gameUserSettingsContent !== originalGameUserSettings;
-    }
+      }
   };
 
   const getCurrentContent = () => {
@@ -131,17 +131,17 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ clusterName }
         <span>
           <strong>Global Configuration:</strong> Changes made here will apply to all servers in the cluster unless they are excluded from global configs.
         </span>
-      </div>
+        </div>
 
       {/* Error Display */}
-      {error && (
+        {error && (
         <div className="alert alert-error">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{error}</span>
-        </div>
-      )}
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
+          </div>
+        )}
 
       {/* Success Display */}
       {success && (
@@ -153,25 +153,25 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ clusterName }
         </div>
       )}
 
-      {/* Tab Navigation */}
+        {/* Tab Navigation */}
       <div className="tabs tabs-boxed bg-base-200">
-        <button
-          className={`tab ${activeTab === 'game' ? 'tab-active' : ''}`}
-          onClick={() => setActiveTab('game')}
-        >
+          <button
+            className={`tab ${activeTab === 'game' ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab('game')}
+          >
           🎮 Game.ini
-        </button>
-        <button
+          </button>
+          <button
           className={`tab ${activeTab === 'gameusersettings' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('gameusersettings')}
-        >
+          >
           👤 GameUserSettings.ini
-        </button>
-      </div>
+          </button>
+        </div>
 
       {/* Editor */}
       <div className="card bg-base-200">
-        <div className="card-body">
+            <div className="card-body">
           <div className="flex items-center justify-between mb-4">
             <h3 className="card-title text-lg">
               {activeTab === 'game' ? 'Game.ini' : 'GameUserSettings.ini'}
@@ -204,29 +204,29 @@ const GlobalConfigManager: React.FC<GlobalConfigManagerProps> = ({ clusterName }
             </div>
           </div>
 
-          <Editor
+                <Editor
             height="500px"
-            language="ini"
+                  language="ini"
             value={getCurrentContent()}
             onChange={(value) => setCurrentContent(value || '')}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              wordWrap: 'on',
-              lineNumbers: 'on',
-              scrollBeyondLastLine: false,
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    wordWrap: 'on',
+                    lineNumbers: 'on',
+                    scrollBeyondLastLine: false,
               automaticLayout: true,
               theme: 'vs-dark'
             }}
           />
-        </div>
-      </div>
+            </div>
+          </div>
 
       {/* Configuration Help */}
       <div className="card bg-base-200">
-        <div className="card-body">
+            <div className="card-body">
           <h4 className="card-title text-lg">Configuration Help</h4>
-          <div className="space-y-4">
+              <div className="space-y-4">
             <div>
               <h5 className="font-semibold text-primary">Game.ini</h5>
               <p className="text-sm text-base-content/70">
