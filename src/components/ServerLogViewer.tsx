@@ -21,6 +21,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
   const [availableLogFiles, setAvailableLogFiles] = useState<LogFile[]>([]);
   const [selectedLogFile, setSelectedLogFile] = useState<string>('');
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [lineCount, setLineCount] = useState<number>(500);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,18 +38,23 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
 
   // Handle log file selection change
   useEffect(() => {
-    if (selectedLogFile && isConnected && serverName) {
+    if (selectedLogFile && serverName) {
       // Clear current logs when switching files
       setLogs([]);
       
-      // Switch to the selected log file
-      if (selectedLogFile === 'server') {
-        socketService.switchToServerLogs(serverName);
-      } else {
-        socketService.switchLogFile(selectedLogFile);
+      // Load static logs for the new file
+      loadStaticLogs();
+      
+      // Try to switch Socket.IO connection if connected
+      if (isConnected) {
+        if (selectedLogFile === 'server') {
+          socketService.switchToServerLogs(serverName);
+        } else {
+          socketService.switchLogFile(selectedLogFile);
+        }
       }
     }
-  }, [selectedLogFile, isConnected, serverName]);
+  }, [selectedLogFile, serverName, lineCount]);
 
   useEffect(() => {
     if (autoScroll && logsEndRef.current) {
@@ -140,6 +146,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
       const logFileName = selectedLogFile === 'server' ? 'ShooterGame.log' : selectedLogFile;
       
       console.log('📁 Selected log file:', logFileName);
+      console.log('📊 Requesting', lineCount, 'lines');
       
       if (!logFileName) {
         console.log('📋 No log file selected, getting first available file...');
@@ -158,7 +165,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
           
           console.log('📄 Getting content for selected file:', logFile.name);
           
-          const response = await logsApi.getLogContent(serverName, logFile.name, 100);
+          const response = await logsApi.getLogContent(serverName, logFile.name, lineCount);
           console.log('📄 Content response:', response);
           
           if (response.success && response.content) {
@@ -197,7 +204,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
         }
       } else {
         console.log('📄 Getting content for selected file:', logFileName);
-        const response = await logsApi.getLogContent(serverName, logFileName, 100);
+        const response = await logsApi.getLogContent(serverName, logFileName, lineCount);
         console.log('📄 Content response:', response);
         
         if (response.success && response.content) {
@@ -367,6 +374,24 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
                   </select>
                 </div>
                 
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Lines</span>
+                  </label>
+                  <select
+                    value={lineCount}
+                    onChange={(e) => setLineCount(parseInt(e.target.value))}
+                    className="select select-bordered select-sm"
+                  >
+                    <option value={100}>100 lines</option>
+                    <option value={500}>500 lines</option>
+                    <option value={1000}>1000 lines</option>
+                    <option value={2000}>2000 lines</option>
+                    <option value={5000}>5000 lines</option>
+                    <option value={10000}>10000 lines</option>
+                  </select>
+                </div>
+                
                 <button
                   onClick={loadAvailableLogFiles}
                   className="btn btn-sm btn-outline btn-secondary"
@@ -381,6 +406,13 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
               </div>
               
               <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => loadStaticLogs()}
+                  className="btn btn-sm btn-outline btn-primary"
+                  disabled={isLoadingFiles}
+                >
+                  🔄 Load More
+                </button>
                 <button
                   onClick={clearLogs}
                   className="btn btn-sm btn-outline btn-error"
@@ -547,6 +579,13 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
               
               <div className="flex items-center space-x-2">
                 <button
+                  onClick={() => loadStaticLogs()}
+                  className="btn btn-sm btn-outline btn-primary"
+                  disabled={isLoadingFiles}
+                >
+                  🔄 Load More
+                </button>
+                <button
                   onClick={clearLogs}
                   className="btn btn-sm btn-outline btn-error"
                 >
@@ -594,6 +633,24 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
                   <option value="warn">Warning</option>
                   <option value="info">Info</option>
                   <option value="debug">Debug</option>
+                </select>
+              </div>
+              
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Lines</span>
+                </label>
+                <select
+                  value={lineCount}
+                  onChange={(e) => setLineCount(parseInt(e.target.value))}
+                  className="select select-bordered select-sm"
+                >
+                  <option value={100}>100 lines</option>
+                  <option value={500}>500 lines</option>
+                  <option value={1000}>1000 lines</option>
+                  <option value={2000}>2000 lines</option>
+                  <option value={5000}>5000 lines</option>
+                  <option value={10000}>10000 lines</option>
                 </select>
               </div>
 

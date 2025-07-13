@@ -236,12 +236,12 @@ class SocketManager {
   onArkLog(callback: (data: LogMessage) => void): void {
     if (this.socket) {
       this.socket.on('ark-log-data', (data) => {
-        // Transform the Socket.IO data format to match our LogMessage interface
+        // The backend now sends properly formatted LogMessage data
         const logMessage: LogMessage = {
           timestamp: data.timestamp,
-          level: 'info', // Default level since ARK logs don't include level info
-          message: data.data,
-          container: this.containerName || 'unknown'
+          level: data.level || 'info',
+          message: data.message,
+          container: data.container || this.containerName || 'unknown'
         };
         callback(logMessage);
       });
