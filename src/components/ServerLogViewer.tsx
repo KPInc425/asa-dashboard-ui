@@ -132,19 +132,32 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
   const loadStaticLogs = async () => {
     if (!serverName) return;
     
+    console.log('🔍 Loading static logs for server:', serverName);
+    
     try {
       // Try to load recent logs from the API as a fallback
       // Use the first available log file if none is selected
       const logFileName = selectedLogFile === 'server' ? 'ShooterGame.log' : selectedLogFile;
       
+      console.log('📁 Selected log file:', logFileName);
+      
       if (!logFileName) {
+        console.log('📋 No log file selected, getting first available file...');
         // If no log file is selected, try to get the first available one
         const filesResponse = await logsApi.getLogFiles(serverName);
+        console.log('📋 Files response:', filesResponse);
+        
         if (filesResponse.success && filesResponse.logFiles.length > 0) {
           const firstFile = filesResponse.logFiles[0];
+          console.log('📄 Getting content for first file:', firstFile.name);
+          
           const response = await logsApi.getLogContent(serverName, firstFile.name, 100);
+          console.log('📄 Content response:', response);
+          
           if (response.success && response.content) {
             const logLines = response.content.split('\n').filter(line => line.trim());
+            console.log('📄 Found', logLines.length, 'log lines');
+            
             const staticLogs: LogMessage[] = logLines.map((line, index) => {
               try {
                 // Try to parse as JSON log entry
@@ -169,12 +182,21 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
             setLogs(staticLogs);
             setError(`Using static log content from ${firstFile.name} (real-time connection unavailable)`);
             return;
+          } else {
+            console.error('❌ Content response not successful:', response);
           }
+        } else {
+          console.error('❌ No log files available:', filesResponse);
         }
       } else {
+        console.log('📄 Getting content for selected file:', logFileName);
         const response = await logsApi.getLogContent(serverName, logFileName, 100);
+        console.log('📄 Content response:', response);
+        
         if (response.success && response.content) {
           const logLines = response.content.split('\n').filter(line => line.trim());
+          console.log('📄 Found', logLines.length, 'log lines');
+          
           const staticLogs: LogMessage[] = logLines.map((line, index) => {
             try {
               // Try to parse as JSON log entry
@@ -199,13 +221,16 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
           setLogs(staticLogs);
           setError(`Using static log content from ${logFileName} (real-time connection unavailable)`);
           return;
+        } else {
+          console.error('❌ Content response not successful:', response);
         }
       }
       
       // If we get here, no logs were loaded
+      console.error('❌ No log content available');
       setError('No log content available');
     } catch (err) {
-      console.error('Failed to load static logs:', err);
+      console.error('❌ Failed to load static logs:', err);
       setError('Failed to load log content');
     }
   };
