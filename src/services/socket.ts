@@ -62,7 +62,7 @@ class SocketManager {
    * Connect to container logs WebSocket
    */
   connect(containerName: string, logFile?: string): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise(async (resolve) => {
       if (this.socket?.connected) {
         this.disconnect();
       }
@@ -432,7 +432,7 @@ class SocketManager {
    * Connect to system logs WebSocket
    */
   connectToSystemLogs(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (this.socket?.connected) {
         this.disconnect();
       }
