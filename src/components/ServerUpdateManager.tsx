@@ -42,10 +42,22 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configModalData, setConfigModalData] = useState<UpdateConfig | null>(null);
+  const [backgroundUpdates, setBackgroundUpdates] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadUpdateStatus();
   }, []);
+
+  // Auto-refresh when background updates are running
+  useEffect(() => {
+    if (backgroundUpdates.size > 0) {
+      const interval = setInterval(() => {
+        loadUpdateStatus();
+      }, 10000); // Refresh every 10 seconds when background updates are running
+      
+      return () => clearInterval(interval);
+    }
+  }, [backgroundUpdates]);
 
   const loadUpdateStatus = async () => {
     try {
@@ -53,6 +65,23 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
       const response = await api.get('/api/provisioning/update-status-all');
       if (response.data.success) {
         setServers(response.data.data);
+        
+        // Clear background updates for servers that have recent updates
+        const now = new Date();
+        const recentThreshold = 5 * 60 * 1000; // 5 minutes
+        
+        setBackgroundUpdates(prev => {
+          const newSet = new Set(prev);
+          response.data.data.forEach((server: ServerUpdateInfo) => {
+            if (server.config.lastUpdate) {
+              const lastUpdate = new Date(server.config.lastUpdate);
+              if (now.getTime() - lastUpdate.getTime() < recentThreshold) {
+                newSet.delete(server.serverName);
+              }
+            }
+          });
+          return newSet;
+        });
       } else {
         setError('Failed to load update status');
       }
@@ -71,17 +100,33 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
       
       const response = await api.post(`/api/provisioning/servers/${encodeURIComponent(serverName)}/update-with-config`, {
         force,
-        updateConfig: true
+        updateConfig: true,
+        background: true // Use background updates to avoid timeouts
       });
       
       if (response.data.success) {
-        setSuccess(`Server ${serverName} updated successfully`);
+        if (response.data.data.background) {
+          setSuccess(`Update started for server ${serverName}. Progress will be tracked in the background.`);
+          setBackgroundUpdates(prev => new Set([...prev, serverName]));
+        } else {
+          setSuccess(`Server ${serverName} updated successfully`);
+        }
         await loadUpdateStatus(); // Refresh the list
       } else {
         setError(`Failed to update server: ${response.data.message}`);
       }
     } catch (err) {
-      setError(`Failed to update server: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      let errorMessage = 'Failed to update server';
+      if (err instanceof Error) {
+        if (err.message.includes('timeout')) {
+          errorMessage = 'Update timed out. SteamCMD updates can take a long time. The update may still be running in the background.';
+        } else if (err.message.includes('Network Error')) {
+          errorMessage = 'Network error. Please check your connection to the server.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -95,7 +140,8 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
       const response = await api.post('/api/provisioning/update-all-servers-with-config', {
         force,
         updateConfig: true,
-        skipDisabled: true
+        skipDisabled: true,
+        background: true // Use background updates to avoid timeouts
       });
       
       if (response.data.success) {
@@ -105,7 +151,17 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
         setError(`Failed to update servers: ${response.data.message}`);
       }
     } catch (err) {
-      setError(`Failed to update servers: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      let errorMessage = 'Failed to update servers';
+      if (err instanceof Error) {
+        if (err.message.includes('timeout')) {
+          errorMessage = 'Update timed out. SteamCMD updates can take a long time. Updates may still be running in the background.';
+        } else if (err.message.includes('Network Error')) {
+          errorMessage = 'Network error. Please check your connection to the server.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -213,6 +269,9 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
                 🔄 Refresh Status
               </button>
             </div>
+            <div className="mt-3 text-sm text-base-content/70">
+              <p>💡 <strong>Background Updates:</strong> Updates run in the background to avoid timeouts. Progress is tracked automatically and the status will refresh every 10 seconds.</p>
+            </div>
           </div>
 
           {/* Servers List */}
@@ -236,6 +295,11 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
                             <span className={`text-sm ${getStatusColor(server.status.needsUpdate)}`}>
                               {getStatusIcon(server.status.needsUpdate)} {server.status.reason}
                             </span>
+                            {backgroundUpdates.has(server.serverName) && (
+                              <span className="badge badge-info badge-sm animate-pulse">
+                                🔄 Background Update
+                              </span>
+                            )}
                           </div>
                           
                           <div className="text-sm text-base-content/70 space-y-1">

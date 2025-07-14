@@ -150,7 +150,7 @@ const createApiInstance = (): AxiosInstance => {
   
   const instance = axios.create({
     baseURL: baseURL,
-    timeout: 90000, // 90 seconds (increased from 30 to accommodate server startup)
+    timeout: 300000, // 5 minutes (increased from 90 seconds to handle long SteamCMD updates)
     headers: {
       'Content-Type': 'application/json',
     },
@@ -1894,7 +1894,7 @@ export const serverUpdateApi = {
   /**
    * Update server with configuration
    */
-  updateServerWithConfig: async (serverName: string, options: { force?: boolean; updateConfig?: boolean }): Promise<any> => {
+  updateServerWithConfig: async (serverName: string, options: { force?: boolean; updateConfig?: boolean; background?: boolean }): Promise<any> => {
     if (FRONTEND_ONLY_MODE) {
       return { success: true, message: `Server ${serverName} updated successfully` };
     }
