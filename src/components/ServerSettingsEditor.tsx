@@ -29,7 +29,7 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
   const [settings, setSettings] = useState<ServerSettings>({
     name: server.name || '',
     map: server.map || 'TheIsland',
-    gamePort: server.gamePort || server.port || 7777,
+    gamePort: server.gamePort || 7777,
     queryPort: server.queryPort || 27015,
     rconPort: server.rconPort || 32330,
     maxPlayers: server.maxPlayers || 70,

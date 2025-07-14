@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 interface ServerConfig {
   name: string;
   map: string;
-  port: number;
+  gamePort: number;
   queryPort: number;
   rconPort: number;
   maxPlayers: number;
@@ -270,7 +270,7 @@ const AdvancedClusterForm: React.FC<AdvancedClusterFormProps> = ({
           servers.push({
             name: serverName,
             map: mapSelection.map,
-            port: serverPort,
+            gamePort: serverPort,
             queryPort: queryPort,
             rconPort: rconPort,
             maxPlayers: form.globalSettings.gameUserSettings.ServerSettings.MaxPlayers,
@@ -782,7 +782,7 @@ const AdvancedClusterForm: React.FC<AdvancedClusterFormProps> = ({
                 <div className="bg-gray-50 p-3 rounded">
                   {form.servers.map((server, index) => (
                     <div key={index} className="text-sm">
-                      {server.name}: Port {server.port}, Query {server.queryPort}, RCON {server.rconPort}
+                      {server.name}: Port {server.gamePort}, Query {server.queryPort}, RCON {server.rconPort}
                     </div>
                   ))}
                 </div>

@@ -18,7 +18,7 @@ interface Cluster {
     name: string;
     status: string;
     map: string;
-    port: number;
+    gamePort: number;
     queryPort: number;
     rconPort: number;
   }>;
@@ -380,7 +380,7 @@ const ClusterDetails: React.FC = () => {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-base-content/70">Port:</span>
-                              <span>{server.port}</span>
+                              <span>{server.gamePort}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-base-content/70">Query:</span>

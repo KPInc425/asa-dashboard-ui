@@ -31,7 +31,7 @@ interface Cluster {
 interface Server {
   name: string;
   map: string;
-  port: number;
+  gamePort: number;
   status: 'running' | 'stopped' | 'starting' | 'stopping';
   players: number;
   maxPlayers: number;
@@ -579,7 +579,7 @@ const Dashboard: React.FC = () => {
                             name: server.name,
                             status: server.status as 'running' | 'stopped' | 'starting' | 'stopping',
                             map: server.map || '',
-                            port: 0, // or a valid port if available
+                            gamePort: server.gamePort || 0, // Use gamePort
                             players: 0, // or a valid value if available
                             maxPlayers: server.maxPlayers || 0
                           };

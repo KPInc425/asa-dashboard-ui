@@ -1549,7 +1549,7 @@ const ServerProvisioner: React.FC = () => {
           return {
             name: server.name,
             map: server.map,
-            port: server.gamePort,
+            gamePort: server.gamePort,
             queryPort: server.queryPort,
             rconPort: server.rconPort,
             maxPlayers: server.maxPlayers,
