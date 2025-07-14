@@ -70,11 +70,11 @@ class SocketManager {
       this.containerName = containerName;
       // Use relative URL for socket.io (handled by reverse proxy)
 
-      // Connect to the main Socket.IO server - use the same logic as API calls
-      let socketUrl = import.meta.env.VITE_API_URL;
+      // Connect to the main Socket.IO server - use VITE_SOCKET_URL if available, otherwise VITE_API_URL
+      let socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
       
-      // If VITE_API_URL is not set, determine the correct URL based on environment
-      if (!socketUrl) {
+      // If neither URL is set or is just '/', determine the correct URL based on environment
+      if (!socketUrl || socketUrl === '/' || socketUrl.trim() === '') {
         if (import.meta.env.MODE === 'development') {
           // In development, use localhost:4000 (backend port)
           socketUrl = 'http://localhost:4000';
@@ -169,9 +169,12 @@ class SocketManager {
           console.error('2. The backend server is not configured for Socket.IO');
           console.error('3. There is a network/firewall issue');
           console.error('4. The CORS configuration is incorrect');
+          console.error('5. The VITE_API_URL environment variable is not set correctly');
         }
         
-        reject(error);
+        // Instead of rejecting, resolve with a warning to allow the app to continue
+        console.warn('Socket.IO connection failed, using static logs only:', error);
+        resolve(); // Resolve without error to allow the app to continue
       });
 
       this.socket.on('error', (error: Error) => {
@@ -435,10 +438,10 @@ class SocketManager {
       }
 
       // Use the same URL logic as the main connection
-      let socketUrl = import.meta.env.VITE_API_URL;
+      let socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
       
-      // If VITE_API_URL is not set, determine the correct URL based on environment
-      if (!socketUrl) {
+      // If neither URL is set or is just '/', determine the correct URL based on environment
+      if (!socketUrl || socketUrl === '/' || socketUrl.trim() === '') {
         if (import.meta.env.MODE === 'development') {
           // In development, use localhost:4000 (backend port)
           socketUrl = 'http://localhost:4000';
@@ -493,7 +496,9 @@ class SocketManager {
 
       this.socket.on('connect_error', (error: Error) => {
         console.error('System logs socket connection error:', error);
-        reject(error);
+        // Instead of rejecting, resolve with a warning to allow the app to continue
+        console.warn('System logs Socket.IO connection failed, using static logs only:', error);
+        resolve(); // Resolve without error to allow the app to continue
       });
 
       this.socket.on('error', (error: Error) => {
