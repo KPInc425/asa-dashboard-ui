@@ -127,15 +127,15 @@ class SocketManager {
         this.reconnectDelay = 1000;
         
         try {
-          // Start container log streaming for this container
+          // Start log streaming for this container/server
           const socket = this.socket;
           if (socket) {
             if (logFile) {
               // Start streaming specific log file for ARK servers
               socket.emit('start-ark-logs', { serverName: containerName, logFileName: logFile });
             } else {
-              // Start streaming container logs
-              socket.emit('start-container-logs', { container: containerName });
+              // For native servers, default to ARK logs instead of container logs
+              socket.emit('start-ark-logs', { serverName: containerName, logFileName: 'ShooterGame.log' });
             }
           }
           
@@ -222,7 +222,7 @@ class SocketManager {
   }
 
   /**
-   * Switch to streaming container logs
+   * Switch to streaming container logs (for Docker mode)
    */
   switchToContainerLogs(): void {
     if (this.socket?.connected && this.containerName) {
@@ -230,7 +230,7 @@ class SocketManager {
       this.socket.emit('stop-container-logs');
       this.socket.emit('stop-ark-logs');
       
-      // Start streaming container logs
+      // Start streaming container logs (only for Docker containers)
       this.socket.emit('start-container-logs', { container: this.containerName });
     }
   }
