@@ -183,6 +183,28 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
     }
   };
 
+  const handleRegenerateStopScripts = async () => {
+    try {
+      setUpdating(true);
+      setError(null);
+      
+      const response = await api.post('/api/provisioning/regenerate-stop-scripts');
+      
+      if (response.data.success) {
+        const results = response.data.data.results;
+        const successCount = results.filter((r: any) => r.success).length;
+        const totalCount = results.length;
+        setSuccess(`Stop scripts regenerated successfully! ${successCount}/${totalCount} servers updated.`);
+      } else {
+        setError(`Failed to regenerate stop scripts: ${response.data.message}`);
+      }
+    } catch (err) {
+      setError(`Failed to regenerate stop scripts: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const openConfigModal = (server: ServerUpdateInfo) => {
     setConfigModalData(server.config);
     setSelectedServer(server.serverName);
@@ -268,9 +290,17 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
               >
                 🔄 Refresh Status
               </button>
+              <button
+                onClick={handleRegenerateStopScripts}
+                disabled={updating}
+                className="btn btn-secondary btn-sm"
+              >
+                🛑 Regenerate Stop Scripts
+              </button>
             </div>
             <div className="mt-3 text-sm text-base-content/70">
               <p>💡 <strong>Background Updates:</strong> Updates run in the background to avoid timeouts. Progress is tracked automatically and the status will refresh every 10 seconds.</p>
+              <p>🛑 <strong>Stop Scripts:</strong> Regenerate stop scripts to use targeted approach (only stops specific server, not all servers).</p>
             </div>
           </div>
 
