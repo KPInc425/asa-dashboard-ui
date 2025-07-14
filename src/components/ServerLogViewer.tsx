@@ -467,7 +467,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto font-mono text-sm bg-base-200 rounded-lg p-4" style={{ minHeight: '400px' }}>
+            <div className="flex-1 overflow-y-auto font-mono text-sm bg-base-200 rounded-lg p-4" style={{ minHeight: '400px', maxHeight: '600px' }}>
               {filteredLogs.length === 0 ? (
                 <div className="text-center py-12 text-base-content/50">
                   <div className="text-4xl mb-4">📋</div>

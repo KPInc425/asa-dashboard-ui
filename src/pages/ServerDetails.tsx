@@ -8,6 +8,7 @@ import ServerLogViewer from '../components/ServerLogViewer';
 import StartScriptViewer from '../components/StartScriptViewer';
 import ServerUpdateManager from '../components/ServerUpdateManager';
 import ServerSettingsEditor from '../components/ServerSettingsEditor';
+import ServerLiveDetails from '../components/ServerLiveDetails';
 
 interface CommandHistory {
   command: string;
@@ -532,6 +533,14 @@ const ServerDetails: React.FC = () => {
                       </pre>
                     </div>
                   </div>
+                )}
+
+                {/* Live Server Details */}
+                {server.status === 'running' && (
+                  <ServerLiveDetails 
+                    serverName={server.name} 
+                    serverType={server.type} 
+                  />
                 )}
               </div>
             )}

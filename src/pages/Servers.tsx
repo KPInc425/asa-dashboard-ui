@@ -345,12 +345,6 @@ const Servers: React.FC = () => {
     navigate(`/servers/${encodeURIComponent(server.name)}`);
   };
 
-  const handleUpdateClick = (server: Server) => {
-    // Open the update manager with the specific server selected
-    console.log(`Opening update manager for server: ${server.name}`);
-    setShowUpdateManager(true);
-  };
-
   const handleConfigClick = (server: Server) => {
     navigate(`/servers/${encodeURIComponent(server.name)}?tab=config`);
   };
@@ -471,8 +465,6 @@ const Servers: React.FC = () => {
                   actionStatus={actionStatus}
                   onAction={handleAction}
                   onViewDetails={handleViewDetails}
-                  onConfigClick={handleConfigClick}
-                  onUpdateClick={handleUpdateClick}
                 />
               ))}
             </div>

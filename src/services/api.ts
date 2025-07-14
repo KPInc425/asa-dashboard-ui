@@ -29,6 +29,7 @@ export interface Container {
   rconPort?: number;
   maxPlayers?: number;
   serverPath?: string;
+  players?: number; // <-- Added
 }
 
 export interface RconResponse {
@@ -655,7 +656,40 @@ pause`,
     } catch (error: any) {
       return { success: false, content: error.response?.data?.message || 'Failed to get server logs' };
     }
-  }
+  },
+
+  /**
+   * Get auto-shutdown configuration
+   */
+  getAutoShutdownConfig: async (): Promise<{ success: boolean; config: any }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return {
+        success: true,
+        config: {
+          enabled: false,
+          emptyTimeoutMinutes: 30,
+          warningIntervals: [15, 10, 5, 2],
+          warningMessage: 'Server will shut down in {time} minutes due to inactivity',
+          excludeServers: []
+        }
+      };
+    } else {
+      const response = await api.get<{ success: boolean; config: any }>('/api/auto-shutdown/config');
+      return response.data;
+    }
+  },
+
+  /**
+   * Update auto-shutdown configuration
+   */
+  updateAutoShutdownConfig: async (config: any): Promise<{ success: boolean }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return { success: true };
+    } else {
+      const response = await api.post<{ success: boolean }>('/api/auto-shutdown/config', config);
+      return response.data;
+    }
+  },
 };
 
 // Configuration Management API
