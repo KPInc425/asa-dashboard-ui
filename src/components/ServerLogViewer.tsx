@@ -194,7 +194,8 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
             });
             
             setLogs(staticLogs);
-            setError(`Using static log content from ${logFile.name} (real-time connection unavailable)`);
+            // Don't set this as an error since it's normal fallback behavior
+            console.log(`Using static log content from ${logFile.name} (real-time connection unavailable)`);
             return;
           } else {
             console.error('❌ Content response not successful:', response);
@@ -232,9 +233,10 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
             }
           });
           
-          setLogs(staticLogs);
-          setError(`Using static log content from ${logFileName} (real-time connection unavailable)`);
-          return;
+                      setLogs(staticLogs);
+            // Don't set this as an error since it's normal fallback behavior
+            console.log(`Using static log content from ${logFileName} (real-time connection unavailable)`);
+            return;
         } else {
           console.error('❌ Content response not successful:', response);
         }
