@@ -285,6 +285,13 @@ const ServerCard: React.FC<ServerCardProps> = ({
             🔄
           </button>
         )}
+        <button
+          title="Server Settings"
+          onClick={() => onViewDetails(server)}
+          className="btn btn-primary btn-xs"
+        >
+          ⚙️
+        </button>
       </div>
       
       <div className="mt-3">

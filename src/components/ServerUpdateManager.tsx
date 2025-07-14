@@ -205,6 +205,29 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
     }
   };
 
+  const handleFixPortConfigurations = async () => {
+    try {
+      setUpdating(true);
+      setError(null);
+      
+      const response = await api.post('/api/provisioning/fix-port-configurations');
+      
+      if (response.data.success) {
+        const results = response.data.data.results;
+        const successCount = results.filter((r: any) => r.success).length;
+        const totalCount = results.length;
+        setSuccess(`Port configurations fixed successfully! ${successCount}/${totalCount} clusters updated.`);
+        await loadUpdateStatus(); // Refresh the list
+      } else {
+        setError(`Failed to fix port configurations: ${response.data.message}`);
+      }
+    } catch (err) {
+      setError(`Failed to fix port configurations: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const openConfigModal = (server: ServerUpdateInfo) => {
     setConfigModalData(server.config);
     setSelectedServer(server.serverName);
@@ -297,10 +320,18 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
               >
                 🛑 Regenerate Stop Scripts
               </button>
+              <button
+                onClick={handleFixPortConfigurations}
+                disabled={updating}
+                className="btn btn-accent btn-sm"
+              >
+                🔧 Fix Port Configurations
+              </button>
             </div>
             <div className="mt-3 text-sm text-base-content/70">
-              <p>💡 <strong>Background Updates:</strong> Updates run in the background to avoid timeouts. Progress is tracked automatically and the status will refresh every 10 seconds.</p>
-              <p>🛑 <strong>Stop Scripts:</strong> Regenerate stop scripts to use targeted approach (only stops specific server, not all servers).</p>
+              <p>💡 <strong>Background Updates:</strong> Updates run in the background to avoid timeouts. Progress is tracked automatically.</p>
+              <p>🛑 <strong>Stop Scripts:</strong> Regenerates targeted stop scripts that only stop specific servers, not all servers.</p>
+              <p>🔧 <strong>Port Configurations:</strong> Fixes port conflicts by using correct ASA port offsets (Game+1 for Query, Game+2 for RCON).</p>
             </div>
           </div>
 

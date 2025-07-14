@@ -7,6 +7,7 @@ import ServerConfigEditor from '../components/ServerConfigEditor';
 import ServerLogViewer from '../components/ServerLogViewer';
 import StartScriptViewer from '../components/StartScriptViewer';
 import ServerUpdateManager from '../components/ServerUpdateManager';
+import ServerSettingsEditor from '../components/ServerSettingsEditor';
 
 interface CommandHistory {
   command: string;
@@ -26,6 +27,7 @@ const ServerDetails: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showStartScript, setShowStartScript] = useState(false);
   const [showUpdateManager, setShowUpdateManager] = useState(false);
+  const [showSettingsEditor, setShowSettingsEditor] = useState(false);
   
   // RCON state
   const [rconCommand, setRconCommand] = useState('');
@@ -402,6 +404,14 @@ const ServerDetails: React.FC = () => {
               >
                 🔄 Update Server
               </button>
+              
+              {/* Settings Button */}
+              <button
+                onClick={() => setShowSettingsEditor(true)}
+                className="btn btn-sm btn-outline btn-primary ml-2"
+              >
+                ⚙️ Settings
+              </button>
             </div>
           </div>
         </div>
@@ -674,6 +684,18 @@ const ServerDetails: React.FC = () => {
       {/* Server Update Manager Modal */}
       {showUpdateManager && (
         <ServerUpdateManager onClose={() => setShowUpdateManager(false)} />
+      )}
+
+      {/* Server Settings Editor Modal */}
+      {showSettingsEditor && server && (
+        <ServerSettingsEditor
+          server={server}
+          onClose={() => setShowSettingsEditor(false)}
+          onSave={() => {
+            // Reload server data to reflect changes
+            window.location.reload();
+          }}
+        />
       )}
     </div>
   );

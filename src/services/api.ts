@@ -1903,6 +1903,20 @@ export const serverUpdateApi = {
   },
 
   /**
+   * Update server settings
+   */
+  updateServerSettings: async (serverName: string, settings: any, options: { regenerateConfigs?: boolean; regenerateScripts?: boolean } = {}): Promise<any> => {
+    if (FRONTEND_ONLY_MODE) {
+      return { success: true, message: `Server ${serverName} settings updated successfully` };
+    }
+    const response = await api.post(`/api/provisioning/servers/${encodeURIComponent(serverName)}/update-settings`, {
+      settings,
+      ...options
+    });
+    return response.data;
+  },
+
+  /**
    * Update all servers with configuration
    */
   updateAllServersWithConfig: async (options: { force?: boolean; updateConfig?: boolean; skipDisabled?: boolean }): Promise<any> => {

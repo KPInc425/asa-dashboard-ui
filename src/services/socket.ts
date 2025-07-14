@@ -38,10 +38,26 @@ class SocketManager {
   private reconnectDelay = 1000; // Start with 1 second
 
   /**
+   * Check if the backend server is available
+   */
+  private async checkBackendAvailability(url: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${url}/health`, {
+        method: 'GET',
+        timeout: 5000
+      });
+      return response.ok;
+    } catch (error) {
+      console.warn('Backend health check failed:', error);
+      return false;
+    }
+  }
+
+  /**
    * Connect to container logs WebSocket
    */
   connect(containerName: string, logFile?: string): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (this.socket?.connected) {
         this.disconnect();
       }
@@ -50,21 +66,52 @@ class SocketManager {
       // Use relative URL for socket.io (handled by reverse proxy)
 
       // Connect to the main Socket.IO server - use the same logic as API calls
-      const socketUrl = import.meta.env.VITE_API_URL || window.location.origin;
+      let socketUrl = import.meta.env.VITE_API_URL;
+      
+      // If VITE_API_URL is not set, determine the correct URL based on environment
+      if (!socketUrl) {
+        if (import.meta.env.MODE === 'development') {
+          // In development, use localhost:4000 (backend port)
+          socketUrl = 'http://localhost:4000';
+        } else {
+          // In production, use the current origin
+          socketUrl = window.location.origin;
+        }
+      }
+      
+      // Ensure the URL doesn't end with a trailing slash for Socket.IO
+      socketUrl = socketUrl.replace(/\/$/, '');
+      
       const token = localStorage.getItem('auth_token');
       
       console.log('Socket.IO connecting to:', socketUrl);
       console.log('Socket.IO auth token:', token ? 'present' : 'missing');
+      console.log('Environment:', import.meta.env.MODE);
+      console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
+      
+      // Check if backend is available before attempting Socket.IO connection
+      const backendAvailable = await this.checkBackendAvailability(socketUrl);
+      if (!backendAvailable) {
+        console.warn('Backend server is not available, skipping Socket.IO connection');
+        console.warn('Live log updates will not be available');
+        resolve(); // Resolve without error to allow the app to continue
+        return;
+      }
       
       this.socket = io(socketUrl, {
-        path: '/socket.io', // Explicitly set the Socket.IO path
+        path: '/socket.io/', // Ensure trailing slash for Socket.IO path
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true,
         withCredentials: true, // Enable credentials for cross-origin
         auth: {
           token: token || ''
-        }
+        },
+        // Add better error handling
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000
       });
 
       // Set up event listeners
@@ -109,6 +156,16 @@ class SocketManager {
           hasToken: !!token,
           error: error.message
         });
+        
+        // If this is a timeout error, provide helpful information
+        if (error.message.includes('timeout')) {
+          console.error('Socket.IO timeout - this usually means:');
+          console.error('1. The backend server is not running on port 4000');
+          console.error('2. The backend server is not configured for Socket.IO');
+          console.error('3. There is a network/firewall issue');
+          console.error('4. The CORS configuration is incorrect');
+        }
+        
         reject(error);
       });
 
@@ -204,6 +261,12 @@ class SocketManager {
       }
     }
     
+    // Clear any mock log intervals
+    if ((this as any).mockLogInterval) {
+      clearInterval((this as any).mockLogInterval);
+      (this as any).mockLogInterval = null;
+    }
+    
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
@@ -227,6 +290,21 @@ class SocketManager {
         };
         callback(logMessage);
       });
+    } else {
+      // Fallback: provide mock log updates when Socket.IO is not available
+      console.warn('Socket.IO not available, using mock log updates');
+      const mockInterval = setInterval(() => {
+        const mockLog: LogMessage = {
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: `[Mock] Container ${this.containerName} log entry - Socket.IO not available`,
+          container: this.containerName || 'unknown'
+        };
+        callback(mockLog);
+      }, 5000); // Send mock log every 5 seconds
+      
+      // Store the interval so we can clear it later
+      (this as any).mockLogInterval = mockInterval;
     }
   }
 
@@ -351,12 +429,27 @@ class SocketManager {
         this.disconnect();
       }
 
-      // Use relative URL for socket.io (handled by reverse proxy)
-      const socketUrl = import.meta.env.VITE_API_URL || '/';
+      // Use the same URL logic as the main connection
+      let socketUrl = import.meta.env.VITE_API_URL;
+      
+      // If VITE_API_URL is not set, determine the correct URL based on environment
+      if (!socketUrl) {
+        if (import.meta.env.MODE === 'development') {
+          // In development, use localhost:4000 (backend port)
+          socketUrl = 'http://localhost:4000';
+        } else {
+          // In production, use the current origin
+          socketUrl = window.location.origin;
+        }
+      }
+      
+      // Ensure the URL doesn't end with a trailing slash for Socket.IO
+      socketUrl = socketUrl.replace(/\/$/, '');
+      
       const token = localStorage.getItem('auth_token');
       
       this.socket = io(socketUrl, {
-        path: '/socket.io',
+        path: '/socket.io/',
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true,
