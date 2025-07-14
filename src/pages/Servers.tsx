@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ServerCard from '../components/ServerCard';
 import ServerList from '../components/ServerList';
+import ServerUpdateManager from '../components/ServerUpdateManager';
 import type { Server } from '../utils/serverUtils';
 
 const Servers: React.FC = () => {
@@ -22,6 +23,7 @@ const Servers: React.FC = () => {
   const [pendingStop, setPendingStop] = useState<Record<string, boolean>>({});
   const [pendingStart, setPendingStart] = useState<Record<string, boolean>>({});
   const [pendingRestart, setPendingRestart] = useState<Record<string, boolean>>({});
+  const [showUpdateManager, setShowUpdateManager] = useState(false);
 
   const loadAllServers = async (showLoading = true) => {
     try {
@@ -343,6 +345,12 @@ const Servers: React.FC = () => {
     navigate(`/servers/${encodeURIComponent(server.name)}`);
   };
 
+  const handleUpdateClick = (server: Server) => {
+    // Open the update manager with the specific server selected
+    console.log(`Opening update manager for server: ${server.name}`);
+    setShowUpdateManager(true);
+  };
+
   const handleConfigClick = (server: Server) => {
     navigate(`/servers/${encodeURIComponent(server.name)}?tab=config`);
   };
@@ -390,6 +398,18 @@ const Servers: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Refresh
+              </button>
+              <button
+                onClick={() => setShowUpdateManager(true)}
+                className="btn btn-primary btn-sm"
+              >
+                🔄 Update Manager
+              </button>
+              <button
+                onClick={() => navigate('/provisioning')}
+                className="btn btn-secondary btn-sm"
+              >
+                ➕ Create Server
               </button>
             </div>
           </div>
@@ -452,6 +472,7 @@ const Servers: React.FC = () => {
                   onAction={handleAction}
                   onViewDetails={handleViewDetails}
                   onConfigClick={handleConfigClick}
+                  onUpdateClick={handleUpdateClick}
                 />
               ))}
             </div>
@@ -467,6 +488,11 @@ const Servers: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Server Update Manager Modal */}
+      {showUpdateManager && (
+        <ServerUpdateManager onClose={() => setShowUpdateManager(false)} />
+      )}
     </div>
   );
 };

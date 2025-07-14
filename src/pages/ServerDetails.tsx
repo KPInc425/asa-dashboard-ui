@@ -5,6 +5,8 @@ import { containerApi, type RconResponse } from '../services';
 import ServerModManager from '../components/ServerModManager';
 import ServerConfigEditor from '../components/ServerConfigEditor';
 import ServerLogViewer from '../components/ServerLogViewer';
+import StartScriptViewer from '../components/StartScriptViewer';
+import ServerUpdateManager from '../components/ServerUpdateManager';
 
 interface CommandHistory {
   command: string;
@@ -22,6 +24,8 @@ const ServerDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'rcon' | 'config' | 'logs' | 'mods'>('details');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showStartScript, setShowStartScript] = useState(false);
+  const [showUpdateManager, setShowUpdateManager] = useState(false);
   
   // RCON state
   const [rconCommand, setRconCommand] = useState('');
@@ -380,6 +384,24 @@ const ServerDetails: React.FC = () => {
                   )}
                 </button>
               </div>
+              
+              {/* Start Script Viewer Button - Only show for native/cluster servers */}
+              {(server.type === 'native' || server.type === 'cluster-server') && (
+                <button
+                  onClick={() => setShowStartScript(true)}
+                  className="btn btn-sm btn-outline btn-info ml-2"
+                >
+                  📜 View Start Script
+                </button>
+              )}
+              
+              {/* Update Server Button */}
+              <button
+                onClick={() => setShowUpdateManager(true)}
+                className="btn btn-sm btn-outline btn-accent ml-2"
+              >
+                🔄 Update Server
+              </button>
             </div>
           </div>
         </div>
@@ -640,6 +662,19 @@ const ServerDetails: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Start Script Viewer Modal */}
+      {showStartScript && server && (
+        <StartScriptViewer
+          serverName={server.name}
+          onClose={() => setShowStartScript(false)}
+        />
+      )}
+
+      {/* Server Update Manager Modal */}
+      {showUpdateManager && (
+        <ServerUpdateManager onClose={() => setShowUpdateManager(false)} />
+      )}
     </div>
   );
 };

@@ -1836,6 +1836,144 @@ export const updateAllServers = async (): Promise<{ success: boolean; message: s
   return response.data;
 };
 
+// Server Update Management API
+export const serverUpdateApi = {
+  /**
+   * Get update configuration for a server
+   */
+  getServerUpdateConfig: async (serverName: string): Promise<any> => {
+    if (FRONTEND_ONLY_MODE) {
+      return {
+        success: true,
+        data: {
+          serverName,
+          clusterName: 'TestCluster',
+          updateOnStart: true,
+          lastUpdate: new Date().toISOString(),
+          updateEnabled: true,
+          autoUpdate: false,
+          updateInterval: 24,
+          updateSchedule: null
+        }
+      };
+    }
+    const response = await api.get(`/api/provisioning/servers/${encodeURIComponent(serverName)}/update-config`);
+    return response.data;
+  },
+
+  /**
+   * Update server update configuration
+   */
+  updateServerUpdateConfig: async (serverName: string, config: any): Promise<any> => {
+    if (FRONTEND_ONLY_MODE) {
+      return { success: true, message: 'Update configuration updated successfully' };
+    }
+    const response = await api.put(`/api/provisioning/servers/${encodeURIComponent(serverName)}/update-config`, config);
+    return response.data;
+  },
+
+  /**
+   * Check server update status
+   */
+  checkServerUpdateStatus: async (serverName: string): Promise<any> => {
+    if (FRONTEND_ONLY_MODE) {
+      return {
+        success: true,
+        data: {
+          needsUpdate: false,
+          reason: 'No update needed',
+          lastUpdate: new Date().toISOString(),
+          updateEnabled: true
+        }
+      };
+    }
+    const response = await api.get(`/api/provisioning/servers/${encodeURIComponent(serverName)}/update-status`);
+    return response.data;
+  },
+
+  /**
+   * Update server with configuration
+   */
+  updateServerWithConfig: async (serverName: string, options: { force?: boolean; updateConfig?: boolean }): Promise<any> => {
+    if (FRONTEND_ONLY_MODE) {
+      return { success: true, message: `Server ${serverName} updated successfully` };
+    }
+    const response = await api.post(`/api/provisioning/servers/${encodeURIComponent(serverName)}/update-with-config`, options);
+    return response.data;
+  },
+
+  /**
+   * Update all servers with configuration
+   */
+  updateAllServersWithConfig: async (options: { force?: boolean; updateConfig?: boolean; skipDisabled?: boolean }): Promise<any> => {
+    if (FRONTEND_ONLY_MODE) {
+      return { success: true, message: 'Update process completed. Updated: 3, Skipped: 0, Failed: 0' };
+    }
+    const response = await api.post('/api/provisioning/update-all-servers-with-config', options);
+    return response.data;
+  },
+
+  /**
+   * Get update status for all servers
+   */
+  getUpdateStatusAll: async (): Promise<any> => {
+    if (FRONTEND_ONLY_MODE) {
+      return {
+        success: true,
+        data: [
+          {
+            serverName: 'TestServer1',
+            clusterName: 'TestCluster',
+            status: {
+              needsUpdate: false,
+              reason: 'No update needed',
+              lastUpdate: new Date().toISOString(),
+              updateEnabled: true
+            },
+            config: {
+              serverName: 'TestServer1',
+              clusterName: 'TestCluster',
+              updateOnStart: true,
+              lastUpdate: new Date().toISOString(),
+              updateEnabled: true,
+              autoUpdate: false,
+              updateInterval: 24,
+              updateSchedule: null
+            }
+          }
+        ]
+      };
+    }
+    const response = await api.get('/api/provisioning/update-status-all');
+    return response.data;
+  }
+};
+
+export const regenerateStartScripts = async (): Promise<{ 
+  success: boolean; 
+  message: string; 
+  details?: {
+    successful: any[];
+    failed: any[];
+    totalProcessed: number;
+  };
+}> => {
+  const response = await api.post('/api/provisioning/regenerate-start-scripts');
+  return response.data;
+};
+
+export const getStartScript = async (serverName: string): Promise<{
+  success: boolean;
+  serverName: string;
+  clusterName: string;
+  scriptPath: string;
+  content: string;
+  lastModified: string;
+}> => {
+  const response = await api.get(`/api/provisioning/start-script/${encodeURIComponent(serverName)}`);
+  return response.data;
+};
+
 // Export all APIs as a single object for convenience
 export const apiService = {
   containers: containerApi,
