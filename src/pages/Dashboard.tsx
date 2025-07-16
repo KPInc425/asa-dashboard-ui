@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { apiService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import GlobalModManager from '../components/GlobalModManager';
 
 interface SystemInfo {
   mode: string;
@@ -65,6 +66,7 @@ const Dashboard: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showGlobalModManager, setShowGlobalModManager] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -370,6 +372,17 @@ const Dashboard: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setShowGlobalModManager(true)}
+              className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            >
+              <div className="card-body text-center">
+                <div className="text-3xl mb-2">🧩</div>
+                <h3 className="font-semibold">Manage Global Mods</h3>
+                <p className="text-sm text-base-content/70">Add or remove mods for all servers</p>
+              </div>
+            </button>
+
+            <button
               onClick={() => navigate('/discord')}
               className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
             >
@@ -381,6 +394,9 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         </div>
+        {showGlobalModManager && (
+          <GlobalModManager onClose={() => setShowGlobalModManager(false)} />
+        )}
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

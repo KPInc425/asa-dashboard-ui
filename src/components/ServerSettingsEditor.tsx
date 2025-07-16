@@ -13,9 +13,6 @@ interface ServerSettings {
   rconPassword: string;
   clusterId: string;
   clusterPassword: string;
-  harvestMultiplier: number;
-  xpMultiplier: number;
-  tamingMultiplier: number;
   sessionName: string;
   disableBattleEye: boolean;
 }
@@ -39,9 +36,6 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
     rconPassword: server.rconPassword || 'rcon123',
     clusterId: server.clusterId || '',
     clusterPassword: server.clusterPassword || '',
-    harvestMultiplier: server.harvestMultiplier || 1.0,
-    xpMultiplier: server.xpMultiplier || 1.0,
-    tamingMultiplier: server.tamingMultiplier || 1.0,
     sessionName: server.sessionName || server.name || '',
     disableBattleEye: server.disableBattleEye || false
   });
@@ -347,57 +341,6 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
             </div>
           </div>
         )}
-
-        {/* Game Settings */}
-        <div className="mt-6">
-          <h4 className="font-semibold text-base-content/80 mb-4">Game Settings</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="label">
-                <span className="label-text">Harvest Multiplier</span>
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="0.1"
-                max="100"
-                className="input input-bordered w-full"
-                value={settings.harvestMultiplier}
-                onChange={(e) => handleInputChange('harvestMultiplier', parseFloat(e.target.value))}
-              />
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">XP Multiplier</span>
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="0.1"
-                max="100"
-                className="input input-bordered w-full"
-                value={settings.xpMultiplier}
-                onChange={(e) => handleInputChange('xpMultiplier', parseFloat(e.target.value))}
-              />
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">Taming Multiplier</span>
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="0.1"
-                max="100"
-                className="input input-bordered w-full"
-                value={settings.tamingMultiplier}
-                onChange={(e) => handleInputChange('tamingMultiplier', parseFloat(e.target.value))}
-              />
-            </div>
-          </div>
-        </div>
 
         {/* BattleEye Toggle */}
         <div className="mt-6">

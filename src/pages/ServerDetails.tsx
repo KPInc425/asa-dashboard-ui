@@ -683,9 +683,7 @@ const ServerDetails: React.FC = () => {
             )}
 
             {activeTab === 'logs' && (
-              <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                <ServerLogViewer compact={true} serverName={serverName} />
-              </div>
+              <ServerLogViewer compact={true} serverName={serverName} />
             )}
 
             {activeTab === 'saves' && server && (

@@ -36,12 +36,9 @@ interface Cluster {
     description?: string;
     serverCount?: number;
     basePort?: number;
-    maxPlayers?: number;
+    maxPlayers?: string;
     adminPassword?: string;
     clusterPassword?: string;
-    harvestMultiplier?: number;
-    xpMultiplier?: number;
-    tamingMultiplier?: number;
     servers?: any[];
   };
   created: string;
@@ -57,9 +54,6 @@ interface ServerConfig {
   adminPassword: string;
   serverPassword: string;
   rconPassword: string;
-  harvestMultiplier: number;
-  xpMultiplier: number;
-  tamingMultiplier: number;
   nameSuffix?: string;
   sessionName?: string;
 }
@@ -82,9 +76,6 @@ interface WizardData {
   adminPassword: string;
   serverPassword: string;
   clusterPassword: string;
-  harvestMultiplier: number;
-  xpMultiplier: number;
-  tamingMultiplier: number;
   servers: ServerConfig[];
   foreground: boolean;
   sessionNameMode: 'auto' | 'custom';
@@ -776,57 +767,12 @@ const GameSettingsStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
   <div className="space-y-6">
     <h2 className="text-2xl font-bold text-primary">Game Settings</h2>
     
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text font-semibold">Harvest Multiplier</span>
-                      <div className="tooltip tooltip-right" data-tip="How much resources you get from harvesting">
-              <span className="label-text-alt cursor-help">ℹ️</span>
-            </div>
-        </label>
-        <input
-          type="number"
-          step="0.1"
-          className="input input-bordered"
-          placeholder="3.0"
-          value={wizardData.harvestMultiplier}
-          onChange={(e) => setWizardData(prev => ({ ...prev, harvestMultiplier: parseFloat(e.target.value) }))}
-        />
-      </div>
-      
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text font-semibold">XP Multiplier</span>
-                      <div className="tooltip tooltip-right" data-tip="How fast you gain experience">
-              <span className="label-text-alt cursor-help">ℹ️</span>
-            </div>
-        </label>
-        <input
-          type="number"
-          step="0.1"
-          className="input input-bordered"
-          placeholder="3.0"
-          value={wizardData.xpMultiplier}
-          onChange={(e) => setWizardData(prev => ({ ...prev, xpMultiplier: parseFloat(e.target.value) }))}
-        />
-      </div>
-      
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text font-semibold">Taming Multiplier</span>
-        </label>
-        <input
-          type="number"
-          step="0.1"
-          className="input input-bordered"
-          placeholder="5.0"
-          value={wizardData.tamingMultiplier}
-          onChange={(e) => setWizardData(prev => ({ ...prev, tamingMultiplier: parseFloat(e.target.value) }))}
-        />
-        <label className="label">
-          <span className="label-text-alt">How fast creatures tame</span>
-        </label>
-      </div>
+    <div className="bg-base-300 rounded-lg p-4">
+      <h3 className="font-semibold mb-3">Game Configuration</h3>
+      <p className="text-sm text-base-content/70 mb-4">
+        Game multipliers (harvest, XP, taming) and other detailed settings can be configured 
+        through the Game.ini and GameUserSettings.ini files in the server configuration tab.
+      </p>
     </div>
     
     {/* Custom Dynamic Config URL */}
@@ -864,30 +810,6 @@ const GameSettingsStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
         <span className="label-text-alt">Adds -NoBattleEye to all server startup commands</span>
       </label>
     </div>
-    
-    <div className="bg-base-300 rounded-lg p-4">
-      <h3 className="font-semibold mb-2">Recommended Settings:</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-        <div>
-          <span className="font-semibold">Casual:</span>
-          <div>Harvest: 2.0</div>
-          <div>XP: 2.0</div>
-          <div>Taming: 3.0</div>
-        </div>
-        <div>
-          <span className="font-semibold">Balanced:</span>
-          <div>Harvest: 3.0</div>
-          <div>XP: 3.0</div>
-          <div>Taming: 5.0</div>
-        </div>
-        <div>
-          <span className="font-semibold">Fast:</span>
-          <div>Harvest: 5.0</div>
-          <div>XP: 5.0</div>
-          <div>Taming: 10.0</div>
-        </div>
-      </div>
-    </div>
   </div>
 );
 
@@ -915,9 +837,10 @@ const ReviewStep: React.FC<StepProps> = ({ wizardData, setWizardData, generateSe
           <h3 className="font-semibold mb-3">Game Settings</h3>
           <div className="space-y-2 text-sm">
             <div><span className="font-semibold">Max Players:</span> {wizardData.maxPlayers}</div>
-            <div><span className="font-semibold">Harvest Multiplier:</span> {wizardData.harvestMultiplier}x</div>
-            <div><span className="font-semibold">XP Multiplier:</span> {wizardData.xpMultiplier}x</div>
-            <div><span className="font-semibold">Taming Multiplier:</span> {wizardData.tamingMultiplier}x</div>
+            <div><span className="font-semibold">BattleEye:</span> {wizardData.disableBattleEye ? 'Disabled' : 'Enabled'}</div>
+            {wizardData.customDynamicConfigUrl && (
+              <div><span className="font-semibold">Custom Config:</span> Yes</div>
+            )}
           </div>
         </div>
       </div>
@@ -1138,11 +1061,6 @@ const ServerProvisioner: React.FC = () => {
     adminPassword: 'admin123',
     serverPassword: '',
     clusterPassword: '',
-    
-    // Game settings
-    harvestMultiplier: 3.0,
-    xpMultiplier: 3.0,
-    tamingMultiplier: 5.0,
     
     // Generated servers
     servers: [] as ServerConfig[],
@@ -1529,9 +1447,6 @@ const ServerProvisioner: React.FC = () => {
             adminPassword: wizardData.adminPassword,
             serverPassword: wizardData.serverPassword,
             rconPassword: 'rcon123',
-            harvestMultiplier: wizardData.harvestMultiplier,
-            xpMultiplier: wizardData.xpMultiplier,
-            tamingMultiplier: wizardData.tamingMultiplier,
             nameSuffix: mapConfig.count === 1 ? undefined : `-${i + 1}`,
             sessionName: wizardData.sessionNameMode === 'custom' ? wizardData.globalSessionName : serverName
           };
@@ -1585,9 +1500,6 @@ const ServerProvisioner: React.FC = () => {
               ServerSettings: {
                 MaxPlayers: server.maxPlayers,
                 DifficultyOffset: 1,
-                HarvestAmountMultiplier: server.harvestMultiplier,
-                TamingSpeedMultiplier: server.tamingMultiplier,
-                XPMultiplier: server.xpMultiplier,
                 AllowThirdPersonPlayer: true,
                 AlwaysNotifyPlayerLeft: true,
                 AlwaysNotifyPlayerJoined: true,
@@ -1639,9 +1551,6 @@ const ServerProvisioner: React.FC = () => {
             ServerSettings: {
               MaxPlayers: wizardData.maxPlayers,
               DifficultyOffset: 1,
-              HarvestAmountMultiplier: wizardData.harvestMultiplier,
-              TamingSpeedMultiplier: wizardData.tamingMultiplier,
-              XPMultiplier: wizardData.xpMultiplier,
               AllowThirdPersonPlayer: true,
               AlwaysNotifyPlayerLeft: true,
               AlwaysNotifyPlayerJoined: true,
@@ -1745,9 +1654,6 @@ const ServerProvisioner: React.FC = () => {
             adminPassword: 'admin123',
             serverPassword: '',
             clusterPassword: '',
-            harvestMultiplier: 3.0,
-            xpMultiplier: 3.0,
-            tamingMultiplier: 5.0,
             servers: [],
             foreground: false,
             sessionNameMode: 'auto',
