@@ -46,6 +46,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       label: 'Provisioning',
       icon: '🏗️',
       description: 'Create servers and clusters'
+    },
+    {
+      path: '/discord',
+      label: 'Discord',
+      icon: '💬',
+      description: 'Discord webhooks and bot setup'
     }
   ];
 

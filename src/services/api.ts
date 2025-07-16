@@ -956,6 +956,116 @@ export const logsApi = {
     const response = await api.get(`/api/native-servers/${encodeURIComponent(serverName)}/log-files`);
     return response.data;
   },
+
+  /**
+   * Get save files for a server
+   */
+  getSaveFiles: async (serverName: string): Promise<{ success: boolean; files: Array<{ name: string; path: string; size: number; modified: string }> }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            files: [
+              { name: 'TheIsland.ark', path: '/saves/TheIsland.ark', size: 52428800, modified: new Date().toISOString() },
+              { name: 'TheIsland.ark.bak', path: '/saves/TheIsland.ark.bak', size: 52428800, modified: new Date().toISOString() }
+            ]
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get(`/api/native-servers/${encodeURIComponent(serverName)}/save-files`);
+    return response.data;
+  },
+
+  /**
+   * Upload save file to server
+   */
+  uploadSaveFile: async (serverName: string, formData: FormData): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Save file uploaded successfully (mock)'
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  /**
+   * Download save file from server
+   */
+  downloadSaveFile: async (serverName: string, fileName: string): Promise<{ success: boolean; data: ArrayBuffer; message?: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          // Create a mock file
+          const mockData = new ArrayBuffer(1024);
+          resolve({
+            success: true,
+            data: mockData,
+            message: 'Save file downloaded successfully (mock)'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.get(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/download/${encodeURIComponent(fileName)}`, {
+      responseType: 'arraybuffer'
+    });
+    return {
+      success: true,
+      data: response.data
+    };
+  },
+
+  /**
+   * Delete save file from server
+   */
+  deleteSaveFile: async (serverName: string, fileName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Save file ${fileName} deleted successfully (mock)`
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.delete(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/${encodeURIComponent(fileName)}`);
+    return response.data;
+  },
+
+  /**
+   * Backup save files for a server
+   */
+  backupSaveFiles: async (serverName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Save files backed up successfully (mock)'
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/backup`);
+    return response.data;
+  },
 };
 
 // ARK Config File API
@@ -1580,20 +1690,43 @@ export const provisioningApi = {
   /**
    * Get system logs
    */
-  getSystemLogs: async (type: string = 'all', lines: number = 100): Promise<{ success: boolean; logs: any; type: string; lines: number }> => {
+  getSystemLogs: async (type: string = 'all', lines: number = 100): Promise<{ 
+    success: boolean; 
+    logFiles: any; 
+    serviceInfo: any;
+    type: string; 
+    lines: number;
+    totalLogFiles: number;
+  }> => {
     if (FRONTEND_ONLY_MODE) {
       return new Promise((resolve) => {
         setTimeout(() => {
           resolve({
             success: true,
-            logs: {
-              api: 'Mock API logs...\n[INFO] Server started\n[INFO] Request received',
-              server: 'Mock server logs...\n[INFO] Server process started\n[INFO] Port 7777 opened',
-              docker: 'Mock Docker logs...\n[INFO] Container started\n[INFO] Health check passed',
-              system: 'Mock system logs...\n[INFO] System initialized\n[INFO] Services started'
+            logFiles: {
+              combined: {
+                content: 'Log file: combined.log\nPath: /logs/combined.log\nSize: 45.23 KB\nModified: 2024-01-15T10:30:00.000Z\nLines: 1000 total, showing last 100\n────────────────────────────────────────────────────────────────────────────────\n[INFO] Server started\n[INFO] Request received',
+                path: '/logs/combined.log',
+                exists: true
+              },
+              error: {
+                content: 'Log file: error.log\nPath: /logs/error.log\nSize: 2.15 KB\nModified: 2024-01-15T10:30:00.000Z\nLines: 50 total, showing last 100\n────────────────────────────────────────────────────────────────────────────────\n[ERROR] Connection failed\n[ERROR] Invalid request',
+                path: '/logs/error.log',
+                exists: true
+              }
+            },
+            serviceInfo: {
+              mode: 'native',
+              isWindowsService: false,
+              serviceInstallPath: null,
+              logBasePath: '/app',
+              currentWorkingDirectory: '/app',
+              processId: 1234,
+              parentProcessId: 1
             },
             type,
-            lines
+            lines,
+            totalLogFiles: 2
           });
         }, 500);
       });

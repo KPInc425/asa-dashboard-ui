@@ -2,18 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { provisioningApi } from '../services/api';
 
+interface LogFile {
+  content: string;
+  path: string;
+  exists: boolean;
+}
+
 interface SystemLogs {
-  api?: string;
-  service?: string;
-  docker?: string;
+  combined?: LogFile;
+  error?: LogFile;
+  asaApiService?: LogFile;
+  nodeOut?: LogFile;
+  nodeErr?: LogFile;
+  serviceOut?: LogFile;
+  serviceErr?: LogFile;
+}
+
+interface ServiceInfo {
+  mode: 'native' | 'docker';
+  isWindowsService: boolean;
+  serviceInstallPath: string | null;
+  logBasePath: string;
+  currentWorkingDirectory: string;
+  processId: number;
+  parentProcessId: number;
 }
 
 const SystemLogs: React.FC = () => {
   const navigate = useNavigate();
   const [logs, setLogs] = useState<SystemLogs>({});
+  const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [logType, setLogType] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>('combined');
   const [lines, setLines] = useState<number>(100);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
@@ -23,10 +44,11 @@ const SystemLogs: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const response = await provisioningApi.getSystemLogs(logType, lines);
+      const response = await provisioningApi.getSystemLogs('all', lines);
       
       if (response.success) {
-        setLogs(response.logs);
+        setLogs(response.logFiles || {});
+        setServiceInfo(response.serviceInfo);
       } else {
         setError('Failed to load system logs');
       }
@@ -39,7 +61,7 @@ const SystemLogs: React.FC = () => {
 
   useEffect(() => {
     loadLogs();
-  }, [logType, lines]);
+  }, [lines]);
 
   useEffect(() => {
     if (autoRefresh) {
@@ -57,39 +79,82 @@ const SystemLogs: React.FC = () => {
     }
   }, [autoRefresh]);
 
+  // Get available tabs based on existing log files
+  const getAvailableTabs = () => {
+    const tabs = [];
+    
+    if (logs.combined?.exists) tabs.push({ key: 'combined', label: 'Combined Logs', icon: '📋' });
+    if (logs.error?.exists) tabs.push({ key: 'error', label: 'Error Logs', icon: '❌' });
+    if (logs.asaApiService?.exists) tabs.push({ key: 'asaApiService', label: 'API Service', icon: '🔧' });
+    if (logs.nodeOut?.exists) tabs.push({ key: 'nodeOut', label: 'Node Stdout', icon: '📤' });
+    if (logs.nodeErr?.exists) tabs.push({ key: 'nodeErr', label: 'Node Stderr', icon: '📥' });
+    if (logs.serviceOut?.exists) tabs.push({ key: 'serviceOut', label: 'Service Stdout', icon: '⚙️' });
+    if (logs.serviceErr?.exists) tabs.push({ key: 'serviceErr', label: 'Service Stderr', icon: '⚠️' });
+    
+    return tabs;
+  };
+
+  // Set initial active tab to first available
+  useEffect(() => {
+    const availableTabs = getAvailableTabs();
+    if (availableTabs.length > 0 && !availableTabs.find(tab => tab.key === activeTab)) {
+      setActiveTab(availableTabs[0].key);
+    }
+  }, [logs]);
+
   const formatLogContent = (content: string) => {
     if (!content) return 'No logs available';
     
     return content.split('\n').map((line, index) => {
-      // For JSON logs, parse the level field
+      // Improved log level detection
       let logLevel = 'info';
+      
+      // Check for JSON log format first
       try {
         if (line.trim() && line.includes('"level"')) {
-          const match = line.match(/"level":"([^"]+)"/);
+          const match = line.match(/"level":\s*"?([^",\s]+)"?/);
           if (match) {
-            logLevel = match[1];
+            logLevel = match[1].toLowerCase();
           }
         }
       } catch (error) {
         // Fallback to text-based detection
       }
       
-      // Fallback to text-based detection for non-JSON logs
+      // If still 'info', check for text-based log level indicators
       if (logLevel === 'info') {
-        const isError = line.toLowerCase().includes('error') || line.toLowerCase().includes('failed');
-        const isWarning = line.toLowerCase().includes('warn') || line.toLowerCase().includes('warning');
-        const isInfo = line.toLowerCase().includes('info');
+        const lowerLine = line.toLowerCase();
         
-        if (isError) logLevel = 'error';
-        else if (isWarning) logLevel = 'warn';
-        else if (isInfo) logLevel = 'info';
+        // Check for error indicators
+        if (lowerLine.includes('error') || lowerLine.includes('failed') || lowerLine.includes('exception') || 
+            lowerLine.includes('fatal') || lowerLine.includes('critical')) {
+          logLevel = 'error';
+        }
+        // Check for warning indicators
+        else if (lowerLine.includes('warn') || lowerLine.includes('warning') || lowerLine.includes('deprecated')) {
+          logLevel = 'warn';
+        }
+        // Check for info indicators
+        else if (lowerLine.includes('info') || lowerLine.includes('started') || lowerLine.includes('connected') ||
+                 lowerLine.includes('listening') || lowerLine.includes('ready')) {
+          logLevel = 'info';
+        }
+        // Check for debug indicators
+        else if (lowerLine.includes('debug') || lowerLine.includes('trace')) {
+          logLevel = 'debug';
+        }
+        // Default to neutral for lines without clear indicators
+        else {
+          logLevel = 'neutral';
+        }
       }
       
       let className = 'font-mono text-sm';
       if (logLevel === 'error') className += ' text-error';
       else if (logLevel === 'warn') className += ' text-warning';
       else if (logLevel === 'info') className += ' text-info';
-      else className += ' text-base-content';
+      else if (logLevel === 'debug') className += ' text-base-content/50';
+      else className += ' text-base-content'; // neutral and default
       
       return (
         <div key={index} className={className}>
@@ -114,6 +179,9 @@ const SystemLogs: React.FC = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  const availableTabs = getAvailableTabs();
+  const currentLog = logs[activeTab as keyof SystemLogs];
 
   if (loading && Object.keys(logs).length === 0) {
     return (
@@ -141,6 +209,13 @@ const SystemLogs: React.FC = () => {
                 <p className="text-base-content/70">
                   Monitor backend system logs for debugging and troubleshooting
                 </p>
+                {serviceInfo && (
+                  <div className="text-sm text-base-content/60 mt-1">
+                    Mode: {serviceInfo.mode === 'docker' ? 'Docker' : 
+                           serviceInfo.isWindowsService ? 'Native (Windows Service)' : 'Native (Development)'} | 
+                    Logs: {Object.keys(logs).length} files available
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -158,22 +233,6 @@ const SystemLogs: React.FC = () => {
         <div className="card bg-base-200 shadow-lg">
           <div className="card-body">
             <div className="flex flex-wrap items-center gap-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Log Type</span>
-                </label>
-                <select
-                  className="select select-bordered"
-                  value={logType}
-                  onChange={(e) => setLogType(e.target.value)}
-                >
-                  <option value="all">All Logs</option>
-                  <option value="api">API Logs</option>
-                  <option value="service">Service Logs</option>
-                  <option value="docker">Docker Logs</option>
-                </select>
-              </div>
-
               <div className="form-control">
                 <label className="label">
                   <span className="label-text">Lines</span>
@@ -233,80 +292,92 @@ const SystemLogs: React.FC = () => {
         )}
 
         {/* Logs Display */}
-        <div className="space-y-6">
-          {logType === 'all' ? (
-            // Show all log types
-            Object.entries(logs).map(([type, content]) => (
-              <div key={type} className="card bg-base-100 shadow-lg">
-                <div className="card-header bg-base-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="card-title capitalize">{type} Logs</h3>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => copyToClipboard(content)}
-                        className="btn btn-sm btn-outline"
-                        title="Copy to clipboard"
-                      >
-                        📋 Copy
-                      </button>
-                      <button
-                        onClick={() => downloadLogs(content, `${type}-logs.txt`)}
-                        className="btn btn-sm btn-outline"
-                        title="Download logs"
-                      >
-                        💾 Download
-                      </button>
+        {availableTabs.length > 0 ? (
+          <div className="card bg-base-100 shadow-lg">
+            <div className="card-body p-0">
+              {/* Tabs */}
+              <div className="tabs tabs-boxed bg-base-200 p-2 m-4">
+                {availableTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    className={`tab ${activeTab === tab.key ? 'tab-active' : ''}`}
+                    onClick={() => setActiveTab(tab.key)}
+                  >
+                    <span className="mr-2">{tab.icon}</span>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-4">
+                {currentLog ? (
+                  <div>
+                    {/* Log Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg font-semibold">
+                          {availableTabs.find(tab => tab.key === activeTab)?.label}
+                        </span>
+                        <span className="badge badge-outline">
+                          {currentLog.path ? currentLog.path.split(/[/\\]/).pop() || 'Unknown' : 'Unknown'}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => copyToClipboard(currentLog.content)}
+                          className="btn btn-sm btn-outline"
+                          title="Copy to clipboard"
+                        >
+                          📋 Copy
+                        </button>
+                        <button
+                          onClick={() => downloadLogs(currentLog.content, `${activeTab}-logs.txt`)}
+                          className="btn btn-sm btn-outline"
+                          title="Download logs"
+                        >
+                          💾 Download
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Log Content */}
+                    <div className="bg-base-300 p-4 rounded-lg max-h-96 overflow-y-auto">
+                      {formatLogContent(currentLog.content)}
                     </div>
                   </div>
-                </div>
-                <div className="card-body p-0">
-                  <div className="bg-base-300 p-4 max-h-96 overflow-y-auto">
-                    {formatLogContent(content)}
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">📄</div>
+                    <h3 className="text-lg font-semibold mb-2">No Log Content</h3>
+                    <p className="text-base-content/70">
+                      The selected log file doesn't have any content or couldn't be read.
+                    </p>
                   </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            // Show single log type
-            <div className="card bg-base-100 shadow-lg">
-              <div className="card-header bg-base-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="card-title capitalize">{logType} Logs</h3>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => copyToClipboard(logs[logType as keyof SystemLogs] || '')}
-                      className="btn btn-sm btn-outline"
-                      title="Copy to clipboard"
-                    >
-                      📋 Copy
-                    </button>
-                    <button
-                      onClick={() => downloadLogs(logs[logType as keyof SystemLogs] || '', `${logType}-logs.txt`)}
-                      className="btn btn-sm btn-outline"
-                      title="Download logs"
-                    >
-                      💾 Download
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="card-body p-0">
-                <div className="bg-base-300 p-4 max-h-96 overflow-y-auto">
-                  {formatLogContent(logs[logType as keyof SystemLogs] || '')}
-                </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* No Logs Message */}
-        {Object.keys(logs).length === 0 && !loading && !error && (
+          </div>
+        ) : (
+          /* No Logs Message */
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📋</div>
             <h3 className="text-xl font-semibold mb-2">No Logs Available</h3>
             <p className="text-base-content/70">
               No system logs are currently available. This might be because the log files don't exist yet or the system hasn't generated any logs.
             </p>
+            {serviceInfo && (
+              <div className="mt-4 p-4 bg-base-200 rounded-lg">
+                <h4 className="font-semibold mb-2">Service Information:</h4>
+                <div className="text-sm text-left space-y-1">
+                  <div>Mode: {serviceInfo.mode === 'docker' ? 'Docker' : 
+                               serviceInfo.isWindowsService ? 'Native (Windows Service)' : 'Native (Development)'}</div>
+                  <div>Working Directory: {serviceInfo.currentWorkingDirectory}</div>
+                  <div>Log Base Path: {serviceInfo.logBasePath}</div>
+                  <div>Process ID: {serviceInfo.processId}</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

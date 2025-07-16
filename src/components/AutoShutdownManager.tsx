@@ -7,6 +7,8 @@ interface AutoShutdownConfig {
   warningIntervals: number[];
   warningMessage: string;
   excludeServers: string[];
+  saveBeforeShutdown: boolean;
+  saveTimeoutSeconds: number;
 }
 
 interface ServerStatus {
@@ -24,7 +26,9 @@ const AutoShutdownManager: React.FC = () => {
     emptyTimeoutMinutes: 30,
     warningIntervals: [15, 10, 5, 2],
     warningMessage: 'Server will shut down in {time} minutes due to inactivity',
-    excludeServers: []
+    excludeServers: [],
+    saveBeforeShutdown: true,
+    saveTimeoutSeconds: 30
   });
   
   const [servers, setServers] = useState<ServerStatus[]>([]);
@@ -227,6 +231,43 @@ const AutoShutdownManager: React.FC = () => {
                 </label>
               </div>
 
+              <div className="form-control">
+                <label className="label cursor-pointer">
+                  <span className="label-text font-semibold">Save World Before Shutdown</span>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={config.saveBeforeShutdown}
+                    onChange={(e) => setConfig(prev => ({ ...prev, saveBeforeShutdown: e.target.checked }))}
+                  />
+                </label>
+                <label className="label">
+                  <span className="label-text-alt">Send RCON saveworld command before shutting down servers</span>
+                </label>
+              </div>
+
+              {config.saveBeforeShutdown && (
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-semibold">Save Timeout (seconds)</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={config.saveTimeoutSeconds}
+                    onChange={(e) => setConfig(prev => ({ 
+                      ...prev, 
+                      saveTimeoutSeconds: parseInt(e.target.value) || 30 
+                    }))}
+                    min="5"
+                    max="300"
+                  />
+                  <label className="label">
+                    <span className="label-text-alt">How long to wait for saveworld command to complete</span>
+                  </label>
+                </div>
+              )}
+
               <button
                 onClick={saveConfig}
                 disabled={saving}
@@ -341,6 +382,8 @@ const AutoShutdownManager: React.FC = () => {
             <p>• Warning messages will be broadcast to players at the specified intervals</p>
             <p>• Excluded servers will not be affected by auto-shutdown</p>
             <p>• Only running servers are monitored</p>
+            <p>• When "Save World Before Shutdown" is enabled, RCON saveworld command will be sent before shutdown</p>
+            <p>• Save timeout determines how long to wait for the save command to complete</p>
           </div>
         </div>
       </div>

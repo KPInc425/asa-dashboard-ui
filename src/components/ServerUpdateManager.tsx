@@ -183,50 +183,7 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
     }
   };
 
-  const handleRegenerateStopScripts = async () => {
-    try {
-      setUpdating(true);
-      setError(null);
-      
-      const response = await api.post('/api/provisioning/regenerate-stop-scripts');
-      
-      if (response.data.success) {
-        const results = response.data.data.results;
-        const successCount = results.filter((r: any) => r.success).length;
-        const totalCount = results.length;
-        setSuccess(`Stop scripts regenerated successfully! ${successCount}/${totalCount} servers updated.`);
-      } else {
-        setError(`Failed to regenerate stop scripts: ${response.data.message}`);
-      }
-    } catch (err) {
-      setError(`Failed to regenerate stop scripts: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setUpdating(false);
-    }
-  };
 
-  const handleFixPortConfigurations = async () => {
-    try {
-      setUpdating(true);
-      setError(null);
-      
-      const response = await api.post('/api/provisioning/fix-port-configurations');
-      
-      if (response.data.success) {
-        const results = response.data.data.results;
-        const successCount = results.filter((r: any) => r.success).length;
-        const totalCount = results.length;
-        setSuccess(`Port configurations fixed successfully! ${successCount}/${totalCount} clusters updated.`);
-        await loadUpdateStatus(); // Refresh the list
-      } else {
-        setError(`Failed to fix port configurations: ${response.data.message}`);
-      }
-    } catch (err) {
-      setError(`Failed to fix port configurations: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setUpdating(false);
-    }
-  };
 
   const openConfigModal = (server: ServerUpdateInfo) => {
     setConfigModalData(server.config);
@@ -313,20 +270,7 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
               >
                 🔄 Refresh Status
               </button>
-              <button
-                onClick={handleRegenerateStopScripts}
-                disabled={updating}
-                className="btn btn-secondary btn-sm"
-              >
-                🛑 Regenerate Stop Scripts
-              </button>
-              <button
-                onClick={handleFixPortConfigurations}
-                disabled={updating}
-                className="btn btn-accent btn-sm"
-              >
-                🔧 Fix Port Configurations
-              </button>
+
             </div>
             <div className="mt-3 text-sm text-base-content/70">
               <p>💡 <strong>Background Updates:</strong> Updates run in the background to avoid timeouts. Progress is tracked automatically.</p>

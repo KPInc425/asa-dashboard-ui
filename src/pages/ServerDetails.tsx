@@ -9,6 +9,7 @@ import StartScriptViewer from '../components/StartScriptViewer';
 import ServerUpdateManager from '../components/ServerUpdateManager';
 import ServerSettingsEditor from '../components/ServerSettingsEditor';
 import ServerLiveDetails from '../components/ServerLiveDetails';
+import SaveFileManager from '../components/SaveFileManager';
 
 interface CommandHistory {
   command: string;
@@ -24,7 +25,7 @@ const ServerDetails: React.FC = () => {
   const [server, setServer] = useState<Server | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'details' | 'rcon' | 'config' | 'logs' | 'mods'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'rcon' | 'config' | 'logs' | 'mods' | 'saves'>('details');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showStartScript, setShowStartScript] = useState(false);
   const [showUpdateManager, setShowUpdateManager] = useState(false);
@@ -88,13 +89,13 @@ const ServerDetails: React.FC = () => {
   // Handle tab from URL params
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['details', 'rcon', 'config', 'logs', 'mods'].includes(tabParam)) {
-      setActiveTab(tabParam as 'details' | 'rcon' | 'config' | 'logs' | 'mods');
+    if (tabParam && ['details', 'rcon', 'config', 'logs', 'mods', 'saves'].includes(tabParam)) {
+      setActiveTab(tabParam as 'details' | 'rcon' | 'config' | 'logs' | 'mods' | 'saves');
     }
   }, [searchParams]);
 
   // Update URL when tab changes
-  const handleTabChange = (tab: 'details' | 'rcon' | 'config' | 'logs' | 'mods') => {
+  const handleTabChange = (tab: 'details' | 'rcon' | 'config' | 'logs' | 'mods' | 'saves') => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
@@ -449,6 +450,12 @@ const ServerDetails: React.FC = () => {
           >
             📋 Logs
           </button>
+          <button
+            className={`tab ${activeTab === 'saves' ? 'tab-active' : ''}`}
+            onClick={() => handleTabChange('saves')}
+          >
+            💾 Save Files
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -677,6 +684,13 @@ const ServerDetails: React.FC = () => {
 
             {activeTab === 'logs' && (
               <ServerLogViewer compact={true} serverName={serverName} />
+            )}
+
+            {activeTab === 'saves' && server && (
+              <SaveFileManager 
+                serverName={server.name} 
+                serverType={server.type as 'native' | 'container' | 'cluster-server'} 
+              />
             )}
           </div>
         </div>

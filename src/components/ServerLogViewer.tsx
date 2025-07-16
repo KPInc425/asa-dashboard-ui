@@ -128,7 +128,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
       }
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load server logs');
+      setError(err instanceof Error ? err.message : 'Failed to load service logs');
       setIsConnected(false);
     } finally {
       setIsLoading(false);
@@ -233,10 +233,10 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
             }
           });
           
-                      setLogs(staticLogs);
+          setLogs(staticLogs);
             // Don't set this as an error since it's normal fallback behavior
             console.log(`Using static log content from ${logFileName} (real-time connection unavailable)`);
-            return;
+          return;
         } else {
           console.error('❌ Content response not successful:', response);
         }
@@ -332,7 +332,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="loading loading-spinner loading-lg mb-4"></div>
-          <p className="text-base-content/70">Connecting to server logs...</p>
+          <p className="text-base-content/70">Connecting to service logs...</p>
         </div>
       </div>
     );
@@ -361,7 +361,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
                       <option>Loading log files...</option>
                     ) : (
                       <>
-                        <option value="server">📦 Server Logs</option>
+                        <option value="server">📦 Service Logs</option>
                         {availableLogFiles.length === 0 ? (
                           <option disabled>No additional log files available</option>
                         ) : (
@@ -471,9 +471,9 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
               {filteredLogs.length === 0 ? (
                 <div className="text-center py-12 text-base-content/50">
                   <div className="text-4xl mb-4">📋</div>
-                  <p>{logs.length === 0 ? 'No server logs received yet' : 'No logs match the current filter'}</p>
+                  <p>{logs.length === 0 ? 'No service logs received yet' : 'No logs match the current filter'}</p>
                   <p className="text-sm">
-                    {logs.length === 0 ? 'Waiting for server log data...' : 'Try adjusting your filters'}
+                    {logs.length === 0 ? 'Waiting for service log data...' : 'Try adjusting your filters'}
                   </p>
                 </div>
               ) : (
@@ -551,7 +551,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
                       <option>Loading log files...</option>
                     ) : (
                       <>
-                        <option value="server">📦 Server Logs</option>
+                        <option value="server">📦 Service Logs</option>
                         {availableLogFiles.length === 0 ? (
                           <option disabled>No additional log files available</option>
                         ) : (
@@ -710,9 +710,9 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
               {filteredLogs.length === 0 ? (
                 <div className="text-center py-12 text-base-content/50">
                   <div className="text-4xl mb-4">📋</div>
-                  <p>{logs.length === 0 ? 'No server logs received yet' : 'No logs match the current filter'}</p>
+                  <p>{logs.length === 0 ? 'No service logs received yet' : 'No logs match the current filter'}</p>
                   <p className="text-sm">
-                    {logs.length === 0 ? 'Waiting for server log data...' : 'Try adjusting your filters'}
+                    {logs.length === 0 ? 'Waiting for service log data...' : 'Try adjusting your filters'}
                   </p>
                 </div>
               ) : (

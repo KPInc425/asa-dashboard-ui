@@ -7,6 +7,7 @@ import Servers from './pages/Servers';
 import ServerDetails from './pages/ServerDetails';
 import ClusterDetails from './pages/ClusterDetails';
 import Configs from './pages/Configs';
+import GlobalServerConfigs from './pages/GlobalServerConfigs';
 // import RconConsole from './components/RconConsole';
 
 import Provisioning from './pages/Provisioning';
@@ -15,6 +16,7 @@ import Login from './pages/Login';
 import UserProfile from './components/UserProfile';
 import UserManagement from './components/UserManagement';
 import FirstTimeSetup from './components/FirstTimeSetup';
+import DiscordSetup from './pages/DiscordSetup';
 
 // Protected Route Component (currently unused but kept for future use)
 // const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -164,9 +166,11 @@ const AppContent: React.FC = () => {
             <Route path="/servers/:serverName" element={<ServerDetails />} />
             <Route path="/clusters/:clusterName" element={<ClusterDetails />} />
             <Route path="/configs" element={<Configs />} />
+            <Route path="/global-configs" element={<GlobalServerConfigs />} />
 
             <Route path="/system-logs" element={<SystemLogs />} />
             <Route path="/provisioning" element={<Provisioning />} />
+            <Route path="/discord" element={<DiscordSetup />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/users" element={<UserManagement />} />
             <Route path="*" element={<Navigate to="/" replace />} />
