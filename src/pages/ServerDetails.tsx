@@ -161,13 +161,23 @@ const ServerDetails: React.FC = () => {
     setIsExecuting(true);
     
     try {
+      // Check if server is running before attempting RCON
+      if (server.status !== 'running') {
+        throw new Error('Server must be running to send RCON commands');
+      }
+      
       // Try native server RCON first, fallback to container RCON
       let response: RconResponse;
       try {
         response = await containerApi.sendNativeRconCommand(server.name, rconCommand);
-      } catch {
-        // If native RCON fails, try container RCON
-        response = await containerApi.sendRconCommand(server.name, rconCommand);
+      } catch (nativeError) {
+        console.warn('Native RCON failed, trying container RCON:', nativeError);
+        try {
+          response = await containerApi.sendRconCommand(server.name, rconCommand);
+        } catch (containerError) {
+          console.error('Both RCON methods failed:', { nativeError, containerError });
+          throw new Error(`RCON connection failed. Server may not be running or RCON may not be configured.`);
+        }
       }
       
       const newEntry: CommandHistory = {
@@ -181,9 +191,10 @@ const ServerDetails: React.FC = () => {
       setRconCommand('');
       setHistoryIndex(-1);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send command';
       const newEntry: CommandHistory = {
         command: rconCommand,
-        response: error instanceof Error ? error.message : 'Failed to send command',
+        response: errorMessage,
         timestamp: new Date(),
         success: false
       };

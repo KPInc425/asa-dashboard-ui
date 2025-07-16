@@ -70,8 +70,14 @@ const RconConsole = () => {
       try {
         response = await containerApi.sendNativeRconCommand(containerName, command);
       } catch (nativeError) {
+        console.warn('Native RCON failed, trying container RCON:', nativeError);
         // If native RCON fails, try container RCON
-        response = await containerApi.sendRconCommand(containerName, command);
+        try {
+          response = await containerApi.sendRconCommand(containerName, command);
+        } catch (containerError) {
+          console.error('Both RCON methods failed:', { nativeError, containerError });
+          throw new Error(`RCON connection failed. Server may not be running or RCON may not be configured.`);
+        }
       }
       
       const newEntry: CommandHistory = {
@@ -85,7 +91,19 @@ const RconConsole = () => {
       setCommand('');
       setHistoryIndex(-1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send command');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send command';
+      setError(errorMessage);
+      
+      // Add error to history
+      const newEntry: CommandHistory = {
+        command: command,
+        response: errorMessage,
+        timestamp: new Date(),
+        success: false
+      };
+      setHistory(prev => [...prev, newEntry]);
+      setCommand('');
+      setHistoryIndex(-1);
     } finally {
       setIsLoading(false);
     }

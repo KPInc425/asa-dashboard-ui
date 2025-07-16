@@ -8,7 +8,7 @@ import ServerDetails from './pages/ServerDetails';
 import ClusterDetails from './pages/ClusterDetails';
 import Configs from './pages/Configs';
 import GlobalServerConfigs from './pages/GlobalServerConfigs';
-// import RconConsole from './components/RconConsole';
+import RconConsole from './components/RconConsole';
 
 import Provisioning from './pages/Provisioning';
 import SystemLogs from './pages/SystemLogs';
@@ -165,6 +165,7 @@ const AppContent: React.FC = () => {
             <Route path="/servers" element={<Servers />} />
             <Route path="/servers/:serverName" element={<ServerDetails />} />
             <Route path="/clusters/:clusterName" element={<ClusterDetails />} />
+            <Route path="/rcon/:containerName" element={<RconConsole />} />
             <Route path="/configs" element={<Configs />} />
             <Route path="/global-configs" element={<GlobalServerConfigs />} />
 

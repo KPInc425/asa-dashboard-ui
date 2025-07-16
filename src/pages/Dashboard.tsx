@@ -163,6 +163,37 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const getClusterStatus = (cluster: Cluster) => {
+    // For now, we'll show a default status since we don't have server status data
+    // In a real implementation, you'd check the actual server statuses
+    const totalServers = cluster.servers ? cluster.servers.length : 0;
+    
+    // Since we don't have real-time server status in the dashboard,
+    // we'll show a placeholder status. In a real implementation, you'd:
+    // 1. Check each server's running status
+    // 2. Calculate the percentage of running servers
+    // 3. Return appropriate status (running/stopped/partial)
+    
+    return {
+      status: 'unknown' as 'running' | 'stopped' | 'partial' | 'unknown',
+      runningServers: 0,
+      totalServers: totalServers
+    };
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'running':
+        return <span className="badge badge-success badge-sm">Running</span>;
+      case 'stopped':
+        return <span className="badge badge-error badge-sm">Stopped</span>;
+      case 'partial':
+        return <span className="badge badge-warning badge-sm">Partial</span>;
+      default:
+        return <span className="badge badge-neutral badge-sm">Unknown</span>;
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -337,15 +368,15 @@ const Dashboard: React.FC = () => {
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-base-content mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <button
               onClick={() => navigate('/servers')}
               className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
             >
-              <div className="card-body text-center">
-                <div className="text-3xl mb-2">🦖</div>
-                <h3 className="font-semibold">Manage Servers</h3>
-                <p className="text-sm text-base-content/70">View and control all servers</p>
+              <div className="card-body p-4 text-center">
+                <div className="text-2xl mb-2">🦖</div>
+                <h3 className="font-semibold text-sm">Manage Servers</h3>
+                <p className="text-xs text-base-content/70">View and control all servers</p>
               </div>
             </button>
 
@@ -353,10 +384,10 @@ const Dashboard: React.FC = () => {
               onClick={() => navigate('/provisioning')}
               className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
             >
-              <div className="card-body text-center">
-                <div className="text-3xl mb-2">🏗️</div>
-                <h3 className="font-semibold">Create Server</h3>
-                <p className="text-sm text-base-content/70">Set up new servers and clusters</p>
+              <div className="card-body p-4 text-center">
+                <div className="text-2xl mb-2">🏗️</div>
+                <h3 className="font-semibold text-sm">Create Server</h3>
+                <p className="text-xs text-base-content/70">Set up new servers and clusters</p>
               </div>
             </button>
 
@@ -364,10 +395,10 @@ const Dashboard: React.FC = () => {
               onClick={() => navigate('/global-configs')}
               className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
             >
-              <div className="card-body text-center">
-                <div className="text-3xl mb-2">⚙️</div>
-                <h3 className="font-semibold">Global Server Settings</h3>
-                <p className="text-sm text-base-content/70">Configure Game.ini and GameUserSettings.ini</p>
+              <div className="card-body p-4 text-center">
+                <div className="text-2xl mb-2">⚙️</div>
+                <h3 className="font-semibold text-sm">Global Settings</h3>
+                <p className="text-xs text-base-content/70">Configure Game.ini files</p>
               </div>
             </button>
 
@@ -375,10 +406,10 @@ const Dashboard: React.FC = () => {
               onClick={() => setShowGlobalModManager(true)}
               className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
             >
-              <div className="card-body text-center">
-                <div className="text-3xl mb-2">🧩</div>
-                <h3 className="font-semibold">Manage Global Mods</h3>
-                <p className="text-sm text-base-content/70">Add or remove mods for all servers</p>
+              <div className="card-body p-4 text-center">
+                <div className="text-2xl mb-2">🧩</div>
+                <h3 className="font-semibold text-sm">Global Mods</h3>
+                <p className="text-xs text-base-content/70">Add or remove mods</p>
               </div>
             </button>
 
@@ -386,10 +417,10 @@ const Dashboard: React.FC = () => {
               onClick={() => navigate('/discord')}
               className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
             >
-              <div className="card-body text-center">
-                <div className="text-3xl mb-2">💬</div>
-                <h3 className="font-semibold">Discord Setup</h3>
-                <p className="text-sm text-base-content/70">Configure notifications</p>
+              <div className="card-body p-4 text-center">
+                <div className="text-2xl mb-2">💬</div>
+                <h3 className="font-semibold text-sm">Discord Setup</h3>
+                <p className="text-xs text-base-content/70">Configure notifications</p>
               </div>
             </button>
           </div>
@@ -415,27 +446,33 @@ const Dashboard: React.FC = () => {
                 </div>
                 
                 <div className="space-y-3">
-                  {clusters.slice(0, 3).map((cluster) => (
-                    <div key={cluster.name} className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                          <span className="text-primary-content text-sm">🦖</span>
+                  {clusters.slice(0, 3).map((cluster) => {
+                    const clusterStatus = getClusterStatus(cluster);
+                    return (
+                      <div key={cluster.name} className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                            <span className="text-primary-content text-sm">🦖</span>
+                          </div>
+                          <div>
+                            <h3 className="font-medium">{cluster.name}</h3>
+                            <div className="flex items-center space-x-2">
+                              <p className="text-sm text-base-content/70">
+                                {clusterStatus.runningServers}/{clusterStatus.totalServers} servers
+                              </p>
+                              {getStatusBadge(clusterStatus.status)}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium">{cluster.name}</h3>
-                          <p className="text-sm text-base-content/70">
-                            {cluster.servers ? cluster.servers.length : 0} servers
-                          </p>
-                        </div>
+                        <button
+                          onClick={() => navigate(`/clusters/${cluster.name}`)}
+                          className="btn btn-ghost btn-xs"
+                        >
+                          View
+                        </button>
                       </div>
-                      <button
-                        onClick={() => navigate(`/clusters/${cluster.name}`)}
-                        className="btn btn-ghost btn-xs"
-                      >
-                        View
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

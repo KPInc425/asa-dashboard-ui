@@ -60,7 +60,7 @@ const ServerLiveDetails: React.FC<ServerLiveDetailsProps> = ({ serverName, serve
           }
           responses.push(response);
         } catch (err) {
-          console.warn(`Failed to execute RCON command ${command}:`, err);
+          console.warn(`RCON command ${command} failed for server ${serverName}:`, err);
           responses.push({ success: false, response: '', message: 'Command failed' });
         }
       }

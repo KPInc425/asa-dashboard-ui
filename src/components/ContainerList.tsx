@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { containerApi, environmentApi, type Container } from '../services';
 import { containerNameToServerName } from '../utils';
 import ArkServerEditor from './ArkServerEditor';
@@ -59,6 +59,8 @@ const ContainerList = () => {
   // Mod management state
   const [showModManager, setShowModManager] = useState(false);
   // const [selectedServerForMods, setSelectedServerForMods] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchContainers();
@@ -145,13 +147,18 @@ const ContainerList = () => {
           try {
             const server = containers.find(c => c.name === containerName);
             const isNativeServer = server?.type === 'cluster-server';
-            if (isNativeServer) {
-              await containerApi.sendNativeRconCommand(containerName, 'saveworld');
-            } else {
-              await containerApi.sendRconCommand(containerName, 'saveworld');
+            
+            // Only try to save if server is running
+            if (server?.status === 'running') {
+              if (isNativeServer) {
+                await containerApi.sendNativeRconCommand(containerName, 'saveworld');
+              } else {
+                await containerApi.sendRconCommand(containerName, 'saveworld');
+              }
             }
           } catch (e) {
             console.warn('Failed to save world before stopping:', e);
+            // Continue with stop even if save fails
           }
           if (isNativeServer) {
             await containerApi.stopNativeServer(containerName);
@@ -490,20 +497,27 @@ const ContainerList = () => {
                             >
                               ■
                             </button>
-                            <Link
-                              to={`/logs/${container.name}`}
+                            <button
                               className="btn btn-xs btn-info"
                               title="View Logs"
+                              onClick={() => navigate(`/servers/${container.name}?tab=logs`)}
                             >
                               📝
-                            </Link>
-                            <Link
-                              to={`/rcon/${container.name}`}
-                              className="btn btn-xs btn-primary"
-                              title="Open RCON Console"
+                            </button>
+                            <button
+                              className={`btn btn-xs btn-secondary ${
+                                container.status !== 'running' ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                              title={container.status !== 'running' ? 'Server must be running for RCON' : 'RCON Console'}
+                              disabled={container.status !== 'running'}
+                              onClick={() => {
+                                if (container.status === 'running') {
+                                  navigate(`/rcon/${container.name}`);
+                                }
+                              }}
                             >
-                              ⌨️
-                            </Link>
+                              💻
+                            </button>
                             <Link
                               to={`/configs?server=${encodeURIComponent(containerNameToServerName(container.name))}`}
                               className="btn btn-xs btn-secondary"
@@ -651,20 +665,27 @@ const ContainerList = () => {
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 mt-2">
-                      <Link
-                        to={`/logs/${container.name}`}
+                      <button
                         className="btn btn-xs btn-info"
                         title="View Logs"
+                        onClick={() => navigate(`/servers/${container.name}?tab=logs`)}
                       >
                         📝 Logs
-                      </Link>
-                      <Link
-                        to={`/rcon/${container.name}`}
-                        className="btn btn-xs btn-primary"
-                        title="Open RCON Console"
+                      </button>
+                      <button
+                        className={`btn btn-xs btn-secondary ${
+                          container.status !== 'running' ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        title={container.status !== 'running' ? 'Server must be running for RCON' : 'RCON Console'}
+                        disabled={container.status !== 'running'}
+                        onClick={() => {
+                          if (container.status === 'running') {
+                            navigate(`/rcon/${container.name}`);
+                          }
+                        }}
                       >
-                        ⌨️ RCON
-                      </Link>
+                        💻 RCON
+                      </button>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 mt-2">

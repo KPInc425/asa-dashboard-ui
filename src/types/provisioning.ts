@@ -80,6 +80,7 @@ export interface WizardData {
   foreground: boolean;
   sessionNameMode: 'auto' | 'custom';
   customDynamicConfigUrl: string;
+  disableBattleEye: boolean;
 }
 
 export interface StepProps {

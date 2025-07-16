@@ -80,6 +80,7 @@ const ServerCard: React.FC<ServerCardProps> = ({
           }
           responses.push(response);
         } catch (err) {
+          console.warn(`RCON command ${command} failed for server ${server.name}:`, err);
           responses.push({ success: false, response: '' });
         }
       }
