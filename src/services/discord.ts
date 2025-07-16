@@ -12,6 +12,7 @@ export interface DiscordBotConfig {
   enabled: boolean;
   token: string;
   prefix: string;
+  applicationId?: string;
   allowedChannels: string[];
   allowedRoles: string[];
 }

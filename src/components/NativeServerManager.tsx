@@ -14,6 +14,7 @@ interface NativeServerConfig {
   adminPassword: string;
   mods: string[];
   additionalArgs: string;
+  disableBattleEye: boolean;
 }
 
 interface NativeServer {
@@ -54,7 +55,8 @@ const NativeServerManager: React.FC = () => {
     serverPassword: '',
     adminPassword: 'admin123',
     mods: [],
-    additionalArgs: ''
+    additionalArgs: '',
+    disableBattleEye: false
   });
 
   useEffect(() => {
@@ -106,7 +108,8 @@ const NativeServerManager: React.FC = () => {
           serverPassword: '',
           adminPassword: 'admin123',
           mods: [],
-          additionalArgs: ''
+          additionalArgs: '',
+          disableBattleEye: false
         });
         loadServers();
       }
@@ -697,6 +700,21 @@ const NativeServerManager: React.FC = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, additionalArgs: e.target.value }))}
                   rows={3}
                 />
+              </div>
+
+              <div className="form-control">
+                <label className="label cursor-pointer">
+                  <span className="label-text">Disable BattleEye</span>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={formData.disableBattleEye}
+                    onChange={(e) => setFormData(prev => ({ ...prev, disableBattleEye: e.target.checked }))}
+                  />
+                </label>
+                <label className="label">
+                  <span className="label-text-alt">Adds -NoBattleEye to server startup command</span>
+                </label>
               </div>
             </form>
             <div className="modal-action">

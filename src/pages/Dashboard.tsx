@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { apiService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
-import LoadingState from '../components/LoadingState';
 
 interface SystemInfo {
   mode: string;
@@ -123,19 +122,6 @@ const Dashboard: React.FC = () => {
       case 'native': return 'Native Windows Mode';
       case 'hybrid': return 'Hybrid Mode';
       default: return mode;
-    }
-  };
-
-  const getModeDescription = (mode: string) => {
-    switch (mode) {
-      case 'docker':
-        return 'Running in Docker containers with full isolation';
-      case 'native':
-        return 'Running directly on Windows with native performance';
-      case 'hybrid':
-        return 'Mixed Docker and native deployment';
-      default:
-        return 'Unknown deployment mode';
     }
   };
 

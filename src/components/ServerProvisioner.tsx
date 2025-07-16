@@ -89,6 +89,7 @@ interface WizardData {
   foreground: boolean;
   sessionNameMode: 'auto' | 'custom';
   customDynamicConfigUrl: string;
+  disableBattleEye: boolean;
 }
 
 interface StepProps {
@@ -847,6 +848,22 @@ const GameSettingsStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
         <span className="label-text-alt">Leave empty to use default dynamic config</span>
       </label>
     </div>
+
+    {/* BattleEye Settings */}
+    <div className="form-control">
+      <label className="label cursor-pointer">
+        <span className="label-text font-semibold">Disable BattleEye</span>
+        <input
+          type="checkbox"
+          className="toggle toggle-primary"
+          checked={wizardData.disableBattleEye}
+          onChange={(e) => setWizardData(prev => ({ ...prev, disableBattleEye: e.target.checked }))}
+        />
+      </label>
+      <label className="label">
+        <span className="label-text-alt">Adds -NoBattleEye to all server startup commands</span>
+      </label>
+    </div>
     
     <div className="bg-base-300 rounded-lg p-4">
       <h3 className="font-semibold mb-2">Recommended Settings:</h3>
@@ -1137,7 +1154,10 @@ const ServerProvisioner: React.FC = () => {
     sessionNameMode: 'auto' as 'auto' | 'custom',
     
     // Custom dynamic config URL
-    customDynamicConfigUrl: ''
+    customDynamicConfigUrl: '',
+    
+    // Disable BattleEye
+    disableBattleEye: false
   });
 
   const availableMaps = [
@@ -1541,6 +1561,7 @@ const ServerProvisioner: React.FC = () => {
         selectedMaps: wizardData.selectedMaps,
         globalMods: [],
         customDynamicConfigUrl: wizardData.customDynamicConfigUrl,
+        disableBattleEye: wizardData.disableBattleEye,
         servers: servers.map(server => {
           // Check if this server uses Club ARK map and add the required mod
           const isClubArkServer = server.map === 'BobsMissions_WP';
@@ -1730,7 +1751,8 @@ const ServerProvisioner: React.FC = () => {
             servers: [],
             foreground: false,
             sessionNameMode: 'auto',
-            customDynamicConfigUrl: ''
+            customDynamicConfigUrl: '',
+            disableBattleEye: false
           });
           loadClusters();
         }

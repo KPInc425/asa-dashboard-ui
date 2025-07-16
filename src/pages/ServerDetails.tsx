@@ -683,13 +683,14 @@ const ServerDetails: React.FC = () => {
             )}
 
             {activeTab === 'logs' && (
-              <ServerLogViewer compact={true} serverName={serverName} />
+              <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                <ServerLogViewer compact={true} serverName={serverName} />
+              </div>
             )}
 
             {activeTab === 'saves' && server && (
               <SaveFileManager 
                 serverName={server.name} 
-                serverType={server.type as 'native' | 'container' | 'cluster-server'} 
               />
             )}
           </div>

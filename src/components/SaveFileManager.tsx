@@ -11,10 +11,9 @@ interface SaveFile {
 
 interface SaveFileManagerProps {
   serverName: string;
-  serverType: 'native' | 'container' | 'cluster-server';
 }
 
-const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName, serverType }) => {
+const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
   const [saveFiles, setSaveFiles] = useState<SaveFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -173,12 +172,6 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName, serverTyp
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getFileType = (fileName: string): SaveFile['type'] => {
-    if (fileName.endsWith('.ark')) return 'ark';
-    if (fileName.endsWith('.ark.bak') || fileName.includes('backup')) return 'backup';
-    return 'other';
   };
 
   const getFileTypeColor = (type: SaveFile['type']): string => {

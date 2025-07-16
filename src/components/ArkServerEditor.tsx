@@ -15,6 +15,7 @@ interface ArkServerFormData {
   maxPlayers: string;
   mods: string[];
   additionalArgs: string;
+  disableBattleEye: boolean;
 }
 
 interface ArkServerEditorProps {
@@ -36,7 +37,8 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
     adminPassword: 'admin123',
     maxPlayers: '70',
     mods: [],
-    additionalArgs: ''
+    additionalArgs: '',
+    disableBattleEye: false
   });
 
   const [availableMods, setAvailableMods] = useState<any[]>([]);
@@ -90,7 +92,8 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
       adminPassword: 'admin123',
       maxPlayers: '70',
       mods: [],
-      additionalArgs: ''
+      additionalArgs: '',
+      disableBattleEye: false
     };
 
     lines.forEach((line: string) => {
@@ -124,13 +127,15 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
         parsedData.mods = modsString ? modsString.split(',') : [];
       } else if (trimmedLine.startsWith('- ADDITIONAL_ARGS=')) {
         parsedData.additionalArgs = trimmedLine.split('=')[1];
+      } else if (trimmedLine.startsWith('- DISABLE_BATTLE_EYE=')) {
+        parsedData.disableBattleEye = trimmedLine.split('=')[1] === 'true';
       }
     });
 
     setFormData(prev => ({ ...prev, ...parsedData }));
   };
 
-  const handleInputChange = (field: keyof ArkServerFormData, value: string | string[]) => {
+  const handleInputChange = (field: keyof ArkServerFormData, value: string | string[] | boolean) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       
@@ -384,6 +389,20 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
               className="input input-bordered w-full"
               placeholder="-servergamelog -nosteam"
             />
+          </div>
+
+          {/* BattleEye Toggle */}
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="disableBattleEye"
+              checked={formData.disableBattleEye}
+              onChange={(e) => handleInputChange('disableBattleEye', e.target.checked)}
+              className="checkbox checkbox-primary checkbox-sm"
+            />
+            <label htmlFor="disableBattleEye" className="label-text text-sm">
+              Disable BattleEye (prevents players from using BattleEye)
+            </label>
           </div>
 
           {/* Action Buttons */}

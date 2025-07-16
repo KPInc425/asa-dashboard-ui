@@ -690,6 +690,63 @@ pause`,
       return response.data;
     }
   },
+
+  // Save file management
+  async getSaveFiles(serverName: string): Promise<{ success: boolean; files: any[]; message?: string }> {
+    try {
+      const response = await api.get(`/api/native-servers/${encodeURIComponent(serverName)}/save-files`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting save files:', error);
+      return { success: false, files: [], message: 'Failed to get save files' };
+    }
+  },
+
+  async uploadSaveFile(serverName: string, formData: FormData): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await api.post(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading save file:', error);
+      return { success: false, message: 'Failed to upload save file' };
+    }
+  },
+
+  async downloadSaveFile(serverName: string, fileName: string): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const response = await api.get(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/download/${encodeURIComponent(fileName)}`, {
+        responseType: 'blob',
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error downloading save file:', error);
+      return { success: false, message: 'Failed to download save file' };
+    }
+  },
+
+  async backupSaveFiles(serverName: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await api.post(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/backup`);
+      return response.data;
+    } catch (error) {
+      console.error('Error backing up save files:', error);
+      return { success: false, message: 'Failed to backup save files' };
+    }
+  },
+
+  async deleteSaveFile(serverName: string, fileName: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await api.delete(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/${encodeURIComponent(fileName)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting save file:', error);
+      return { success: false, message: 'Failed to delete save file' };
+    }
+  },
 };
 
 // Configuration Management API

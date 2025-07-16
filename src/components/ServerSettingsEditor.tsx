@@ -11,12 +11,13 @@ interface ServerSettings {
   adminPassword: string;
   serverPassword: string;
   rconPassword: string;
-  clusterId?: string;
-  clusterPassword?: string;
-  harvestMultiplier?: number;
-  xpMultiplier?: number;
-  tamingMultiplier?: number;
-  sessionName?: string;
+  clusterId: string;
+  clusterPassword: string;
+  harvestMultiplier: number;
+  xpMultiplier: number;
+  tamingMultiplier: number;
+  sessionName: string;
+  disableBattleEye: boolean;
 }
 
 interface ServerSettingsEditorProps {
@@ -41,7 +42,8 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
     harvestMultiplier: server.harvestMultiplier || 1.0,
     xpMultiplier: server.xpMultiplier || 1.0,
     tamingMultiplier: server.tamingMultiplier || 1.0,
-    sessionName: server.sessionName || server.name || ''
+    sessionName: server.sessionName || server.name || '',
+    disableBattleEye: server.disableBattleEye || false
   });
 
   const [loading, setLoading] = useState(false);
@@ -394,6 +396,25 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
                 onChange={(e) => handleInputChange('tamingMultiplier', parseFloat(e.target.value))}
               />
             </div>
+          </div>
+        </div>
+
+        {/* BattleEye Toggle */}
+        <div className="mt-6">
+          <h4 className="font-semibold text-base-content/80 mb-4">BattleEye Settings</h4>
+          <div className="form-control">
+            <label className="label cursor-pointer">
+              <span className="label-text">Disable BattleEye</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
+                checked={settings.disableBattleEye}
+                onChange={(e) => handleInputChange('disableBattleEye', e.target.checked)}
+              />
+            </label>
+            <label className="label">
+              <span className="label-text-alt">Adds -NoBattleEye to server startup command</span>
+            </label>
           </div>
         </div>
 
