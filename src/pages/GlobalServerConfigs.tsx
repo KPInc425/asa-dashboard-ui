@@ -6,11 +6,12 @@ interface GlobalConfig {
   gameIni: string;
   gameUserSettingsIni: string;
   excludedServers: string[];
+  customDynamicConfigUrl?: string;
 }
 
 const GlobalServerConfigs: React.FC = () => {
   const [configs, setConfigs] = useState<GlobalConfig | null>(null);
-  const [activeTab, setActiveTab] = useState<'game' | 'gameusersettings' | 'exclusions'>('game');
+  const [activeTab, setActiveTab] = useState<'game' | 'gameusersettings' | 'exclusions' | 'settings'>('game');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,8 @@ const GlobalServerConfigs: React.FC = () => {
         setConfigs({
           gameIni: configResponse.data.gameIni || '',
           gameUserSettingsIni: configResponse.data.gameUserSettingsIni || '',
-          excludedServers: configResponse.data.excludedServers || []
+          excludedServers: configResponse.data.excludedServers || [],
+          customDynamicConfigUrl: configResponse.data.customDynamicConfigUrl || ''
         });
       }
 
@@ -60,7 +62,8 @@ const GlobalServerConfigs: React.FC = () => {
     try {
       const response = await api.put('/api/provisioning/global-configs', {
         gameIni: configs.gameIni,
-        gameUserSettingsIni: configs.gameUserSettingsIni
+        gameUserSettingsIni: configs.gameUserSettingsIni,
+        customDynamicConfigUrl: configs.customDynamicConfigUrl
       });
       
       if (response.data.success) {
@@ -231,6 +234,12 @@ const GlobalServerConfigs: React.FC = () => {
                   >
                     🚫 Exclusions
                   </button>
+                  <button
+                    className={`tab ${activeTab === 'settings' ? 'tab-active' : ''}`}
+                    onClick={() => setActiveTab('settings')}
+                  >
+                    ⚙️ Global Settings
+                  </button>
                 </div>
 
                 {/* Content Area */}
@@ -283,6 +292,32 @@ const GlobalServerConfigs: React.FC = () => {
                             </div>
                           ))
                         )}
+                      </div>
+                    </div>
+                  </div>
+                ) : activeTab === 'settings' ? (
+                  <div className="space-y-4">
+                    <div className="bg-base-200 rounded-lg p-4">
+                      <h3 className="font-semibold mb-3">Global Server Settings</h3>
+                      <p className="text-sm text-base-content/70 mb-4">
+                        Configure global settings that apply to all servers in the cluster.
+                      </p>
+                      
+                      {/* Dynamic Config URL */}
+                      <div className="space-y-2">
+                        <label className="label">
+                          <span className="label-text font-medium">Global Dynamic Config URL</span>
+                        </label>
+                        <input
+                          type="url"
+                          className="input input-bordered w-full"
+                          value={configs?.customDynamicConfigUrl || ''}
+                          onChange={(e) => setConfigs(prev => prev ? { ...prev, customDynamicConfigUrl: e.target.value } : null)}
+                          placeholder="https://example.com/config.json"
+                        />
+                        <label className="label">
+                          <span className="label-text-alt">Optional: Default dynamic config URL for all servers. Individual servers can override this setting.</span>
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -345,6 +380,12 @@ const GlobalServerConfigs: React.FC = () => {
                       Servers in the exclusion list will maintain their own configurations.
                     </p>
                   </div>
+                  <div className="bg-base-200 rounded-lg p-3">
+                    <h4 className="font-semibold mb-2">⚙️ Global Settings</h4>
+                    <p className="text-xs text-base-content/70">
+                      Configure global settings like dynamic config URLs that apply to all servers.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -370,6 +411,12 @@ const GlobalServerConfigs: React.FC = () => {
                     className="btn btn-outline btn-sm w-full justify-start"
                   >
                     🚫 Manage Exclusions
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('settings')}
+                    className="btn btn-outline btn-sm w-full justify-start"
+                  >
+                    ⚙️ Global Settings
                   </button>
                 </div>
               </div>

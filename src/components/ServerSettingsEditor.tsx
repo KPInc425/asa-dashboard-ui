@@ -15,6 +15,7 @@ interface ServerSettings {
   clusterPassword: string;
   sessionName: string;
   disableBattleEye: boolean;
+  customDynamicConfigUrl?: string;
 }
 
 interface ServerSettingsEditorProps {
@@ -37,7 +38,8 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
     clusterId: server.clusterId || '',
     clusterPassword: server.clusterPassword || '',
     sessionName: server.sessionName || server.name || '',
-    disableBattleEye: server.disableBattleEye || false
+    disableBattleEye: server.disableBattleEye || false,
+    customDynamicConfigUrl: server.customDynamicConfigUrl || ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -357,6 +359,26 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
             </label>
             <label className="label">
               <span className="label-text-alt">Adds -NoBattleEye to server startup command</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Dynamic Config URL */}
+        <div className="mt-6">
+          <h4 className="font-semibold text-base-content/80 mb-4">Dynamic Configuration</h4>
+          <div>
+            <label className="label">
+              <span className="label-text">Custom Dynamic Config URL</span>
+            </label>
+            <input
+              type="url"
+              className="input input-bordered w-full"
+              value={settings.customDynamicConfigUrl}
+              onChange={(e) => handleInputChange('customDynamicConfigUrl', e.target.value)}
+              placeholder="https://example.com/config.json"
+            />
+            <label className="label">
+              <span className="label-text-alt">Optional: Override the global dynamic config URL for this server</span>
             </label>
           </div>
         </div>

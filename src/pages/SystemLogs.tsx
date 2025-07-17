@@ -297,12 +297,12 @@ const SystemLogs: React.FC = () => {
         )}
 
         {/* Logs Display */}
-        {availableTabs.length > 0 ? (
+        {getAvailableTabs().length > 0 ? (
           <div className="card bg-base-100 shadow-lg">
             <div className="card-body p-0">
               {/* Tabs */}
               <div className="tabs tabs-boxed bg-base-200 p-2 m-4">
-                {availableTabs.map((tab) => (
+                {getAvailableTabs().map((tab) => (
                   <button
                     key={tab.key}
                     className={`tab ${activeTab === tab.key ? 'tab-active' : ''}`}
@@ -322,7 +322,7 @@ const SystemLogs: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-2">
                         <span className="text-lg font-semibold">
-                          {availableTabs.find(tab => tab.key === activeTab)?.label}
+                          {getAvailableTabs().find(tab => tab.key === activeTab)?.label}
                         </span>
                         <span className="badge badge-outline">
                           {currentLog.path ? currentLog.path.split(/[/\\]/).pop() || 'Unknown' : 'Unknown'}
