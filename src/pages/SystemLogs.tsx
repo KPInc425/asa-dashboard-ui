@@ -16,6 +16,9 @@ interface SystemLogs {
   nodeErr?: LogFile;
   serviceOut?: LogFile;
   serviceErr?: LogFile;
+  api?: { content: string };
+  server?: { content: string };
+  docker?: { content: string };
 }
 
 interface ServiceInfo {
@@ -79,10 +82,12 @@ const SystemLogs: React.FC = () => {
     }
   }, [autoRefresh]);
 
-  // Get available tabs based on existing log files
+  // Get available tabs based on existing log files or new backend keys
   const getAvailableTabs = () => {
     const tabs = [];
-    
+    if (logs.api && logs.api.content) tabs.push({ key: 'api', label: 'API Logs', icon: '📝' });
+    if (logs.server && logs.server.content) tabs.push({ key: 'server', label: 'Server Logs', icon: '🖥️' });
+    if (logs.docker && logs.docker.content) tabs.push({ key: 'docker', label: 'Docker Logs', icon: '🐳' });
     if (logs.combined?.exists) tabs.push({ key: 'combined', label: 'Combined Logs', icon: '📋' });
     if (logs.error?.exists) tabs.push({ key: 'error', label: 'Error Logs', icon: '❌' });
     if (logs.asaApiService?.exists) tabs.push({ key: 'asaApiService', label: 'API Service', icon: '🔧' });
@@ -90,7 +95,6 @@ const SystemLogs: React.FC = () => {
     if (logs.nodeErr?.exists) tabs.push({ key: 'nodeErr', label: 'Node Stderr', icon: '📥' });
     if (logs.serviceOut?.exists) tabs.push({ key: 'serviceOut', label: 'Service Stdout', icon: '⚙️' });
     if (logs.serviceErr?.exists) tabs.push({ key: 'serviceErr', label: 'Service Stderr', icon: '⚠️' });
-    
     return tabs;
   };
 
@@ -180,8 +184,9 @@ const SystemLogs: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const availableTabs = getAvailableTabs();
-  const currentLog = logs[activeTab as keyof SystemLogs];
+  // Support new backend log object structure
+  const currentLog = logs[activeTab as keyof SystemLogs] as any;
+  const currentLogContent = currentLog?.content || currentLog?.content || '';
 
   if (loading && Object.keys(logs).length === 0) {
     return (
@@ -311,7 +316,7 @@ const SystemLogs: React.FC = () => {
 
               {/* Tab Content */}
               <div className="p-4">
-                {currentLog ? (
+                {currentLogContent ? (
                   <div>
                     {/* Log Header */}
                     <div className="flex items-center justify-between mb-4">
@@ -325,14 +330,14 @@ const SystemLogs: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <button
-                          onClick={() => copyToClipboard(currentLog.content)}
+                          onClick={() => copyToClipboard(currentLogContent)}
                           className="btn btn-sm btn-outline"
                           title="Copy to clipboard"
                         >
                           📋 Copy
                         </button>
                         <button
-                          onClick={() => downloadLogs(currentLog.content, `${activeTab}-logs.txt`)}
+                          onClick={() => downloadLogs(currentLogContent, `${activeTab}-logs.txt`)}
                           className="btn btn-sm btn-outline"
                           title="Download logs"
                         >
@@ -343,7 +348,7 @@ const SystemLogs: React.FC = () => {
 
                     {/* Log Content */}
                     <div className="bg-base-300 p-4 rounded-lg max-h-96 overflow-y-auto">
-                      {formatLogContent(currentLog.content)}
+                      {formatLogContent(currentLogContent)}
                     </div>
                   </div>
                 ) : (
