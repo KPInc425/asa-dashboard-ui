@@ -528,21 +528,16 @@ const ServerProvisioner: React.FC = () => {
   };
 
   const getClusterStatus = (cluster: Cluster) => {
-    // For now, we'll show a default status since we don't have server status data
-    // In a real implementation, you'd check the actual server statuses
-    const totalServers = cluster.config.serverCount || 0;
-    
-    // Since we don't have real-time server status in the provisioning page,
-    // we'll show a placeholder status. In a real implementation, you'd:
-    // 1. Get the list of servers in this cluster
-    // 2. Check each server's running status
-    // 3. Calculate the percentage of running servers
-    
-    return {
-      status: 'unknown' as 'running' | 'stopped' | 'partial' | 'unknown',
-      runningServers: 0,
-      totalServers: totalServers
-    };
+    if (cluster.servers && cluster.servers.length > 0) {
+      const running = cluster.servers.filter(s => s.status === 'running').length;
+      const stopped = cluster.servers.filter(s => s.status === 'stopped').length;
+      const total = cluster.servers.length;
+      if (running === total) return { status: 'running', runningServers: running, totalServers: total };
+      if (stopped === total) return { status: 'stopped', runningServers: running, totalServers: total };
+      if (running > 0 && running < total) return { status: 'partial', runningServers: running, totalServers: total };
+      return { status: 'unknown', runningServers: running, totalServers: total };
+    }
+    return { status: 'unknown', runningServers: 0, totalServers: 0 };
   };
 
   const getStatusBadge = (status: string) => {
@@ -615,96 +610,315 @@ const ServerProvisioner: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-4xl font-bold text-primary mb-4">ASA Server Provisioner</h1>
-      <p className="text-lg text-base-content/70 mb-6">
-        This application helps you manage and provision ARK: Survival Ascended server clusters.
-        You can create new clusters, manage existing ones, and monitor their status.
-      </p>
-
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="loading loading-spinner loading-lg"></div>
-          <p className="mt-4">Loading system information and cluster data...</p>
+    <div className="h-full flex flex-col p-6">
+      <div className="max-w-7xl mx-auto w-full space-y-6">
+        {/* Header */}
+        <div className="animate-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                <span className="text-2xl">🦖</span>
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-primary mb-2">ASA Server Provisioner</h1>
+                <p className="text-base-content/70">
+                  Create and manage ARK: Survival Ascended server clusters with ease
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowGlobalConfigManager(true)}
+                className="btn btn-outline btn-primary hover:shadow-lg hover:shadow-primary/25"
+              >
+                ⚙️ Global Config
+              </button>
+              <button
+                onClick={() => setShowGlobalModManager(true)}
+                className="btn btn-outline btn-secondary hover:shadow-lg hover:shadow-secondary/25"
+              >
+                🎮 Global Mods
+              </button>
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-base-200 rounded-lg p-6">
-            <h3 className="font-semibold mb-3">System Status</h3>
-            <div className="space-y-2 text-sm">
-              <div><span className="font-semibold">SteamCMD:</span> {systemInfo?.steamCmdInstalled ? 'Installed' : 'Not Installed'}</div>
-              <div><span className="font-semibold">Disk Space:</span> {formatGB(systemInfo?.diskSpace?.total || 0)} GB Total, {formatGB(systemInfo?.diskSpace?.free || 0)} GB Free</div>
-              <div><span className="font-semibold">Memory:</span> {formatGB(systemInfo?.memory?.total || 0)} GB Total, {formatGB(systemInfo?.memory?.free || 0)} GB Free</div>
-              <div><span className="font-semibold">Node Version:</span> {systemInfo?.nodeVersion}</div>
-              <div><span className="font-semibold">CPU Cores:</span> {systemInfo?.cpuCores}</div>
-            </div>
-            <div className="mt-4">
-              <button className="btn btn-primary w-full" onClick={initializeSystem} disabled={installing}>
-                {installing ? 'Initializing...' : 'Initialize System'}
-              </button>
-              <button className="btn btn-secondary w-full mt-2" onClick={installSteamCmd} disabled={installing}>
-                {installing ? 'Installing...' : 'Install SteamCMD'}
-              </button>
+
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="loading loading-spinner loading-lg mb-4"></div>
+              <p className="text-base-content/70">Loading system information and cluster data...</p>
             </div>
           </div>
-
-          <div className="bg-base-200 rounded-lg p-6">
-            <h3 className="font-semibold mb-3">Cluster Management</h3>
-            <div className="space-y-2 text-sm">
-              <div><span className="font-semibold">Total Clusters:</span> {clusters.length}</div>
-              <div><span className="font-semibold">Active Clusters:</span> {clusters.filter(c => getClusterStatus(c).status === 'running').length}</div>
-              <div><span className="font-semibold">Stopped Clusters:</span> {clusters.filter(c => getClusterStatus(c).status === 'stopped').length}</div>
-            </div>
-            <div className="mt-4">
-              <button className="btn btn-primary w-full" onClick={() => setShowWizard(true)}>
-                Create New Cluster
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-base-200 rounded-lg p-6">
-            <h3 className="font-semibold mb-3">Recent Jobs</h3>
-            <div className="space-y-2 text-sm">
-              {clusters.map(cluster => (
-                <div key={cluster.name} className="flex items-center justify-between">
-                  <span>{cluster.name} {getStatusBadge(getClusterStatus(cluster).status)}</span>
-                  <span className="text-xs text-base-content/70">{getClusterStatus(cluster).runningServers}/{getClusterStatus(cluster).totalServers} servers</span>
+        ) : (
+          <>
+            {/* System Status Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* System Status Card */}
+              <div className="card bg-base-200 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="card-body">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-info to-primary rounded-lg flex items-center justify-center">
+                      <span className="text-xl">💻</span>
+                    </div>
+                    <div>
+                      <h3 className="card-title text-lg">System Status</h3>
+                      <p className="text-sm text-base-content/70">System requirements & setup</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-base-content/70">SteamCMD:</span>
+                      <span className={`badge badge-sm ${systemInfo?.steamCmdInstalled ? 'badge-success' : 'badge-error'}`}>
+                        {systemInfo?.steamCmdInstalled ? 'Installed' : 'Missing'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-base-content/70">Disk Space:</span>
+                      <span className="font-mono text-xs">
+                        {formatGB(systemInfo?.diskSpace?.free || 0)} GB free
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-base-content/70">Memory:</span>
+                      <span className="font-mono text-xs">
+                        {formatGB(systemInfo?.memory?.free || 0)} GB free
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="card-actions justify-end mt-4">
+                    <button 
+                      className="btn btn-primary btn-sm" 
+                      onClick={initializeSystem} 
+                      disabled={installing}
+                    >
+                      {installing ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      ) : (
+                        'Initialize'
+                      )}
+                    </button>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={installSteamCmd} 
+                      disabled={installing}
+                    >
+                      {installing ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      ) : (
+                        'Install SteamCMD'
+                      )}
+                    </button>
+                  </div>
                 </div>
-              ))}
-            </div>
-            <div className="mt-4">
-              <button className="btn btn-info w-full" onClick={() => setShowGlobalConfigManager(true)}>
-                Global Config Manager
-              </button>
-              <button className="btn btn-info w-full mt-2" onClick={() => setShowGlobalModManager(true)}>
-                Global Mod Manager
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </div>
 
+              {/* Cluster Management Card */}
+              <div className="card bg-base-200 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="card-body">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-success to-accent rounded-lg flex items-center justify-center">
+                      <span className="text-xl">🏗️</span>
+                    </div>
+                    <div>
+                      <h3 className="card-title text-lg">Cluster Management</h3>
+                      <p className="text-sm text-base-content/70">Create and manage clusters</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-base-content/70">Total Clusters:</span>
+                      <span className="badge badge-neutral badge-sm">{clusters.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-base-content/70">Running:</span>
+                      <span className="badge badge-success badge-sm">
+                        {clusters.filter(c => getClusterStatus(c).status === 'running').length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-base-content/70">Stopped:</span>
+                      <span className="badge badge-error badge-sm">
+                        {clusters.filter(c => getClusterStatus(c).status === 'stopped').length}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="card-actions justify-end mt-4">
+                    <button 
+                      className="btn btn-primary btn-sm" 
+                      onClick={() => setShowWizard(true)}
+                    >
+                      ➕ Create Cluster
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions Card */}
+              <div className="card bg-base-200 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="card-body">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-warning to-error rounded-lg flex items-center justify-center">
+                      <span className="text-xl">⚡</span>
+                    </div>
+                    <div>
+                      <h3 className="card-title text-lg">Quick Actions</h3>
+                      <p className="text-sm text-base-content/70">Common management tasks</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <button 
+                      className="btn btn-outline btn-sm w-full justify-start"
+                      onClick={() => setShowGlobalConfigManager(true)}
+                    >
+                      ⚙️ Global Configuration
+                    </button>
+                    <button 
+                      className="btn btn-outline btn-sm w-full justify-start"
+                      onClick={() => setShowGlobalModManager(true)}
+                    >
+                      🎮 Global Mod Management
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Info Card */}
+              <div className="card bg-base-200 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="card-body">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-accent to-secondary rounded-lg flex items-center justify-center">
+                      <span className="text-xl">ℹ️</span>
+                    </div>
+                    <div>
+                      <h3 className="card-title text-lg">System Info</h3>
+                      <p className="text-sm text-base-content/70">Technical details</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-base-content/70">Node:</span>
+                      <span className="font-mono">{systemInfo?.nodeVersion}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-base-content/70">CPU Cores:</span>
+                      <span className="font-mono">{systemInfo?.cpuCores}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-base-content/70">Platform:</span>
+                      <span className="font-mono">{systemInfo?.platform}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Clusters List */}
+            {clusters.length > 0 && (
+              <div className="card bg-base-200 shadow-lg">
+                <div className="card-body">
+                  <h3 className="card-title text-xl mb-4">
+                    <span className="text-2xl">🏗️</span>
+                    Existing Clusters
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {clusters.map(cluster => {
+                      const status = getClusterStatus(cluster);
+                      return (
+                        <div key={cluster.name} className="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+                          <div className="card-body p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-primary">{cluster.name}</h4>
+                              {getStatusBadge(status.status)}
+                            </div>
+                            
+                            <div className="space-y-1 text-sm text-base-content/70">
+                              <div className="flex justify-between">
+                                <span>Servers:</span>
+                                <span>{status.runningServers}/{status.totalServers} running</span>
+                              </div>
+                              {cluster.config?.description && (
+                                <div className="text-xs italic">{cluster.config.description}</div>
+                              )}
+                            </div>
+                            
+                            <div className="card-actions justify-end mt-3">
+                              <button className="btn btn-xs btn-outline btn-primary">
+                                Manage
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Wizard Modal */}
       {showWizard && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-base-100 rounded-lg p-8 w-full max-w-4xl max-h-full overflow-y-auto">
-            <h2 className="text-3xl font-bold text-primary mb-4">Cluster Creation Wizard</h2>
-            <p className="text-base-content/70 text-lg mb-6">
-              This wizard will guide you through creating a new ARK: Survival Ascended server cluster.
-              Please fill out the required information and select your desired settings.
-            </p>
+        <div className="modal modal-open">
+          <div className="modal-box w-11/12 max-w-5xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-3xl font-bold text-primary">Cluster Creation Wizard</h2>
+                <p className="text-base-content/70 mt-2">
+                  Step {['welcome', 'cluster-basic', 'map-selection', 'server-config', 'game-settings', 'review'].indexOf(currentStep) + 1} of 6
+                </p>
+              </div>
+              <button
+                onClick={() => setShowWizard(false)}
+                className="btn btn-sm btn-circle btn-ghost"
+              >
+                ✕
+              </button>
+            </div>
 
-            {currentStep === 'welcome' && <WelcomeStep />}
-            {currentStep === 'cluster-basic' && <ClusterBasicStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
-            {currentStep === 'map-selection' && <MapSelectionStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} toggleMap={toggleMap} updateMapCount={updateMapCount} generateServers={generateServers} />}
-            {currentStep === 'server-config' && <ServerConfigStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
-            {currentStep === 'game-settings' && <GameSettingsStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
-            {currentStep === 'review' && <ReviewStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
-            {currentStep === 'creating' && <CreatingStep jobId={currentJobId} jobProgress={jobProgress} />}
+            <div className="mb-6">
+              {/* Progress Bar */}
+              <div className="w-full bg-base-300 rounded-full h-2">
+                <div 
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${((['welcome', 'cluster-basic', 'map-selection', 'server-config', 'game-settings', 'review'].indexOf(currentStep) + 1) / 6) * 100}%` }}
+                ></div>
+              </div>
+            </div>
 
-            <div className="flex justify-between mt-6">
-              <button className="btn btn-secondary" onClick={prevStep} disabled={currentStep === 'welcome'}>Previous</button>
-              <button className="btn btn-primary" onClick={nextStep} disabled={currentStep === 'review'}>
-                {currentStep === 'review' ? 'Create Cluster' : 'Next'}
+            <div className="min-h-[400px]">
+              {currentStep === 'welcome' && <WelcomeStep />}
+              {currentStep === 'cluster-basic' && <ClusterBasicStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
+              {currentStep === 'map-selection' && <MapSelectionStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} toggleMap={toggleMap} updateMapCount={updateMapCount} generateServers={generateServers} />}
+              {currentStep === 'server-config' && <ServerConfigStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
+              {currentStep === 'game-settings' && <GameSettingsStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
+              {currentStep === 'review' && <ReviewStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
+              {currentStep === 'creating' && <CreatingStep jobId={currentJobId} jobProgress={jobProgress} />}
+            </div>
+
+            <div className="flex justify-between mt-6 pt-6 border-t border-base-300">
+              <button 
+                className="btn btn-outline" 
+                onClick={prevStep} 
+                disabled={currentStep === 'welcome'}
+              >
+                ← Previous
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={nextStep}
+                disabled={currentStep === 'creating'}
+              >
+                {currentStep === 'review' ? '🚀 Create Cluster' : 'Next →'}
               </button>
             </div>
           </div>
@@ -728,11 +942,16 @@ const ServerProvisioner: React.FC = () => {
           </div>
         </div>
       )}
-      {showGlobalModManager && <GlobalModManager onClose={() => setShowGlobalModManager(false)} />}
 
+      {/* Global Mod Manager Modal */}
+      {showGlobalModManager && (
+        <GlobalModManager onClose={() => setShowGlobalModManager(false)} />
+      )}
+
+      {/* Status Message */}
       {statusMessage && (
-        <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 bg-${statusType}-500 text-white px-4 py-2 rounded-lg shadow-lg z-40`}>
-          {statusMessage}
+        <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 alert alert-${statusType} shadow-lg z-50 max-w-md`}>
+          <span>{statusMessage}</span>
         </div>
       )}
     </div>

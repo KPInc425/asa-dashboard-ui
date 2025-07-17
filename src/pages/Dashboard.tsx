@@ -164,21 +164,16 @@ const Dashboard: React.FC = () => {
   };
 
   const getClusterStatus = (cluster: Cluster) => {
-    // For now, we'll show a default status since we don't have server status data
-    // In a real implementation, you'd check the actual server statuses
-    const totalServers = cluster.servers ? cluster.servers.length : 0;
-    
-    // Since we don't have real-time server status in the dashboard,
-    // we'll show a placeholder status. In a real implementation, you'd:
-    // 1. Check each server's running status
-    // 2. Calculate the percentage of running servers
-    // 3. Return appropriate status (running/stopped/partial)
-    
-    return {
-      status: 'unknown' as 'running' | 'stopped' | 'partial' | 'unknown',
-      runningServers: 0,
-      totalServers: totalServers
-    };
+    if (cluster.servers && cluster.servers.length > 0) {
+      const running = cluster.servers.filter(s => s.status === 'running').length;
+      const stopped = cluster.servers.filter(s => s.status === 'stopped').length;
+      const total = cluster.servers.length;
+      if (running === total) return { status: 'running', runningServers: running, totalServers: total };
+      if (stopped === total) return { status: 'stopped', runningServers: running, totalServers: total };
+      if (running > 0 && running < total) return { status: 'partial', runningServers: running, totalServers: total };
+      return { status: 'unknown', runningServers: running, totalServers: total };
+    }
+    return { status: 'unknown', runningServers: 0, totalServers: 0 };
   };
 
   const getStatusBadge = (status: string) => {
