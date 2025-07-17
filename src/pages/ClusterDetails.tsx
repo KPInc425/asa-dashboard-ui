@@ -13,15 +13,15 @@ interface Cluster {
     maps?: string[];
     clusterPassword?: string;
     customDynamicConfigUrl?: string;
+    servers?: Array<{
+      name: string;
+      status: string;
+      map: string;
+      gamePort: number;
+      queryPort: number;
+      rconPort: number;
+    }>;
   };
-  servers?: Array<{
-    name: string;
-    status: string;
-    map: string;
-    gamePort: number;
-    queryPort: number;
-    rconPort: number;
-  }>;
 }
 
 const ClusterDetails: React.FC = () => {
@@ -166,7 +166,7 @@ const ClusterDetails: React.FC = () => {
               <div>
                 <h1 className="text-4xl font-bold text-primary mb-2">{cluster.name}</h1>
                 <p className="text-base-content/70">
-                  Cluster Management - {cluster.servers?.length || 0} servers
+                  Cluster Management - {cluster.config?.servers?.length || 0} servers
                 </p>
               </div>
             </div>
@@ -250,18 +250,18 @@ const ClusterDetails: React.FC = () => {
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Total Servers:</span>
-                          <span>{cluster.servers?.length || 0}</span>
+                          <span>{cluster.config?.servers?.length || 0}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Running:</span>
                           <span className="text-success">
-                            {cluster.servers?.filter(s => s.status === 'running').length || 0}
+                            {cluster.config?.servers?.filter((s: any) => s.status === 'running').length || 0}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Stopped:</span>
                           <span className="text-error">
-                            {cluster.servers?.filter(s => s.status === 'stopped').length || 0}
+                            {cluster.config?.servers?.filter((s: any) => s.status === 'stopped').length || 0}
                           </span>
                         </div>
                       </div>
@@ -357,13 +357,13 @@ const ClusterDetails: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <h2 className="card-title">Cluster Servers</h2>
                   <span className="text-sm text-base-content/70">
-                    {cluster.servers?.length || 0} servers
+                    {cluster.config?.servers?.length || 0} servers
                   </span>
                 </div>
 
-                {cluster.servers && cluster.servers.length > 0 ? (
+                {cluster.config?.servers && cluster.config.servers.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {cluster.servers.map((server) => (
+                    {cluster.config.servers.map((server: any) => (
                       <div key={server.name} className="card bg-base-200 hover:shadow-lg transition-shadow">
                         <div className="card-body">
                           <div className="flex items-center justify-between mb-2">

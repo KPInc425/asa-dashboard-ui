@@ -164,10 +164,10 @@ const Dashboard: React.FC = () => {
   };
 
   const getClusterStatus = (cluster: Cluster) => {
-    if (cluster.servers && cluster.servers.length > 0) {
-      const running = cluster.servers.filter(s => s.status === 'running').length;
-      const stopped = cluster.servers.filter(s => s.status === 'stopped').length;
-      const total = cluster.servers.length;
+    if (cluster.config.servers && cluster.config.servers.length > 0) {
+      const running = cluster.config.servers.filter((s: any) => s.status === 'running').length;
+      const stopped = cluster.config.servers.filter((s: any) => s.status === 'stopped').length;
+      const total = cluster.config.servers.length;
       if (running === total) return { status: 'running', runningServers: running, totalServers: total };
       if (stopped === total) return { status: 'stopped', runningServers: running, totalServers: total };
       if (running > 0 && running < total) return { status: 'partial', runningServers: running, totalServers: total };
