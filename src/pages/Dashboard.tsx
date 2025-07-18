@@ -24,6 +24,8 @@ interface Cluster {
   serverCount: number;
   created: string;
   servers: any[];
+  path?: string;
+  config?: any;
 }
 
 interface NativeServer {
@@ -198,29 +200,15 @@ const Dashboard: React.FC = () => {
   };
 
   const getClusterStatus = (cluster: Cluster) => {
-    if (cluster.config.servers && cluster.config.servers.length > 0) {
-      const running = cluster.config.servers.filter((s: any) => s.status === 'running').length;
-      const stopped = cluster.config.servers.filter((s: any) => s.status === 'stopped').length;
-      const total = cluster.config.servers.length;
-      if (running === total) return { status: 'running', runningServers: running, totalServers: total };
-      if (stopped === total) return { status: 'stopped', runningServers: running, totalServers: total };
-      if (running > 0 && running < total) return { status: 'partial', runningServers: running, totalServers: total };
-      return { status: 'unknown', runningServers: running, totalServers: total };
+    // Handle both old and new cluster formats
+    const servers = cluster.config?.servers || cluster.servers || [];
+    if (servers.length > 0) {
+      const running = servers.filter((s: any) => s.status === 'running').length;
+      const stopped = servers.filter((s: any) => s.status === 'stopped').length;
+      const total = servers.length;
+      return `${total} servers (${running} running, ${stopped} stopped)`;
     }
-    return { status: 'unknown', runningServers: 0, totalServers: 0 };
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'running':
-        return <span className="badge badge-success badge-sm">Running</span>;
-      case 'stopped':
-        return <span className="badge badge-error badge-sm">Stopped</span>;
-      case 'partial':
-        return <span className="badge badge-warning badge-sm">Partial</span>;
-      default:
-        return <span className="badge badge-neutral badge-sm">Unknown</span>;
-    }
+    return 'No servers';
   };
 
   if (loading) {
@@ -473,52 +461,32 @@ const Dashboard: React.FC = () => {
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Clusters */}
-          {clusters.length > 0 && (
-            <div className="card bg-base-100 shadow-sm">
-              <div className="card-body">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="card-title">Recent Clusters</h2>
-                  <button
-                    onClick={() => navigate('/provisioning')}
-                    className="btn btn-primary btn-sm"
-                  >
-                    View All
-                  </button>
-                </div>
-                
-                <div className="space-y-3">
-                  {clusters.slice(0, 3).map((cluster) => {
-                    const clusterStatus = getClusterStatus(cluster);
-                    return (
-                      <div key={cluster.name} className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                            <span className="text-primary-content text-sm">🦖</span>
-                          </div>
-                          <div>
-                            <h3 className="font-medium">{cluster.name}</h3>
-                            <div className="flex items-center space-x-2">
-                              <p className="text-sm text-base-content/70">
-                                {clusterStatus.runningServers}/{clusterStatus.totalServers} servers
-                              </p>
-                              {getStatusBadge(clusterStatus.status)}
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => navigate(`/clusters/${cluster.name}`)}
-                          className="btn btn-ghost btn-xs"
-                        >
-                          View
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+          {/* Clusters Section */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4">Clusters ({clusters.length})</h3>
+            {clusters.length === 0 ? (
+              <p className="text-gray-500">No clusters found</p>
+            ) : (
+              <div className="space-y-3">
+                {clusters.map((cluster) => (
+                  <div key={cluster.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <h4 className="font-medium">{cluster.name}</h4>
+                      <p className="text-sm text-gray-600">
+                        {getClusterStatus(cluster)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/clusters/${encodeURIComponent(cluster.name)}`)}
+                      className="btn btn-sm btn-outline"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Servers */}
           {nativeServers.length > 0 && (
