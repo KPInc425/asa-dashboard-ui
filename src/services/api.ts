@@ -1920,7 +1920,7 @@ export const provisioningApi = {
   /**
    * Create cluster
    */
-  createCluster: async (config: any): Promise<{ success: boolean; cluster?: any; message: string; jobId?: string }> => {
+  createCluster: async (clusterConfig: any): Promise<{ success: boolean; cluster?: any; message: string; jobId?: string }> => {
     if (FRONTEND_ONLY_MODE) {
       return new Promise((resolve) => {
         setTimeout(() => {
@@ -1934,7 +1934,7 @@ export const provisioningApi = {
       });
     }
 
-    const response = await api.post('/api/provisioning/clusters', config);
+    const response = await api.post('/api/provisioning/clusters', clusterConfig);
     return response.data;
   },
 
@@ -2135,7 +2135,12 @@ export const createServer = async (serverConfig: any): Promise<{ success: boolea
 };
 
 export const createCluster = async (clusterConfig: any): Promise<{ success: boolean; message: string }> => {
-  const response = await api.post<{ success: boolean; message: string }>('/api/provisioning/clusters', clusterConfig);
+  // Patch: Map clusterName to name for backend compatibility
+  const payload = {
+    ...clusterConfig,
+    name: clusterConfig.clusterName,
+  };
+  const response = await api.post<{ success: boolean; message: string }>('/api/provisioning/clusters', payload);
   if (!response.data.success) {
     throw new ApiError('Failed to create cluster', 500, response.data);
   }
