@@ -1107,22 +1107,25 @@ const ServerProvisioner: React.FC = () => {
               {currentStep === 'creating' && <CreatingStep jobId={currentJobId} jobProgress={jobProgress} />}
             </div>
 
-            <div className="flex justify-between mt-6 pt-6 border-t border-base-300">
-              <button 
-                className="btn btn-outline" 
-                onClick={prevStep} 
-                disabled={currentStep === 'welcome'}
-              >
-                ← Previous
-              </button>
-              <button 
-                className="btn btn-primary" 
-                onClick={nextStep}
-                disabled={currentStep === 'creating'}
-              >
-                {currentStep === 'review' ? '🚀 Create Cluster' : 'Next →'}
-              </button>
-            </div>
+            {/* Navigation Buttons: Hide when creating */}
+            {currentStep !== 'creating' && (
+              <div className="flex justify-between mt-6 pt-6 border-t border-base-300">
+                <button 
+                  className="btn btn-outline" 
+                  onClick={prevStep} 
+                  disabled={currentStep === 'welcome'}
+                >
+                  ← Previous
+                </button>
+                <button 
+                  className="btn btn-primary" 
+                  onClick={nextStep}
+                  disabled={currentStep === 'creating'}
+                >
+                  {currentStep === 'review' ? '🚀 Create Cluster' : 'Next →'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
