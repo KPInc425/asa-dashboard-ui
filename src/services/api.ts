@@ -2106,7 +2106,18 @@ export const provisioningApi = {
 
     const response = await api.get('/api/provisioning/server-backups');
     return response.data;
-  }
+  },
+
+  /**
+   * Get cluster backups
+   */
+  getClusterBackups: async (clusterName: string): Promise<{ success: boolean; backups: any[]; count: number; message?: string }> => {
+    const response = await api.get<{ success: boolean; data: { backups: any[]; count: number }; message?: string }>(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}`);
+    if (!response.data.success) {
+      throw new ApiError('Failed to get cluster backups', 500, response.data);
+    }
+    return { success: true, backups: response.data.data.backups, count: response.data.data.count, message: response.data.message };
+  },
 };
 
 // Provisioning API

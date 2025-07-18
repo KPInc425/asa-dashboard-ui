@@ -128,7 +128,7 @@ const ServerProvisioner: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<WizardStep>('welcome');
   const [installing, setInstalling] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [statusType, setStatusType] = useState<'success' | 'error' | 'info'>('info');
+  const [statusType, setStatusType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
   const [loading, setLoading] = useState(true);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [jobProgress, setJobProgress] = useState<JobProgress | null>(null);
@@ -245,6 +245,10 @@ const ServerProvisioner: React.FC = () => {
     { name: 'BobsMissions', displayName: 'Club ARK', available: true }
   ]);
 
+  // Add state for restore modal
+  const [restoreModal, setRestoreModal] = useState<{ clusterName: string; backups: any[]; open: boolean } | null>(null);
+  const [selectedBackup, setSelectedBackup] = useState<string | null>(null);
+
   useEffect(() => {
     loadSystemInfo();
     loadClusters();
@@ -357,7 +361,7 @@ const ServerProvisioner: React.FC = () => {
               }, 10000);
             }
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Failed to poll job status:', error);
         }
       }, 2000); // Poll every 2 seconds
@@ -381,7 +385,7 @@ const ServerProvisioner: React.FC = () => {
           setStatusMessage(null);
         }, 3000);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to load system info:', error);
       setStatusMessage(`❌ Failed to refresh system status: ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
@@ -405,7 +409,7 @@ const ServerProvisioner: React.FC = () => {
       } else {
         setClusters([]);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to load clusters:', error);
       setClusters([]);
     }
@@ -424,7 +428,7 @@ const ServerProvisioner: React.FC = () => {
         setStatusType('success');
         setTimeout(() => setStatusMessage(null), 5000);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to initialize system:', error);
       setStatusMessage(`Failed to initialize system: ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
@@ -453,7 +457,7 @@ const ServerProvisioner: React.FC = () => {
           setStatusMessage(null);
         }, 5000);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to install SteamCMD:', error);
       setStatusMessage(`❌ Failed to install SteamCMD: ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
@@ -490,9 +494,9 @@ const ServerProvisioner: React.FC = () => {
         setTimeout(() => setStatusMessage(null), 5000);
         loadClusters();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete cluster:', error);
-      setStatusMessage(`❌ Failed to delete cluster "${clusterName}": ${error.message || error}`);
+      setStatusMessage(`❌ Failed to delete cluster "${clusterName}": ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
       setTimeout(() => setStatusMessage(null), 10000);
       // If normal delete fails, offer force delete
@@ -522,7 +526,7 @@ const ServerProvisioner: React.FC = () => {
         setStatusType('success');
         setTimeout(() => setStatusMessage(null), 8000);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to backup cluster:', error);
       setStatusMessage(`❌ Failed to backup cluster "${clusterName}": ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
@@ -531,25 +535,41 @@ const ServerProvisioner: React.FC = () => {
   };
 
   const restoreCluster = async (clusterName: string) => {
-    const backupPath = prompt(`Enter the backup path for cluster "${clusterName}":`);
-    if (!backupPath) {
-      return;
-    }
-
+    setStatusMessage('Loading available backups...');
+    setStatusType('info');
     try {
-      setStatusMessage(`Restoring cluster "${clusterName}" from backup...`);
+      const response = await apiService.provisioning.getClusterBackups(clusterName);
+      if (response.success && response.backups.length > 0) {
+        setRestoreModal({ clusterName, backups: response.backups, open: true });
+        setStatusMessage(null);
+      } else {
+        setStatusMessage(`No backups found for cluster "${clusterName}".`);
+        setStatusType('warning');
+        setTimeout(() => setStatusMessage(null), 6000);
+      }
+    } catch (error: unknown) {
+      setStatusMessage(`❌ Failed to load backups: ${error instanceof Error ? error.message : String(error)}`);
+      setStatusType('error');
+      setTimeout(() => setStatusMessage(null), 10000);
+    }
+  };
+
+  const handleRestoreConfirm = async () => {
+    if (!restoreModal || !selectedBackup) return;
+    try {
+      setStatusMessage(`Restoring cluster "${restoreModal.clusterName}" from backup...`);
       setStatusType('info');
-      
-      const response = await apiService.provisioning.restoreCluster(clusterName, backupPath);
+      const response = await apiService.provisioning.restoreCluster(restoreModal.clusterName, selectedBackup);
       if (response.success) {
-        setStatusMessage(`✅ Cluster "${clusterName}" restored successfully!`);
+        setStatusMessage(`✅ Cluster "${restoreModal.clusterName}" restored successfully!`);
         setStatusType('success');
         setTimeout(() => setStatusMessage(null), 5000);
+        setRestoreModal(null);
+        setSelectedBackup(null);
         loadClusters();
       }
-    } catch (error: any) {
-      console.error('Failed to restore cluster:', error);
-      setStatusMessage(`❌ Failed to restore cluster "${clusterName}": ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error: unknown) {
+      setStatusMessage(`❌ Failed to restore cluster "${restoreModal?.clusterName}": ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
       setTimeout(() => setStatusMessage(null), 10000);
     }
@@ -688,7 +708,7 @@ const ServerProvisioner: React.FC = () => {
         setStatusType('error');
         setCurrentStep('review');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to create cluster:', error);
       setStatusMessage(`❌ Failed to create cluster: ${error instanceof Error ? error.message : String(error)}`);
       setStatusType('error');
@@ -1186,6 +1206,41 @@ const ServerProvisioner: React.FC = () => {
           onClose={() => setShowServerBackupManager(false)}
           selectedServer={selectedServerForBackup || undefined}
         />
+      )}
+
+      {/* Restore Cluster Modal */}
+      {restoreModal && restoreModal.open && (
+        <div className="modal modal-open">
+          <div className="modal-box w-11/12 max-w-lg">
+            <h3 className="font-bold text-lg mb-4">Restore Cluster: {restoreModal.clusterName}</h3>
+            <div className="mb-4">
+              <label className="label">
+                <span className="label-text font-semibold">Select Backup</span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={selectedBackup || ''}
+                onChange={e => setSelectedBackup(e.target.value)}
+              >
+                <option value="" disabled>Select a backup...</option>
+                {restoreModal.backups.map(backup => (
+                  <option key={backup.path} value={backup.path}>
+                    {backup.name} ({backup.backupDate?.slice(0, 19).replace('T', ' ') || 'Unknown date'}, {backup.sizeFormatted || 'Unknown size'})
+                  </option>
+                ))}
+              </select>
+              {selectedBackup && (
+                <div className="mt-2 text-xs text-base-content/70">
+                  Path: {selectedBackup}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button className="btn btn-outline" onClick={() => { setRestoreModal(null); setSelectedBackup(null); }}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleRestoreConfirm} disabled={!selectedBackup}>Restore</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Status Message */}
