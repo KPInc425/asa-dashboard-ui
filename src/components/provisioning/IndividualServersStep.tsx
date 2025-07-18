@@ -2,12 +2,23 @@ import React from 'react';
 import type { StepProps } from '../../types/provisioning';
 
 // Shared port assignment logic
-const getServerPorts = (basePort: number, index: number) => {
-  return {
-    gamePort: basePort + (index * 6),
-    queryPort: basePort + (index * 6) + 2,
-    rconPort: basePort + (index * 6) + 4,
-  };
+const getServerPorts = (wizardData: any, index: number) => {
+  const basePort = wizardData.basePort || 7777;
+  const baseQueryPort = wizardData.portConfiguration?.queryPortBase || 27015;
+  const baseRconPort = wizardData.portConfiguration?.rconPortBase || 32330;
+  if (wizardData.portAllocationMode === 'even') {
+    return {
+      gamePort: basePort + (index * 6),
+      queryPort: basePort + (index * 6) + 2,
+      rconPort: basePort + (index * 6) + 4,
+    };
+  } else {
+    return {
+      gamePort: basePort + index,
+      queryPort: baseQueryPort + index,
+      rconPort: baseRconPort + index,
+    };
+  }
 };
 
 const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData, generateServers }) => {
@@ -27,9 +38,8 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
   // Initialize server configs with correct port logic
   const initializeServerConfigs = () => {
     if (wizardData.serverConfigs.length === 0) {
-      const basePort = wizardData.basePort || 7777;
       const configs = servers.map((server, index) => {
-        const ports = getServerPorts(basePort, index);
+        const ports = getServerPorts(wizardData, index);
         return {
           name: server.name,
           map: server.map,
@@ -213,11 +223,10 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
           <button
             className="btn btn-sm btn-outline"
             onClick={() => {
-              const basePort = wizardData.basePort || 7777;
               setWizardData(prev => ({
                 ...prev,
                 serverConfigs: prev.serverConfigs.map((config, index) => {
-                  const ports = getServerPorts(basePort, index);
+                  const ports = getServerPorts(wizardData, index);
                   return {
                     ...config,
                     gamePort: ports.gamePort,

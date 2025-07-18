@@ -5,23 +5,33 @@ interface PortAllocationPreviewProps {
   wizardData: WizardData;
 }
 
-const getServerPorts = (basePort: number, index: number) => {
-  return {
-    gamePort: basePort + (index * 6),
-    queryPort: basePort + (index * 6) + 2,
-    rconPort: basePort + (index * 6) + 4,
-  };
+const getServerPorts = (wizardData: WizardData, index: number) => {
+  const basePort = wizardData.basePort || 7777;
+  const baseQueryPort = wizardData.portConfiguration?.queryPortBase || 27015;
+  const baseRconPort = wizardData.portConfiguration?.rconPortBase || 32330;
+  if (wizardData.portAllocationMode === 'even') {
+    return {
+      gamePort: basePort + (index * 6),
+      queryPort: basePort + (index * 6) + 2,
+      rconPort: basePort + (index * 6) + 4,
+    };
+  } else {
+    return {
+      gamePort: basePort + index,
+      queryPort: baseQueryPort + index,
+      rconPort: baseRconPort + index,
+    };
+  }
 };
 
 const PortAllocationPreview: React.FC<PortAllocationPreviewProps> = ({ wizardData }) => {
   const previewPorts = useMemo(() => {
     const ports = [];
-    const basePort = wizardData.basePort;
     for (let i = 0; i < Math.min(wizardData.serverCount, 5); i++) {
-      ports.push(getServerPorts(basePort, i));
+      ports.push(getServerPorts(wizardData, i));
     }
     return ports;
-  }, [wizardData.basePort, wizardData.serverCount]);
+  }, [wizardData.basePort, wizardData.serverCount, wizardData.portAllocationMode, wizardData.portConfiguration]);
 
   return (
     <div className="bg-base-300 rounded-lg p-4">
