@@ -670,7 +670,15 @@ const ServerProvisioner: React.FC = () => {
       setStatusMessage('Creating cluster...');
       setStatusType('info');
 
-      const response = await apiService.provisioning.createCluster(wizardData);
+      // Always include a non-empty servers array in the payload
+      const payload = {
+        ...wizardData,
+        name: wizardData.clusterName,
+        servers: generateServers(),
+      };
+      console.log('[createCluster] Sending payload:', payload);
+
+      const response = await apiService.provisioning.createCluster(payload);
       if (response.success) {
         setCurrentJobId(response.jobId || null);
         setStatusMessage('Cluster creation job started. Monitoring progress...');
