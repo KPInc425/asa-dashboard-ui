@@ -2398,7 +2398,7 @@ export const getStartScript = async (serverName: string): Promise<{
   content: string;
   lastModified: string;
 }> => {
-  const response = await api.get(`/api/provisioning/start-script/${encodeURIComponent(serverName)}`);
+  const response = await api.get(`/api/native-servers/${encodeURIComponent(serverName)}/start-bat`);
   return response.data;
 };
 
