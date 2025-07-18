@@ -5,41 +5,23 @@ interface PortAllocationPreviewProps {
   wizardData: WizardData;
 }
 
+const getServerPorts = (basePort: number, index: number) => {
+  return {
+    gamePort: basePort + (index * 6),
+    queryPort: basePort + (index * 6) + 2,
+    rconPort: basePort + (index * 6) + 4,
+  };
+};
+
 const PortAllocationPreview: React.FC<PortAllocationPreviewProps> = ({ wizardData }) => {
   const previewPorts = useMemo(() => {
     const ports = [];
     const basePort = wizardData.basePort;
-    const mode = wizardData.portAllocationMode;
-    
-    console.log('PortAllocationPreview - basePort:', basePort, 'mode:', mode);
-    
     for (let i = 0; i < Math.min(wizardData.serverCount, 5); i++) {
-      if (mode === 'sequential') {
-        // Sequential mode: Game ports increment by 1, Query/RCON use standard ARK offsets
-        const gamePort = basePort + i;
-        const queryPort = 27015 + i;
-        const rconPort = basePort + i + 24553;
-        console.log(`Sequential Server ${i+1}: Game=${gamePort}, Query=${queryPort}, RCON=${rconPort}`);
-        ports.push({
-          gamePort,
-          queryPort,
-          rconPort
-        });
-      } else {
-        // Even mode: Everything increments by 2
-        const gamePort = basePort + (i * 6);
-        const queryPort = basePort + (i * 6) + 2;
-        const rconPort = basePort + (i * 6) + 4;
-        console.log(`Even Server ${i+1}: Game=${gamePort}, Query=${queryPort}, RCON=${rconPort}`);
-        ports.push({
-          gamePort,
-          queryPort,
-          rconPort
-        });
-      }
+      ports.push(getServerPorts(basePort, i));
     }
     return ports;
-  }, [wizardData.basePort, wizardData.serverCount, wizardData.portAllocationMode]);
+  }, [wizardData.basePort, wizardData.serverCount]);
 
   return (
     <div className="bg-base-300 rounded-lg p-4">

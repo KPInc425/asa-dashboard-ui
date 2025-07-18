@@ -3,17 +3,6 @@ import type { StepProps } from '../../types/provisioning';
 import PortAllocationPreview from './PortAllocationPreview';
 
 const ClusterBasicStep: React.FC<StepProps> = ({ wizardData, setWizardData }) => {
-  // Helper to update portConfiguration
-  const updatePortConfig = (field: string, value: number) => {
-    setWizardData(prev => ({
-      ...prev,
-      portConfiguration: {
-        ...prev.portConfiguration,
-        [field]: value
-      }
-    }));
-  };
-
   // Keep portConfiguration.basePort in sync with basePort
   React.useEffect(() => {
     if (wizardData.basePort !== wizardData.portConfiguration?.basePort) {
@@ -26,12 +15,6 @@ const ClusterBasicStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
       }));
     }
   }, [wizardData.basePort]);
-
-  // Keep portConfiguration in sync with portAllocationMode (if needed)
-  React.useEffect(() => {
-    // Optionally, adjust increments based on mode
-    // (You can add logic here if increments should change with mode)
-  }, [wizardData.portAllocationMode]);
 
   return (
     <div className="space-y-6">
@@ -85,7 +68,6 @@ const ClusterBasicStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
             placeholder="7777"
             value={wizardData.basePort}
             onChange={(e) => setWizardData(prev => ({ ...prev, basePort: parseInt(e.target.value) }))}
-            onBlur={(e) => updatePortConfig('basePort', parseInt(e.target.value) || 7777)}
           />
         </div>
         <div className="form-control">
@@ -100,67 +82,6 @@ const ClusterBasicStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
             <option value="sequential">Sequential (Game: 7777,7778... Query: 27015,27016... RCON: 24553+ Game)</option>
             <option value="even">Even (Server1: 7777,7779,7781... Server2: 7787,7789,7791...)</option>
           </select>
-        </div>
-        {/* Port increments and advanced config */}
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text font-semibold">Game Port Increment</span>
-          </label>
-          <input
-            type="number"
-            className="input input-bordered"
-            placeholder="3"
-            value={wizardData.portConfiguration?.portIncrement || 3}
-            onChange={(e) => updatePortConfig('portIncrement', parseInt(e.target.value) || 3)}
-          />
-        </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text font-semibold">Query Port Base</span>
-          </label>
-          <input
-            type="number"
-            className="input input-bordered"
-            placeholder="27015"
-            value={wizardData.portConfiguration?.queryPortBase || 27015}
-            onChange={(e) => updatePortConfig('queryPortBase', parseInt(e.target.value) || 27015)}
-          />
-        </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text font-semibold">Query Port Increment</span>
-          </label>
-          <input
-            type="number"
-            className="input input-bordered"
-            placeholder="3"
-            value={wizardData.portConfiguration?.queryPortIncrement || 3}
-            onChange={(e) => updatePortConfig('queryPortIncrement', parseInt(e.target.value) || 3)}
-          />
-        </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text font-semibold">RCON Port Base</span>
-          </label>
-          <input
-            type="number"
-            className="input input-bordered"
-            placeholder="32330"
-            value={wizardData.portConfiguration?.rconPortBase || 32330}
-            onChange={(e) => updatePortConfig('rconPortBase', parseInt(e.target.value) || 32330)}
-          />
-        </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text font-semibold">RCON Port Increment</span>
-          </label>
-          <input
-            type="number"
-            className="input input-bordered"
-            placeholder="3"
-            value={wizardData.portConfiguration?.rconPortIncrement || 3}
-            onChange={(e) => updatePortConfig('rconPortIncrement', parseInt(e.target.value) || 3)}
-          />
         </div>
       </div>
       <PortAllocationPreview wizardData={wizardData} />

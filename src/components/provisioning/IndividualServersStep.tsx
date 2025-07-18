@@ -1,21 +1,18 @@
 import React from 'react';
 import type { StepProps } from '../../types/provisioning';
 
+// Shared port assignment logic
+const getServerPorts = (basePort: number, index: number) => {
+  return {
+    gamePort: basePort + (index * 6),
+    queryPort: basePort + (index * 6) + 2,
+    rconPort: basePort + (index * 6) + 4,
+  };
+};
+
 const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData, generateServers }) => {
   const servers = generateServers();
   const [activeTab, setActiveTab] = React.useState(0);
-
-  // Helper to get port config with fallback
-  const getPortConfig = () => {
-    return wizardData.portConfiguration || {
-      basePort: wizardData.basePort || 7777,
-      portIncrement: 3,
-      queryPortBase: 27015,
-      queryPortIncrement: 3,
-      rconPortBase: 32330,
-      rconPortIncrement: 3,
-    };
-  };
 
   // Update a single server config field
   const updateServerConfig = (index: number, field: string, value: any) => {
@@ -30,25 +27,15 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
   // Initialize server configs with correct port logic
   const initializeServerConfigs = () => {
     if (wizardData.serverConfigs.length === 0) {
-      const portCfg = getPortConfig();
-      const portMode = wizardData.portAllocationMode || 'sequential';
+      const basePort = wizardData.basePort || 7777;
       const configs = servers.map((server, index) => {
-        let gamePort, queryPort, rconPort;
-        if (portMode === 'even') {
-          gamePort = portCfg.basePort + (index * 2);
-          queryPort = portCfg.queryPortBase + (index * 2);
-          rconPort = portCfg.rconPortBase + (index * 2);
-        } else {
-          gamePort = portCfg.basePort + (index * portCfg.portIncrement);
-          queryPort = portCfg.queryPortBase + (index * portCfg.queryPortIncrement);
-          rconPort = portCfg.rconPortBase + (index * portCfg.rconPortIncrement);
-        }
+        const ports = getServerPorts(basePort, index);
         return {
           name: server.name,
           map: server.map,
-          gamePort,
-          queryPort,
-          rconPort,
+          gamePort: ports.gamePort,
+          queryPort: ports.queryPort,
+          rconPort: ports.rconPort,
           maxPlayers: server.maxPlayers,
           adminPassword: server.adminPassword || wizardData.adminPassword,
           serverPassword: server.serverPassword || wizardData.serverPassword,
@@ -226,26 +213,16 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
           <button
             className="btn btn-sm btn-outline"
             onClick={() => {
-              const portCfg = getPortConfig();
-              const portMode = wizardData.portAllocationMode || 'sequential';
+              const basePort = wizardData.basePort || 7777;
               setWizardData(prev => ({
                 ...prev,
                 serverConfigs: prev.serverConfigs.map((config, index) => {
-                  let gamePort, queryPort, rconPort;
-                  if (portMode === 'even') {
-                    gamePort = portCfg.basePort + (index * 2);
-                    queryPort = portCfg.queryPortBase + (index * 2);
-                    rconPort = portCfg.rconPortBase + (index * 2);
-                  } else {
-                    gamePort = portCfg.basePort + (index * portCfg.portIncrement);
-                    queryPort = portCfg.queryPortBase + (index * portCfg.queryPortIncrement);
-                    rconPort = portCfg.rconPortBase + (index * portCfg.rconPortIncrement);
-                  }
+                  const ports = getServerPorts(basePort, index);
                   return {
                     ...config,
-                    gamePort,
-                    queryPort,
-                    rconPort
+                    gamePort: ports.gamePort,
+                    queryPort: ports.queryPort,
+                    rconPort: ports.rconPort
                   };
                 })
               }));
