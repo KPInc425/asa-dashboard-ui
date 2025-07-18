@@ -15,18 +15,38 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
 
   const initializeServerConfigs = () => {
     if (wizardData.serverConfigs.length === 0) {
-      const configs = servers.map((server) => ({
-        name: server.name,
-        map: server.map,
-        gamePort: server.gamePort,
-        queryPort: server.queryPort,
-        rconPort: server.rconPort,
-        maxPlayers: server.maxPlayers,
-        adminPassword: server.adminPassword || wizardData.adminPassword,
-        serverPassword: server.serverPassword || wizardData.serverPassword,
-        sessionName: server.sessionName || server.name,
-        customSettings: {}
-      }));
+      const basePort = wizardData.basePort || 7777;
+      const portAllocationMode = wizardData.portAllocationMode || 'sequential';
+      
+      const configs = servers.map((server, index) => {
+        // Calculate ports based on wizard settings
+        let gamePort, queryPort, rconPort;
+        
+        if (portAllocationMode === 'even') {
+          // Even allocation: basePort, basePort+2, basePort+4, etc.
+          gamePort = basePort + (index * 2);
+          queryPort = basePort + (index * 2) + 1;
+          rconPort = basePort + (index * 2) + 2;
+        } else {
+          // Sequential allocation: basePort, basePort+3, basePort+6, etc.
+          gamePort = basePort + (index * 3);
+          queryPort = basePort + (index * 3) + 1;
+          rconPort = basePort + (index * 3) + 2;
+        }
+        
+        return {
+          name: server.name,
+          map: server.map,
+          gamePort: gamePort,
+          queryPort: queryPort,
+          rconPort: rconPort,
+          maxPlayers: server.maxPlayers,
+          adminPassword: server.adminPassword || wizardData.adminPassword,
+          serverPassword: server.serverPassword || wizardData.serverPassword,
+          sessionName: server.sessionName || server.name,
+          customSettings: {}
+        };
+      });
       
       setWizardData(prev => ({
         ...prev,
@@ -38,7 +58,7 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
   // Initialize server configs if not already done
   React.useEffect(() => {
     initializeServerConfigs();
-  }, []);
+  }, [servers]); // Re-initialize when servers change
 
   return (
     <div className="space-y-6">
@@ -47,6 +67,21 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
         <p className="text-base-content/70 text-lg">
           Customize each server's settings individually. You can modify server names, ports, and other settings.
         </p>
+      </div>
+
+      {/* Information Box */}
+      <div className="bg-base-200 rounded-lg p-4 border-l-4 border-primary">
+        <div className="flex items-start space-x-3">
+          <div className="text-primary text-xl">ℹ️</div>
+          <div>
+            <h4 className="font-semibold mb-2">Server Name vs Session Name</h4>
+            <div className="text-sm space-y-1">
+              <p><strong>Server Name:</strong> Internal identifier for management (not visible to players)</p>
+              <p><strong>Session Name:</strong> Public name shown in server browser (visible to all players)</p>
+              <p className="text-base-content/70">Use server names for organization and session names to attract players!</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -58,6 +93,9 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-semibold">Server Name</span>
+                  <div className="tooltip tooltip-right" data-tip="Internal name used for server management. Not visible to players. Use format: ClusterName-MapName-Number">
+                    <span className="label-text-alt cursor-help">ℹ️</span>
+                  </div>
                 </label>
                 <input
                   type="text"
@@ -66,11 +104,17 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
                   onChange={(e) => updateServerConfig(index, 'name', e.target.value)}
                   placeholder="Server name"
                 />
+                <label className="label">
+                  <span className="label-text-alt">Example: MyCluster-TheIsland-1</span>
+                </label>
               </div>
 
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-semibold">Session Name</span>
+                  <div className="tooltip tooltip-right" data-tip="Public name visible to players in server browser. Use descriptive names with tags like [PvE], [PvP], [Modded]">
+                    <span className="label-text-alt cursor-help">ℹ️</span>
+                  </div>
                 </label>
                 <input
                   type="text"
@@ -79,6 +123,9 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
                   onChange={(e) => updateServerConfig(index, 'sessionName', e.target.value)}
                   placeholder="Session name"
                 />
+                <label className="label">
+                  <span className="label-text-alt">Example: [PvE] My Awesome Island Server</span>
+                </label>
               </div>
 
               <div className="form-control">
@@ -173,15 +220,33 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
           <button
             className="btn btn-sm btn-outline"
             onClick={() => {
-              const basePort = wizardData.basePort;
+              const basePort = wizardData.basePort || 7777;
+              const portAllocationMode = wizardData.portAllocationMode || 'sequential';
+              
               setWizardData(prev => ({
                 ...prev,
-                serverConfigs: prev.serverConfigs.map((config, index) => ({
-                  ...config,
-                  gamePort: basePort + (index * 3),
-                  queryPort: basePort + (index * 3) + 1,
-                  rconPort: basePort + (index * 3) + 2
-                }))
+                serverConfigs: prev.serverConfigs.map((config, index) => {
+                  let gamePort, queryPort, rconPort;
+                  
+                  if (portAllocationMode === 'even') {
+                    // Even allocation: basePort, basePort+2, basePort+4, etc.
+                    gamePort = basePort + (index * 2);
+                    queryPort = basePort + (index * 2) + 1;
+                    rconPort = basePort + (index * 2) + 2;
+                  } else {
+                    // Sequential allocation: basePort, basePort+3, basePort+6, etc.
+                    gamePort = basePort + (index * 3);
+                    queryPort = basePort + (index * 3) + 1;
+                    rconPort = basePort + (index * 3) + 2;
+                  }
+                  
+                  return {
+                    ...config,
+                    gamePort: gamePort,
+                    queryPort: queryPort,
+                    rconPort: rconPort
+                  };
+                })
               }));
             }}
           >
