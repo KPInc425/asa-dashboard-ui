@@ -15,7 +15,7 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
 
   const initializeServerConfigs = () => {
     if (wizardData.serverConfigs.length === 0) {
-      const configs = servers.map((server, index) => ({
+      const configs = servers.map((server) => ({
         name: server.name,
         map: server.map,
         gamePort: server.gamePort,

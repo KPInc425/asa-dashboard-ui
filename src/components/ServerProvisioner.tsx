@@ -59,7 +59,7 @@ const ReviewStep: React.FC<StepProps> = ({ wizardData, generateServers }) => {
   );
 };
 
-const ServerConfigStep: React.FC<StepProps & { setCurrentStep: (step: WizardStep) => void }> = ({ wizardData, setWizardData, setCurrentStep }) => {
+const ServerConfigStep: React.FC<StepProps & { setCurrentStep: (step: WizardStep) => void }> = ({ wizardData, setWizardData }) => {
   return (
     <div className="space-y-6">
       <div className="text-center">

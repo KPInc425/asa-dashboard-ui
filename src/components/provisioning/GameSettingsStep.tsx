@@ -310,6 +310,7 @@ const GameSettingsStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default GameSettingsStep; 
