@@ -1966,23 +1966,69 @@ export const provisioningApi = {
   /**
    * Delete cluster
    */
-  deleteCluster: async (name: string, force: boolean = false): Promise<{ success: boolean; message: string }> => {
+  deleteCluster: async (name: string, options?: { backupSaved?: boolean; deleteFiles?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
     if (FRONTEND_ONLY_MODE) {
       return new Promise((resolve) => {
         setTimeout(() => {
           resolve({
             success: true,
-            message: `Cluster ${name} ${force ? 'force ' : ''}deleted successfully (mock)`
+            message: `Cluster ${name} deleted successfully (mock)`,
+            data: { backupPath: '/mock/backup/path' }
           });
         }, 1000);
       });
     }
 
-    const url = force 
-      ? `/api/provisioning/clusters/${name}?force=true`
-      : `/api/provisioning/clusters/${name}`;
-      
+    const params = new URLSearchParams();
+    if (options?.backupSaved !== undefined) params.append('backupSaved', options.backupSaved.toString());
+    if (options?.deleteFiles !== undefined) params.append('deleteFiles', options.deleteFiles.toString());
+    
+    const url = `/api/provisioning/clusters/${encodeURIComponent(name)}${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await api.delete(url);
+    return response.data;
+  },
+
+  /**
+   * Backup cluster
+   */
+  backupCluster: async (name: string, destination?: string): Promise<{ success: boolean; message: string; data?: any }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${name} backed up successfully (mock)`,
+            data: { backupPath: '/mock/backup/path' }
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(name)}/backup`, {
+      destination
+    });
+    return response.data;
+  },
+
+  /**
+   * Restore cluster
+   */
+  restoreCluster: async (name: string, source: string): Promise<{ success: boolean; message: string; data?: any }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${name} restored successfully (mock)`,
+            data: { sourcePath: source }
+          });
+        }, 3000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(name)}/restore`, {
+      source
+    });
     return response.data;
   }
 };
@@ -2044,10 +2090,35 @@ export const deleteServer = async (serverName: string): Promise<{ success: boole
   return response.data;
 };
 
-export const deleteCluster = async (clusterName: string): Promise<{ success: boolean; message: string }> => {
-  const response = await api.delete<{ success: boolean; message: string }>(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}`);
+export const deleteCluster = async (clusterName: string, options?: { backupSaved?: boolean; deleteFiles?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+  const params = new URLSearchParams();
+  if (options?.backupSaved !== undefined) params.append('backupSaved', options.backupSaved.toString());
+  if (options?.deleteFiles !== undefined) params.append('deleteFiles', options.deleteFiles.toString());
+  
+  const url = `/api/provisioning/clusters/${encodeURIComponent(clusterName)}${params.toString() ? `?${params.toString()}` : ''}`;
+  const response = await api.delete<{ success: boolean; message: string; data?: any }>(url);
   if (!response.data.success) {
     throw new ApiError('Failed to delete cluster', 500, response.data);
+  }
+  return response.data;
+};
+
+export const backupCluster = async (clusterName: string, destination?: string): Promise<{ success: boolean; message: string; data?: any }> => {
+  const response = await api.post<{ success: boolean; message: string; data?: any }>(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/backup`, {
+    destination
+  });
+  if (!response.data.success) {
+    throw new ApiError('Failed to backup cluster', 500, response.data);
+  }
+  return response.data;
+};
+
+export const restoreCluster = async (clusterName: string, source: string): Promise<{ success: boolean; message: string; data?: any }> => {
+  const response = await api.post<{ success: boolean; message: string; data?: any }>(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/restore`, {
+    source
+  });
+  if (!response.data.success) {
+    throw new ApiError('Failed to restore cluster', 500, response.data);
   }
   return response.data;
 };

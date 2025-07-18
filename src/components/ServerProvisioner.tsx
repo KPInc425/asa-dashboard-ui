@@ -404,9 +404,12 @@ const ServerProvisioner: React.FC = () => {
     }
 
     try {
-      const response = await apiService.provisioning.deleteCluster(clusterName, force);
+      const response = await apiService.provisioning.deleteCluster(clusterName, { 
+        backupSaved: true, 
+        deleteFiles: true 
+      });
       if (response.success) {
-        setStatusMessage(`✅ Cluster "${clusterName}" ${force ? 'force ' : ''}deleted successfully!`);
+        setStatusMessage(`✅ Cluster "${clusterName}" ${force ? 'force ' : ''}deleted successfully!${response.data?.backupPath ? ` Backup saved to: ${response.data.backupPath}` : ''}`);
         setStatusType('success');
         setTimeout(() => setStatusMessage(null), 5000);
         loadClusters();
@@ -433,6 +436,50 @@ const ServerProvisioner: React.FC = () => {
         setStatusType('error');
         setTimeout(() => setStatusMessage(null), 10000);
       }
+    }
+  };
+
+  const backupCluster = async (clusterName: string) => {
+    try {
+      setStatusMessage(`Backing up cluster "${clusterName}"...`);
+      setStatusType('info');
+      
+      const response = await apiService.provisioning.backupCluster(clusterName);
+      if (response.success) {
+        setStatusMessage(`✅ Cluster "${clusterName}" backed up successfully! Backup location: ${response.data?.backupPath || 'Unknown'}`);
+        setStatusType('success');
+        setTimeout(() => setStatusMessage(null), 8000);
+      }
+    } catch (error: any) {
+      console.error('Failed to backup cluster:', error);
+      setStatusMessage(`❌ Failed to backup cluster "${clusterName}": ${error instanceof Error ? error.message : String(error)}`);
+      setStatusType('error');
+      setTimeout(() => setStatusMessage(null), 10000);
+    }
+  };
+
+  const restoreCluster = async (clusterName: string) => {
+    const backupPath = prompt(`Enter the backup path for cluster "${clusterName}":`);
+    if (!backupPath) {
+      return;
+    }
+
+    try {
+      setStatusMessage(`Restoring cluster "${clusterName}" from backup...`);
+      setStatusType('info');
+      
+      const response = await apiService.provisioning.restoreCluster(clusterName, backupPath);
+      if (response.success) {
+        setStatusMessage(`✅ Cluster "${clusterName}" restored successfully!`);
+        setStatusType('success');
+        setTimeout(() => setStatusMessage(null), 5000);
+        loadClusters();
+      }
+    } catch (error: any) {
+      console.error('Failed to restore cluster:', error);
+      setStatusMessage(`❌ Failed to restore cluster "${clusterName}": ${error instanceof Error ? error.message : String(error)}`);
+      setStatusType('error');
+      setTimeout(() => setStatusMessage(null), 10000);
     }
   };
 
@@ -849,9 +896,27 @@ const ServerProvisioner: React.FC = () => {
                               )}
                             </div>
                             
-                            <div className="card-actions justify-end mt-3">
-                              <button className="btn btn-xs btn-outline btn-primary">
-                                Manage
+                            <div className="card-actions justify-end mt-3 space-x-1">
+                              <button 
+                                className="btn btn-xs btn-outline btn-info"
+                                onClick={() => backupCluster(cluster.name)}
+                                title="Backup cluster data"
+                              >
+                                💾
+                              </button>
+                              <button 
+                                className="btn btn-xs btn-outline btn-warning"
+                                onClick={() => restoreCluster(cluster.name)}
+                                title="Restore cluster data"
+                              >
+                                🔄
+                              </button>
+                              <button 
+                                className="btn btn-xs btn-outline btn-error"
+                                onClick={() => deleteCluster(cluster.name)}
+                                title="Delete cluster"
+                              >
+                                🗑️
                               </button>
                             </div>
                           </div>
