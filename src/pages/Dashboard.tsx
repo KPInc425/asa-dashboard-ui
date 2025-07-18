@@ -19,29 +19,37 @@ interface SystemInfo {
 
 interface Cluster {
   name: string;
-  path: string;
-  config: any;
+  description: string;
+  basePort: number;
+  serverCount: number;
   created: string;
-  servers?: Server[];
-}
-
-interface Server {
-  name: string;
-  map: string;
-  gamePort: number;
-  status: 'running' | 'stopped' | 'starting' | 'stopping';
-  players: number;
-  maxPlayers: number;
+  servers: any[];
 }
 
 interface NativeServer {
   name: string;
   status: string;
+  image: string;
+  created: string;
   type: string;
-  map?: string;
   clusterName?: string;
+  map?: string;
   gamePort?: number;
+  queryPort?: number;
+  rconPort?: number;
   maxPlayers?: number;
+  serverPath?: string;
+  config?: any;
+  isClusterServer?: boolean;
+  disableBattleEye?: boolean;
+  password?: string;
+  adminPassword?: string;
+  clusterId?: string;
+  clusterPassword?: string;
+  clusterOwner?: string;
+  gameUserSettings?: any;
+  gameIni?: any;
+  modManagement?: any;
 }
 
 interface DashboardStats {
@@ -50,6 +58,15 @@ interface DashboardStats {
   stoppedServers: number;
   totalPlayers: number;
   totalClusters: number;
+}
+
+interface DebugInfo {
+  timestamp: string;
+  environment: any;
+  config: any;
+  provisioner: any;
+  clusters: any[];
+  errors: string[];
 }
 
 const Dashboard: React.FC = () => {
@@ -67,6 +84,9 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showGlobalModManager, setShowGlobalModManager] = useState(false);
+  const [showDebugModal, setShowDebugModal] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
+  const [debugLoading, setDebugLoading] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -115,6 +135,20 @@ const Dashboard: React.FC = () => {
       console.error('Error loading dashboard data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDebugClick = async () => {
+    try {
+      setDebugLoading(true);
+      const response = await api.get('/api/provisioning/debug');
+      setDebugInfo(response.data);
+      setShowDebugModal(true);
+    } catch (error) {
+      console.error('Failed to get debug info:', error);
+      alert('Failed to get debug info. Check console for details.');
+    } finally {
+      setDebugLoading(false);
     }
   };
 
@@ -197,11 +231,27 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-base-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-base-content">ASA Management Dashboard</h1>
-          <p className="mt-2 text-base-content/70">
-            Manage your ARK: Survival Ascended servers and clusters
-          </p>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowGlobalModManager(true)}
+              className="btn btn-primary"
+            >
+              🔧 Global Mods
+            </button>
+            <button
+              onClick={handleDebugClick}
+              disabled={debugLoading}
+              className="btn btn-outline btn-warning"
+            >
+              {debugLoading ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                '🐛 Debug Info'
+              )}
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -420,9 +470,6 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         </div>
-        {showGlobalModManager && (
-          <GlobalModManager onClose={() => setShowGlobalModManager(false)} />
-        )}
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -540,6 +587,73 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Debug Modal */}
+      {showDebugModal && debugInfo && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-6xl max-h-[90vh]">
+            <h3 className="font-bold text-lg mb-4">Debug Information</h3>
+            <div className="space-y-4 max-h-[70vh] overflow-auto">
+              <div>
+                <h4 className="font-semibold text-sm text-gray-600 mb-2">Timestamp</h4>
+                <p className="text-sm">{debugInfo.timestamp}</p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-sm text-gray-600 mb-2">Environment Variables</h4>
+                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                  {JSON.stringify(debugInfo.environment, null, 2)}
+                </pre>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-sm text-gray-600 mb-2">Config</h4>
+                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                  {JSON.stringify(debugInfo.config, null, 2)}
+                </pre>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-sm text-gray-600 mb-2">Provisioner Paths</h4>
+                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                  {JSON.stringify(debugInfo.provisioner, null, 2)}
+                </pre>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-sm text-gray-600 mb-2">Clusters ({debugInfo.clusters.length})</h4>
+                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                  {JSON.stringify(debugInfo.clusters, null, 2)}
+                </pre>
+              </div>
+              
+              {debugInfo.errors.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-sm text-red-600 mb-2">Errors ({debugInfo.errors.length})</h4>
+                  <ul className="text-xs text-red-600">
+                    {debugInfo.errors.map((error, index) => (
+                      <li key={index} className="mb-1">• {error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="modal-action">
+              <button
+                onClick={() => setShowDebugModal(false)}
+                className="btn btn-ghost"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Mod Manager Modal */}
+      {showGlobalModManager && (
+        <GlobalModManager onClose={() => setShowGlobalModManager(false)} />
+      )}
     </div>
   );
 };
