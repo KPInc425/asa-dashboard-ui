@@ -512,21 +512,63 @@ const ServerProvisioner: React.FC = () => {
   };
 
   const toggleMap = (mapName: string) => {
-    setWizardData(prev => ({
-      ...prev,
-      selectedMaps: prev.selectedMaps.map(map => 
-        map.map === mapName ? { ...map, enabled: !map.enabled } : map
-      )
-    }));
+    setWizardData(prev => {
+      const existingMap = prev.selectedMaps.find(map => map.map === mapName);
+      const mapInfo = availableMaps.find(map => map.name === mapName);
+      
+      if (existingMap) {
+        // Map exists, toggle its enabled state
+        return {
+          ...prev,
+          selectedMaps: prev.selectedMaps.map(map => 
+            map.map === mapName ? { ...map, enabled: !map.enabled } : map
+          )
+        };
+      } else if (mapInfo) {
+        // Map doesn't exist, add it
+        const newMap = {
+          map: mapName,
+          count: 1,
+          enabled: true,
+          displayName: mapInfo.displayName
+        };
+        return {
+          ...prev,
+          selectedMaps: [...prev.selectedMaps, newMap]
+        };
+      }
+      return prev;
+    });
   };
 
   const updateMapCount = (mapName: string, count: number) => {
-    setWizardData(prev => ({
-      ...prev,
-      selectedMaps: prev.selectedMaps.map(map => 
-        map.map === mapName ? { ...map, count } : map
-      )
-    }));
+    setWizardData(prev => {
+      const existingMap = prev.selectedMaps.find(map => map.map === mapName);
+      const mapInfo = availableMaps.find(map => map.name === mapName);
+      
+      if (existingMap) {
+        // Map exists, update its count
+        return {
+          ...prev,
+          selectedMaps: prev.selectedMaps.map(map => 
+            map.map === mapName ? { ...map, count } : map
+          )
+        };
+      } else if (mapInfo) {
+        // Map doesn't exist, add it with the specified count
+        const newMap = {
+          map: mapName,
+          count: count,
+          enabled: true,
+          displayName: mapInfo.displayName
+        };
+        return {
+          ...prev,
+          selectedMaps: [...prev.selectedMaps, newMap]
+        };
+      }
+      return prev;
+    });
   };
 
   const generateServers = (): ServerConfig[] => {
