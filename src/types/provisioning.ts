@@ -56,7 +56,7 @@ export interface ServerConfig {
   sessionName?: string;
 }
 
-export type WizardStep = 'welcome' | 'cluster-basic' | 'map-selection' | 'server-config' | 'game-settings' | 'review' | 'creating';
+export type WizardStep = 'welcome' | 'cluster-basic' | 'map-selection' | 'server-config' | 'individual-servers' | 'game-settings' | 'mods' | 'review' | 'creating';
 
 export interface WizardData {
   clusterName: string;
@@ -81,6 +81,89 @@ export interface WizardData {
   sessionNameMode: 'auto' | 'custom';
   customDynamicConfigUrl: string;
   disableBattleEye: boolean;
+  
+  // Enhanced configuration options
+  individualServerSettings: boolean;
+  serverConfigs: Array<{
+    name: string;
+    map: string;
+    gamePort: number;
+    queryPort: number;
+    rconPort: number;
+    maxPlayers: number;
+    adminPassword: string;
+    serverPassword: string;
+    sessionName: string;
+    customSettings?: any;
+  }>;
+  
+  // Detailed game settings
+  gameSettings: {
+    harvestMultiplier: number;
+    xpMultiplier: number;
+    tamingMultiplier: number;
+    matingIntervalMultiplier: number;
+    eggHatchSpeedMultiplier: number;
+    babyMatureSpeedMultiplier: number;
+    dayCycleSpeedScale: number;
+    dayTimeSpeedScale: number;
+    nightTimeSpeedScale: number;
+    dinoDamageMultiplier: number;
+    playerDamageMultiplier: number;
+    structureDamageMultiplier: number;
+    playerResistanceMultiplier: number;
+    dinoResistanceMultiplier: number;
+    structureResistanceMultiplier: number;
+    difficultyOffset: number;
+    allowThirdPersonPlayer: boolean;
+    alwaysNotifyPlayerLeft: boolean;
+    alwaysNotifyPlayerJoined: boolean;
+    serverCrosshair: boolean;
+    serverForceNoHUD: boolean;
+    serverThirdPersonPlayer: boolean;
+    serverHardcore: boolean;
+    serverShowMapPlayerLocation: boolean;
+    serverEnablePvPGamma: boolean;
+    serverAllowFlyerCarryPvE: boolean;
+    serverDisableStructurePlacementCollision: boolean;
+    serverAllowCaveBuildingPvE: boolean;
+    serverAllowFlyingStaminaRecovery: boolean;
+    serverAllowUnlimitedRespecs: boolean;
+    serverPreventSpawnFlier: boolean;
+    serverPreventOfflinePvP: boolean;
+    serverPreventOfflinePvPInterval: number;
+    serverPreventOfflinePvPUseStructurePrevention: boolean;
+    serverPreventOfflinePvPUseStructurePreventionRadius: number;
+    maxPlatformSaddleStructureLimit: number;
+  };
+  
+  // Mod management
+  globalMods: string[];
+  serverMods: Record<string, {
+    additionalMods: string[];
+    excludeSharedMods: boolean;
+  }>;
+  
+  // Port configuration
+  portConfiguration: {
+    basePort: number;
+    portIncrement: number;
+    queryPortBase: number;
+    queryPortIncrement: number;
+    rconPortBase: number;
+    rconPortIncrement: number;
+  };
+  
+  // Cluster settings
+  clusterSettings: {
+    clusterId: string;
+    clusterName: string;
+    clusterDescription: string;
+    clusterPassword: string;
+    clusterOwner: string;
+  };
+  
+  autoStart: boolean;
 }
 
 export interface StepProps {

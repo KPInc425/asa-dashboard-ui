@@ -7,6 +7,8 @@ import GlobalModManager from './GlobalModManager';
 import ServerBackupManager from './ServerBackupManager';
 import type { SystemInfo, Cluster, WizardData, WizardStep, ServerConfig, StepProps } from '../types/provisioning';
 import { WelcomeStep, ClusterBasicStep, MapSelectionStep, GameSettingsStep, CreatingStep } from './provisioning';
+import IndividualServersStep from './provisioning/IndividualServersStep';
+import ModsStep from './provisioning/ModsStep';
 
 const ReviewStep: React.FC<StepProps> = ({ wizardData, generateServers }) => {
   const servers = generateServers();
@@ -115,21 +117,6 @@ const ServerConfigStep: React.FC<StepProps & { setCurrentStep: (step: WizardStep
           />
         </div>
       </div>
-      
-      <div className="flex justify-between">
-        <button
-          onClick={() => setCurrentStep('map-selection')}
-          className="btn btn-outline"
-        >
-          ← Back
-        </button>
-        <button
-          onClick={() => setCurrentStep('game-settings')}
-          className="btn btn-primary"
-        >
-          Next →
-        </button>
-      </div>
     </div>
   );
 };
@@ -171,7 +158,76 @@ const ServerProvisioner: React.FC = () => {
     foreground: false,
     sessionNameMode: 'auto',
     customDynamicConfigUrl: '',
-    disableBattleEye: false
+    disableBattleEye: false,
+    
+    // Enhanced configuration options
+    individualServerSettings: false,
+    serverConfigs: [],
+    
+    // Detailed game settings
+    gameSettings: {
+      harvestMultiplier: 2.0,
+      xpMultiplier: 2.0,
+      tamingMultiplier: 3.0,
+      matingIntervalMultiplier: 0.5,
+      eggHatchSpeedMultiplier: 10.0,
+      babyMatureSpeedMultiplier: 20.0,
+      dayCycleSpeedScale: 1.0,
+      dayTimeSpeedScale: 1.0,
+      nightTimeSpeedScale: 1.0,
+      dinoDamageMultiplier: 1.0,
+      playerDamageMultiplier: 1.0,
+      structureDamageMultiplier: 1.0,
+      playerResistanceMultiplier: 1.0,
+      dinoResistanceMultiplier: 1.0,
+      structureResistanceMultiplier: 1.0,
+      difficultyOffset: 1.0,
+      allowThirdPersonPlayer: true,
+      alwaysNotifyPlayerLeft: true,
+      alwaysNotifyPlayerJoined: true,
+      serverCrosshair: true,
+      serverForceNoHUD: false,
+      serverThirdPersonPlayer: false,
+      serverHardcore: false,
+      serverShowMapPlayerLocation: true,
+      serverEnablePvPGamma: true,
+      serverAllowFlyerCarryPvE: true,
+      serverDisableStructurePlacementCollision: true,
+      serverAllowCaveBuildingPvE: true,
+      serverAllowFlyingStaminaRecovery: true,
+      serverAllowUnlimitedRespecs: true,
+      serverPreventSpawnFlier: true,
+      serverPreventOfflinePvP: true,
+      serverPreventOfflinePvPInterval: 300,
+      serverPreventOfflinePvPUseStructurePrevention: true,
+      serverPreventOfflinePvPUseStructurePreventionRadius: 1000,
+      maxPlatformSaddleStructureLimit: 130
+    },
+    
+    // Mod management
+    globalMods: [],
+    serverMods: {},
+    
+    // Port configuration
+    portConfiguration: {
+      basePort: 7777,
+      portIncrement: 1,
+      queryPortBase: 27015,
+      queryPortIncrement: 1,
+      rconPortBase: 32330,
+      rconPortIncrement: 1
+    },
+    
+    // Cluster settings
+    clusterSettings: {
+      clusterId: '',
+      clusterName: '',
+      clusterDescription: '',
+      clusterPassword: '',
+      clusterOwner: 'Admin'
+    },
+    
+    autoStart: false
   });
   const [availableMaps] = useState<{ name: string; displayName: string; available: boolean; }[]>([
     { name: 'TheIsland', displayName: 'The Island', available: true },
@@ -180,12 +236,12 @@ const ServerProvisioner: React.FC = () => {
     { name: 'ScorchedEarth', displayName: 'Scorched Earth', available: true },
     { name: 'Aberration', displayName: 'Aberration', available: true },
     { name: 'Extinction', displayName: 'Extinction', available: true },
-    { name: 'CrystalIsles', displayName: 'Crystal Isles', available: true },
-    { name: 'Valguero', displayName: 'Valguero', available: true },
-    { name: 'LostIsland', displayName: 'Lost Island', available: true },
-    { name: 'Fjordur', displayName: 'Fjordur', available: true },
-    { name: 'Genesis', displayName: 'Genesis', available: true },
-    { name: 'Genesis2', displayName: 'Genesis Part 2', available: true },
+    { name: 'CrystalIsles', displayName: 'Crystal Isles', available: false },
+    { name: 'Valguero', displayName: 'Valguero', available: false },
+    { name: 'LostIsland', displayName: 'Lost Island', available: false },
+    { name: 'Fjordur', displayName: 'Fjordur', available: false },
+    { name: 'Genesis', displayName: 'Genesis', available: false },
+    { name: 'Genesis2', displayName: 'Genesis Part 2', available: false },
     { name: 'BobsMissions', displayName: 'Club ARK', available: true }
   ]);
 
@@ -679,9 +735,15 @@ const ServerProvisioner: React.FC = () => {
         }
         break;
       case 'server-config':
+        setCurrentStep('individual-servers');
+        break;
+      case 'individual-servers':
         setCurrentStep('game-settings');
         break;
       case 'game-settings':
+        setCurrentStep('mods');
+        break;
+      case 'mods':
         setCurrentStep('review');
         break;
       case 'review':
@@ -703,11 +765,17 @@ const ServerProvisioner: React.FC = () => {
       case 'server-config':
         setCurrentStep('map-selection');
         break;
-      case 'game-settings':
+      case 'individual-servers':
         setCurrentStep('server-config');
         break;
-      case 'review':
+      case 'game-settings':
+        setCurrentStep('individual-servers');
+        break;
+      case 'mods':
         setCurrentStep('game-settings');
+        break;
+      case 'review':
+        setCurrentStep('mods');
         break;
       default:
         break;
@@ -1006,7 +1074,7 @@ const ServerProvisioner: React.FC = () => {
               <div>
                 <h2 className="text-3xl font-bold text-primary">Cluster Creation Wizard</h2>
                 <p className="text-base-content/70 mt-2">
-                  Step {['welcome', 'cluster-basic', 'map-selection', 'server-config', 'game-settings', 'review'].indexOf(currentStep) + 1} of 6
+                  Step {['welcome', 'cluster-basic', 'map-selection', 'server-config', 'individual-servers', 'game-settings', 'mods', 'review'].indexOf(currentStep) + 1} of 8
                 </p>
               </div>
               <button
@@ -1022,7 +1090,7 @@ const ServerProvisioner: React.FC = () => {
               <div className="w-full bg-base-300 rounded-full h-2">
                 <div 
                   className="bg-primary h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${((['welcome', 'cluster-basic', 'map-selection', 'server-config', 'game-settings', 'review'].indexOf(currentStep) + 1) / 6) * 100}%` }}
+                  style={{ width: `${((['welcome', 'cluster-basic', 'map-selection', 'server-config', 'individual-servers', 'game-settings', 'mods', 'review'].indexOf(currentStep) + 1) / 8) * 100}%` }}
                 ></div>
               </div>
             </div>
@@ -1032,7 +1100,9 @@ const ServerProvisioner: React.FC = () => {
               {currentStep === 'cluster-basic' && <ClusterBasicStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
               {currentStep === 'map-selection' && <MapSelectionStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} toggleMap={toggleMap} updateMapCount={updateMapCount} generateServers={generateServers} />}
               {currentStep === 'server-config' && <ServerConfigStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
+              {currentStep === 'individual-servers' && <IndividualServersStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
               {currentStep === 'game-settings' && <GameSettingsStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
+              {currentStep === 'mods' && <ModsStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
               {currentStep === 'review' && <ReviewStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
               {currentStep === 'creating' && <CreatingStep jobId={currentJobId} jobProgress={jobProgress} />}
             </div>
