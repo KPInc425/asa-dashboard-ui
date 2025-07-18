@@ -1926,11 +1926,11 @@ export const provisioningApi = {
         setTimeout(() => {
           resolve({
             success: true,
-            cluster: config,
+            cluster: clusterConfig,
             message: 'Cluster created successfully (mock)',
             jobId: 'mock-job-id'
           });
-        }, 2000);
+        }, 1000);
       });
     }
 
