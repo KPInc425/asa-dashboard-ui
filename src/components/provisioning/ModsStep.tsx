@@ -163,7 +163,7 @@ const ModsStep: React.FC<StepProps> = ({ wizardData, setWizardData, generateServ
 
       {/* Server-specific Mods Section */}
       <div className="space-y-4">
-        {servers.map((server, index) => (
+        {servers.map((server) => (
           <div key={server.name} className="bg-base-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold">{server.name}</h4>

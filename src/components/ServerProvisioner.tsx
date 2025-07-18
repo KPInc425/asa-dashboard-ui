@@ -782,6 +782,21 @@ const ServerProvisioner: React.FC = () => {
     }
   };
 
+  // Determine if the current step is 'creating'
+  const isCreating = currentStep === 'creating';
+
+  // Define the main wizard steps (excluding 'creating')
+  const wizardSteps: WizardStep[] = [
+    'welcome',
+    'cluster-basic',
+    'map-selection',
+    'server-config',
+    'individual-servers',
+    'game-settings',
+    'mods',
+    'review',
+  ];
+
   return (
     <div className="h-full flex flex-col p-6">
       <div className="max-w-7xl mx-auto w-full space-y-6">
@@ -1073,9 +1088,12 @@ const ServerProvisioner: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-3xl font-bold text-primary">Cluster Creation Wizard</h2>
-                <p className="text-base-content/70 mt-2">
-                  Step {['welcome', 'cluster-basic', 'map-selection', 'server-config', 'individual-servers', 'game-settings', 'mods', 'review'].indexOf(currentStep) + 1} of 8
-                </p>
+                {/* Only show step count if not creating */}
+                {!isCreating && (
+                  <p className="text-base-content/70 mt-2">
+                    Step {wizardSteps.indexOf(currentStep as WizardStep) + 1} of {wizardSteps.length}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => setShowWizard(false)}
@@ -1085,15 +1103,17 @@ const ServerProvisioner: React.FC = () => {
               </button>
             </div>
 
-            <div className="mb-6">
-              {/* Progress Bar */}
-              <div className="w-full bg-base-300 rounded-full h-2">
-                <div 
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${((['welcome', 'cluster-basic', 'map-selection', 'server-config', 'individual-servers', 'game-settings', 'mods', 'review'].indexOf(currentStep) + 1) / 8) * 100}%` }}
-                ></div>
+            {/* Progress Bar: Only show if not creating */}
+            {!isCreating && (
+              <div className="mb-6">
+                <div className="w-full bg-base-300 rounded-full h-2">
+                  <div 
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${((wizardSteps.indexOf(currentStep as WizardStep) + 1) / wizardSteps.length) * 100}%` }}
+                  ></div>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="min-h-[400px]">
               {currentStep === 'welcome' && <WelcomeStep />}
@@ -1108,7 +1128,7 @@ const ServerProvisioner: React.FC = () => {
             </div>
 
             {/* Navigation Buttons: Hide when creating */}
-            {currentStep !== 'creating' && (
+            {!isCreating && (
               <div className="flex justify-between mt-6 pt-6 border-t border-base-300">
                 <button 
                   className="btn btn-outline" 
@@ -1120,7 +1140,6 @@ const ServerProvisioner: React.FC = () => {
                 <button 
                   className="btn btn-primary" 
                   onClick={nextStep}
-                  disabled={currentStep === 'creating'}
                 >
                   {currentStep === 'review' ? '🚀 Create Cluster' : 'Next →'}
                 </button>
