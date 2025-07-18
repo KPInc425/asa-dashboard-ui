@@ -46,7 +46,7 @@ const MapSelectionStep: React.FC<StepProps> = ({ wizardData, setWizardData, avai
     {/* Custom Map Input */}
     <div className="bg-base-300 rounded-lg p-4 border-2 border-dashed border-base-content/30">
       <h3 className="font-semibold mb-3">Custom Map (Premium/Mod Maps)</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="form-control">
           <label className="label">
             <span className="label-text font-semibold">Map Name</span>
@@ -59,7 +59,7 @@ const MapSelectionStep: React.FC<StepProps> = ({ wizardData, setWizardData, avai
             onChange={(e) => setWizardData(prev => ({ ...prev, customMapName: e.target.value }))}
           />
           <label className="label">
-            <span className="label-text-alt">Enter the exact map name (e.g., ModMapName)</span>
+            <span className="label-text-alt text-xs">Enter the exact map name (e.g., ModMapName)</span>
           </label>
         </div>
         
@@ -75,7 +75,7 @@ const MapSelectionStep: React.FC<StepProps> = ({ wizardData, setWizardData, avai
             onChange={(e) => setWizardData(prev => ({ ...prev, customMapDisplayName: e.target.value }))}
           />
           <label className="label">
-            <span className="label-text-alt">Friendly name for display</span>
+            <span className="label-text-alt text-xs">Friendly name for display</span>
           </label>
         </div>
         
@@ -93,7 +93,7 @@ const MapSelectionStep: React.FC<StepProps> = ({ wizardData, setWizardData, avai
             onChange={(e) => setWizardData(prev => ({ ...prev, customMapCount: parseInt(e.target.value) || 1 }))}
           />
           <label className="label">
-            <span className="label-text-alt">Number of servers for this map</span>
+            <span className="label-text-alt text-xs">Number of servers for this map</span>
           </label>
         </div>
       </div>
