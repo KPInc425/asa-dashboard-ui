@@ -4,6 +4,7 @@ import { socketService, type JobProgress } from '../services/socket';
 import PasswordInput from './PasswordInput';
 import GlobalConfigManager from './GlobalConfigManager';
 import GlobalModManager from './GlobalModManager';
+import ServerBackupManager from './ServerBackupManager';
 import type { SystemInfo, Cluster, WizardData, WizardStep, ServerConfig, StepProps } from '../types/provisioning';
 import { WelcomeStep, ClusterBasicStep, MapSelectionStep, GameSettingsStep, CreatingStep } from './provisioning';
 
@@ -146,6 +147,8 @@ const ServerProvisioner: React.FC = () => {
   const [jobProgress, setJobProgress] = useState<JobProgress | null>(null);
   const [showGlobalConfigManager, setShowGlobalConfigManager] = useState(false);
   const [showGlobalModManager, setShowGlobalModManager] = useState(false);
+  const [showServerBackupManager, setShowServerBackupManager] = useState(false);
+  const [selectedServerForBackup, setSelectedServerForBackup] = useState<string | null>(null);
   const [wizardData, setWizardData] = useState<WizardData>({
     clusterName: '',
     description: '',
@@ -170,7 +173,21 @@ const ServerProvisioner: React.FC = () => {
     customDynamicConfigUrl: '',
     disableBattleEye: false
   });
-  const [availableMaps] = useState<{ name: string; displayName: string; available: boolean; }[]>([]);
+  const [availableMaps] = useState<{ name: string; displayName: string; available: boolean; }[]>([
+    { name: 'TheIsland', displayName: 'The Island', available: true },
+    { name: 'TheCenter', displayName: 'The Center', available: true },
+    { name: 'Ragnarok', displayName: 'Ragnarok', available: true },
+    { name: 'ScorchedEarth', displayName: 'Scorched Earth', available: true },
+    { name: 'Aberration', displayName: 'Aberration', available: true },
+    { name: 'Extinction', displayName: 'Extinction', available: true },
+    { name: 'CrystalIsles', displayName: 'Crystal Isles', available: true },
+    { name: 'Valguero', displayName: 'Valguero', available: true },
+    { name: 'LostIsland', displayName: 'Lost Island', available: true },
+    { name: 'Fjordur', displayName: 'Fjordur', available: true },
+    { name: 'Genesis', displayName: 'Genesis', available: true },
+    { name: 'Genesis2', displayName: 'Genesis Part 2', available: true },
+    { name: 'BobsMissions', displayName: 'Club ARK', available: true }
+  ]);
 
   useEffect(() => {
     loadSystemInfo();
@@ -404,6 +421,9 @@ const ServerProvisioner: React.FC = () => {
     }
 
     try {
+      setLoading(true);
+      setStatusMessage(`Deleting cluster "${clusterName}"...`);
+      setStatusType('info');
       const response = await apiService.provisioning.deleteCluster(clusterName, { 
         backupSaved: true, 
         deleteFiles: true 
@@ -416,7 +436,9 @@ const ServerProvisioner: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Failed to delete cluster:', error);
-      
+      setStatusMessage(`❌ Failed to delete cluster "${clusterName}": ${error.message || error}`);
+      setStatusType('error');
+      setTimeout(() => setStatusMessage(null), 10000);
       // If normal delete fails, offer force delete
       if (!force) {
         const shouldForceDelete = confirm(
@@ -426,16 +448,10 @@ const ServerProvisioner: React.FC = () => {
         
         if (shouldForceDelete) {
           await deleteCluster(clusterName, true);
-        } else {
-          setStatusMessage(`❌ Failed to delete cluster "${clusterName}"`);
-          setStatusType('error');
-          setTimeout(() => setStatusMessage(null), 10000);
         }
-      } else {
-        setStatusMessage(`❌ Failed to force delete cluster "${clusterName}": ${error instanceof Error ? error.message : String(error)}`);
-        setStatusType('error');
-        setTimeout(() => setStatusMessage(null), 10000);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -831,6 +847,15 @@ const ServerProvisioner: React.FC = () => {
                     >
                       🎮 Global Mod Management
                     </button>
+                    <button 
+                      className="btn btn-outline btn-sm w-full justify-start"
+                      onClick={() => {
+                        setSelectedServerForBackup(null);
+                        setShowServerBackupManager(true);
+                      }}
+                    >
+                      💾 Server Backup Manager
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1011,6 +1036,14 @@ const ServerProvisioner: React.FC = () => {
       {/* Global Mod Manager Modal */}
       {showGlobalModManager && (
         <GlobalModManager onClose={() => setShowGlobalModManager(false)} />
+      )}
+
+      {/* Server Backup Manager Modal */}
+      {showServerBackupManager && (
+        <ServerBackupManager 
+          onClose={() => setShowServerBackupManager(false)}
+          selectedServer={selectedServerForBackup || undefined}
+        />
       )}
 
       {/* Status Message */}

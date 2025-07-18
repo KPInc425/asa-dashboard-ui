@@ -2030,6 +2030,82 @@ export const provisioningApi = {
       source
     });
     return response.data;
+  },
+
+  /**
+   * Backup individual server
+   */
+  backupServer: async (name: string, options?: { destination?: string; includeConfigs?: boolean; includeScripts?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Server ${name} backed up successfully (mock)`,
+            data: { backupPath: '/mock/server/backup/path' }
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/servers/${encodeURIComponent(name)}/backup`, options || {});
+    return response.data;
+  },
+
+  /**
+   * Restore individual server
+   */
+  restoreServer: async (name: string, source: string, options?: { targetClusterName?: string; overwrite?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Server ${name} restored successfully (mock)`,
+            data: { sourcePath: source, targetCluster: options?.targetClusterName || 'original' }
+          });
+        }, 3000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/servers/${encodeURIComponent(name)}/restore`, {
+      source,
+      ...options
+    });
+    return response.data;
+  },
+
+  /**
+   * List server backups
+   */
+  listServerBackups: async (): Promise<{ success: boolean; message: string; data?: any }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Server backups retrieved successfully (mock)',
+            data: {
+              backups: [
+                {
+                  name: 'TestServer-2024-01-15T10-30-45-123Z',
+                  path: '/mock/backup/path',
+                  serverName: 'TestServer',
+                  originalCluster: 'TestCluster',
+                  backupDate: new Date().toISOString(),
+                  size: 1024000,
+                  sizeFormatted: '1.0 MB'
+                }
+              ],
+              count: 1
+            }
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/server-backups');
+    return response.data;
   }
 };
 
@@ -2119,6 +2195,33 @@ export const restoreCluster = async (clusterName: string, source: string): Promi
   });
   if (!response.data.success) {
     throw new ApiError('Failed to restore cluster', 500, response.data);
+  }
+  return response.data;
+};
+
+export const backupServer = async (serverName: string, options?: { destination?: string; includeConfigs?: boolean; includeScripts?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+  const response = await api.post<{ success: boolean; message: string; data?: any }>(`/api/provisioning/servers/${encodeURIComponent(serverName)}/backup`, options || {});
+  if (!response.data.success) {
+    throw new ApiError('Failed to backup server', 500, response.data);
+  }
+  return response.data;
+};
+
+export const restoreServer = async (serverName: string, source: string, options?: { targetClusterName?: string; overwrite?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+  const response = await api.post<{ success: boolean; message: string; data?: any }>(`/api/provisioning/servers/${encodeURIComponent(serverName)}/restore`, {
+    source,
+    ...options
+  });
+  if (!response.data.success) {
+    throw new ApiError('Failed to restore server', 500, response.data);
+  }
+  return response.data;
+};
+
+export const listServerBackups = async (): Promise<{ success: boolean; message: string; data?: any }> => {
+  const response = await api.get<{ success: boolean; message: string; data?: any }>('/api/provisioning/server-backups');
+  if (!response.data.success) {
+    throw new ApiError('Failed to list server backups', 500, response.data);
   }
   return response.data;
 };
