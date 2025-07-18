@@ -462,30 +462,32 @@ const Dashboard: React.FC = () => {
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Clusters Section */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Clusters ({clusters.length})</h3>
-            {clusters.length === 0 ? (
-              <p className="text-gray-500">No clusters found</p>
-            ) : (
-              <div className="space-y-3">
-                {clusters.map((cluster) => (
-                  <div key={cluster.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium">{cluster.name}</h4>
-                      <p className="text-sm text-gray-600">
-                        {getClusterStatus(cluster)}
-                      </p>
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <h3 className="card-title">Clusters ({clusters.length})</h3>
+              {clusters.length === 0 ? (
+                <p className="text-base-content/70">No clusters found</p>
+              ) : (
+                <div className="space-y-3">
+                  {clusters.map((cluster) => (
+                    <div key={cluster.name} className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                      <div>
+                        <h4 className="font-medium">{cluster.name}</h4>
+                        <p className="text-sm text-base-content/70">
+                          {getClusterStatus(cluster)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => navigate(`/clusters/${encodeURIComponent(cluster.name)}`)}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        View Details
+                      </button>
                     </div>
-                    <button
-                      onClick={() => navigate(`/clusters/${encodeURIComponent(cluster.name)}`)}
-                      className="btn btn-sm btn-outline"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Servers */}
@@ -563,42 +565,42 @@ const Dashboard: React.FC = () => {
             <h3 className="font-bold text-lg mb-4">Debug Information</h3>
             <div className="space-y-4 max-h-[70vh] overflow-auto">
               <div>
-                <h4 className="font-semibold text-sm text-gray-600 mb-2">Timestamp</h4>
+                <h4 className="font-semibold text-sm text-base-content/70 mb-2">Timestamp</h4>
                 <p className="text-sm">{debugInfo.timestamp}</p>
               </div>
               
               <div>
-                <h4 className="font-semibold text-sm text-gray-600 mb-2">Environment Variables</h4>
-                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                <h4 className="font-semibold text-sm text-base-content/70 mb-2">Environment Variables</h4>
+                <pre className="text-xs bg-base-200 p-3 rounded-lg overflow-auto text-base-content">
                   {JSON.stringify(debugInfo.environment, null, 2)}
                 </pre>
               </div>
               
               <div>
-                <h4 className="font-semibold text-sm text-gray-600 mb-2">Config</h4>
-                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                <h4 className="font-semibold text-sm text-base-content/70 mb-2">Config</h4>
+                <pre className="text-xs bg-base-200 p-3 rounded-lg overflow-auto text-base-content">
                   {JSON.stringify(debugInfo.config, null, 2)}
                 </pre>
               </div>
               
               <div>
-                <h4 className="font-semibold text-sm text-gray-600 mb-2">Provisioner Paths</h4>
-                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                <h4 className="font-semibold text-sm text-base-content/70 mb-2">Provisioner Paths</h4>
+                <pre className="text-xs bg-base-200 p-3 rounded-lg overflow-auto text-base-content">
                   {JSON.stringify(debugInfo.provisioner, null, 2)}
                 </pre>
               </div>
               
               <div>
-                <h4 className="font-semibold text-sm text-gray-600 mb-2">Clusters ({debugInfo.clusters.length})</h4>
-                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                <h4 className="font-semibold text-sm text-base-content/70 mb-2">Clusters ({debugInfo.clusters.length})</h4>
+                <pre className="text-xs bg-base-200 p-3 rounded-lg overflow-auto text-base-content">
                   {JSON.stringify(debugInfo.clusters, null, 2)}
                 </pre>
               </div>
               
               {debugInfo.errors.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-sm text-red-600 mb-2">Errors ({debugInfo.errors.length})</h4>
-                  <ul className="text-xs text-red-600">
+                  <h4 className="font-semibold text-sm text-error mb-2">Errors ({debugInfo.errors.length})</h4>
+                  <ul className="text-xs text-error">
                     {debugInfo.errors.map((error, index) => (
                       <li key={index} className="mb-1">• {error}</li>
                     ))}
