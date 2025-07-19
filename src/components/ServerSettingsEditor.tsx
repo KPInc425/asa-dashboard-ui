@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
+import PasswordInput from './PasswordInput';
 
 interface ServerSettings {
   name: string;
@@ -273,12 +274,11 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
               <label className="label">
                 <span className="label-text">Admin Password</span>
               </label>
-              <input
-                type="password"
-                className="input input-bordered w-full"
+              <PasswordInput
                 value={settings.adminPassword}
-                onChange={(e) => handleInputChange('adminPassword', e.target.value)}
+                onChange={(value) => handleInputChange('adminPassword', value)}
                 placeholder="Admin Password"
+                required={true}
               />
             </div>
 
@@ -286,11 +286,9 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
               <label className="label">
                 <span className="label-text">Server Password</span>
               </label>
-              <input
-                type="password"
-                className="input input-bordered w-full"
+              <PasswordInput
                 value={settings.serverPassword}
-                onChange={(e) => handleInputChange('serverPassword', e.target.value)}
+                onChange={(value) => handleInputChange('serverPassword', value)}
                 placeholder="Server Password (optional)"
               />
             </div>
@@ -299,12 +297,11 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
               <label className="label">
                 <span className="label-text">RCON Password</span>
               </label>
-              <input
-                type="password"
-                className="input input-bordered w-full"
+              <PasswordInput
                 value={settings.rconPassword}
-                onChange={(e) => handleInputChange('rconPassword', e.target.value)}
+                onChange={(value) => handleInputChange('rconPassword', value)}
                 placeholder="RCON Password"
+                required={true}
               />
             </div>
           </div>
@@ -332,11 +329,9 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
                 <label className="label">
                   <span className="label-text">Cluster Password</span>
                 </label>
-                <input
-                  type="password"
-                  className="input input-bordered w-full"
+                <PasswordInput
                   value={settings.clusterPassword}
-                  onChange={(e) => handleInputChange('clusterPassword', e.target.value)}
+                  onChange={(value) => handleInputChange('clusterPassword', value)}
                   placeholder="Cluster Password"
                 />
               </div>
