@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Server } from '../utils/serverUtils';
+import { api } from '../services/api';
 
 interface ServerDetailsModalProps {
   server: Server | null;
