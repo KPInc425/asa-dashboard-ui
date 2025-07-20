@@ -389,6 +389,28 @@ const ServerCard: React.FC<ServerCardProps> = ({
         >
           🔍 View Details
         </button>
+        
+        {/* Fix RCON button for native servers */}
+        {(server.type === 'native' || server.type === 'cluster-server' || server.type === 'individual') && server.rconPort && (
+          <button
+            title="Fix RCON authentication issues"
+            onClick={async () => {
+              try {
+                const response = await containerApi.api.post(`/api/native-servers/${encodeURIComponent(server.name)}/fix-rcon`);
+                if (response.data.success) {
+                  alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
+                } else {
+                  alert(`❌ Failed to fix RCON: ${response.data.message}`);
+                }
+              } catch (error) {
+                alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              }
+            }}
+            className="btn btn-warning btn-sm w-full"
+          >
+            🔧 Fix RCON
+          </button>
+        )}
       </div>
 
         {/* Show crash information if server crashed */}
