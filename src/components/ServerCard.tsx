@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { containerApi, api } from '../services/api';
+import RconDebugModal from './RconDebugModal';
 
 interface Server {
   name: string;
@@ -53,6 +54,8 @@ const ServerCard: React.FC<ServerCardProps> = ({
 }) => {
   const [liveStats, setLiveStats] = useState<LiveServerStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [debugModalOpen, setDebugModalOpen] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   // Fetch live server stats when server is running
   useEffect(() => {
@@ -417,18 +420,8 @@ const ServerCard: React.FC<ServerCardProps> = ({
                 try {
                   const response = await api.get(`/api/native-servers/${encodeURIComponent(server.name)}/debug-rcon`);
                   if (response.data.success && response.data.debug) {
-                    const debug = response.data.debug;
-                    const message = `🔍 RCON Debug for ${server.name}:\n\n` +
-                      `Server Password: ${debug.serverInfo?.adminPassword || 'undefined'}\n` +
-                      `Database Password: ${debug.databaseConfig?.adminPassword || 'undefined'}\n` +
-                      `Start.bat Password: ${debug.startBatInfo?.password || 'undefined'}\n` +
-                      `All Match: ${debug.passwordComparison?.allMatch ? '✅' : '❌'}\n` +
-                      `Start.bat Exists: ${debug.startBatInfo?.exists ? '✅' : '❌'}\n` +
-                      `Path: ${debug.startBatInfo?.path || 'undefined'}\n\n` +
-                      `Server Type: ${debug.serverInfo?.serverType || 'undefined'}\n` +
-                      `Is Cluster Server: ${debug.serverInfo?.isClusterServer || false}\n` +
-                      `Cluster Name: ${debug.serverInfo?.clusterName || 'undefined'}`;
-                    alert(message);
+                    setDebugInfo(response.data.debug);
+                    setDebugModalOpen(true);
                   } else {
                     alert(`❌ Debug failed: ${response.data.message || 'Unknown error'}`);
                   }
@@ -474,6 +467,14 @@ const ServerCard: React.FC<ServerCardProps> = ({
             </div>
           </div>
         )}
+        
+        {/* RCON Debug Modal */}
+        <RconDebugModal
+          isOpen={debugModalOpen}
+          onClose={() => setDebugModalOpen(false)}
+          debugInfo={debugInfo}
+          serverName={server.name}
+        />
     </div>
   );
 };
