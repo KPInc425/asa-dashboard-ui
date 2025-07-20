@@ -11,7 +11,6 @@ interface ServerSettings {
   maxPlayers: number;
   adminPassword: string;
   serverPassword: string;
-  rconPassword: string;
   clusterId: string;
   clusterPassword: string;
   sessionName: string;
@@ -35,7 +34,6 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
     maxPlayers: server.maxPlayers || 70,
     adminPassword: server.adminPassword || 'admin123',
     serverPassword: server.serverPassword || '',
-    rconPassword: server.rconPassword || 'rcon123',
     clusterId: server.clusterId || '',
     clusterPassword: server.clusterPassword || '',
     sessionName: server.sessionName || server.name || '',
@@ -85,9 +83,6 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
     }
     if (!settings.adminPassword.trim()) {
       return 'Admin password is required';
-    }
-    if (!settings.rconPassword.trim()) {
-      return 'RCON password is required';
     }
     
     // Check for port conflicts
@@ -269,10 +264,11 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
         {/* Password Settings */}
         <div className="mt-6">
           <h4 className="font-semibold text-base-content/80 mb-4">Password Settings</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="label">
                 <span className="label-text">Admin Password</span>
+                <span className="label-text-alt">(Also used for RCON)</span>
               </label>
               <PasswordInput
                 value={settings.adminPassword}
@@ -290,18 +286,6 @@ const ServerSettingsEditor: React.FC<ServerSettingsEditorProps> = ({ server, onC
                 value={settings.serverPassword}
                 onChange={(value) => handleInputChange('serverPassword', value)}
                 placeholder="Server Password (optional)"
-              />
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">RCON Password</span>
-              </label>
-              <PasswordInput
-                value={settings.rconPassword}
-                onChange={(value) => handleInputChange('rconPassword', value)}
-                placeholder="RCON Password"
-                required={true}
               />
             </div>
           </div>
