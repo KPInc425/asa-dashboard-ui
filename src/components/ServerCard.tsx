@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { containerApi } from '../services/api';
+import { containerApi, api } from '../services/api';
 
 interface Server {
   name: string;
@@ -396,7 +396,7 @@ const ServerCard: React.FC<ServerCardProps> = ({
             title="Fix RCON authentication issues"
             onClick={async () => {
               try {
-                const response = await containerApi.api.post(`/api/native-servers/${encodeURIComponent(server.name)}/fix-rcon`);
+                const response = await api.post(`/api/native-servers/${encodeURIComponent(server.name)}/fix-rcon`);
                 if (response.data.success) {
                   alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
                 } else {
