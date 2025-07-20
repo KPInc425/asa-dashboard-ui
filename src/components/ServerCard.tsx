@@ -416,21 +416,25 @@ const ServerCard: React.FC<ServerCardProps> = ({
               onClick={async () => {
                 try {
                   const response = await api.get(`/api/native-servers/${encodeURIComponent(server.name)}/debug-rcon`);
-                  if (response.data.success) {
+                  if (response.data.success && response.data.debug) {
                     const debug = response.data.debug;
                     const message = `🔍 RCON Debug for ${server.name}:\n\n` +
-                      `Server Password: ${debug.serverInfo.adminPassword}\n` +
-                      `Database Password: ${debug.databaseConfig?.adminPassword}\n` +
-                      `Start.bat Password: ${debug.startBatInfo.password}\n` +
-                      `All Match: ${debug.passwordComparison.allMatch ? '✅' : '❌'}\n` +
-                      `Start.bat Exists: ${debug.startBatInfo.exists ? '✅' : '❌'}\n` +
-                      `Path: ${debug.startBatInfo.path}`;
+                      `Server Password: ${debug.serverInfo?.adminPassword || 'undefined'}\n` +
+                      `Database Password: ${debug.databaseConfig?.adminPassword || 'undefined'}\n` +
+                      `Start.bat Password: ${debug.startBatInfo?.password || 'undefined'}\n` +
+                      `All Match: ${debug.passwordComparison?.allMatch ? '✅' : '❌'}\n` +
+                      `Start.bat Exists: ${debug.startBatInfo?.exists ? '✅' : '❌'}\n` +
+                      `Path: ${debug.startBatInfo?.path || 'undefined'}\n\n` +
+                      `Server Type: ${debug.serverInfo?.serverType || 'undefined'}\n` +
+                      `Is Cluster Server: ${debug.serverInfo?.isClusterServer || false}\n` +
+                      `Cluster Name: ${debug.serverInfo?.clusterName || 'undefined'}`;
                     alert(message);
                   } else {
-                    alert(`❌ Debug failed: ${response.data.message}`);
+                    alert(`❌ Debug failed: ${response.data.message || 'Unknown error'}`);
                   }
                 } catch (error) {
-                  alert(`❌ Debug error: ${(error as any).response?.data?.message || (error as Error).message}`);
+                  const errorMessage = (error as any).response?.data?.message || (error as Error).message || 'Unknown error';
+                  alert(`❌ Debug error: ${errorMessage}`);
                 }
               }}
               className="btn btn-info btn-sm"
