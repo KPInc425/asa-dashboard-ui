@@ -197,6 +197,26 @@ const ServerDetailsModal: React.FC<ServerDetailsModalProps> = ({ server, isOpen,
                 >
                   🎮 Manage Mods
                 </button>
+                <button
+                  onClick={async () => {
+                    if (server) {
+                      try {
+                        const response = await api.post(`/api/native-servers/${encodeURIComponent(server.name)}/fix-rcon`);
+                        if (response.data.success) {
+                          alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
+                        } else {
+                          alert(`❌ Failed to fix RCON: ${response.data.message}`);
+                        }
+                      } catch (error) {
+                        alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                      }
+                    }
+                  }}
+                  className="btn btn-warning"
+                  title="Fix RCON authentication issues by regenerating start script with correct password"
+                >
+                  🔧 Fix RCON
+                </button>
               </div>
             </div>
           </div>

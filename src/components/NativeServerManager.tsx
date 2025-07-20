@@ -482,6 +482,24 @@ const NativeServerManager: React.FC = () => {
                         >
                           🔄 Regenerate
                         </button>
+                        <button
+                          title="Fix RCON authentication issues"
+                          onClick={async () => {
+                            try {
+                              const response = await api.post(`/api/native-servers/${server.name}/fix-rcon`);
+                              if (response.data.success) {
+                                alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
+                              } else {
+                                alert(`❌ Failed to fix RCON: ${response.data.message}`);
+                              }
+                            } catch (error) {
+                              alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                            }
+                          }}
+                          className="btn btn-warning btn-xs flex-1"
+                        >
+                          🔧 Fix RCON
+                        </button>
                       </>
                     )}
                     {/* Individual server controls */}

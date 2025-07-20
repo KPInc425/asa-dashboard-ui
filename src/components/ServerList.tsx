@@ -1,4 +1,5 @@
 import React from 'react';
+import { api } from '../services/api';
 
 interface Server {
   name: string;
@@ -241,6 +242,24 @@ const ServerList: React.FC<ServerListProps> = ({
                       ⚙️
                     </button>
                   )}
+                  <button
+                    title="Fix RCON authentication issues"
+                    onClick={async () => {
+                      try {
+                        const response = await api.post(`/api/native-servers/${server.name}/fix-rcon`);
+                        if (response.data.success) {
+                          alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
+                        } else {
+                          alert(`❌ Failed to fix RCON: ${response.data.message}`);
+                        }
+                      } catch (error) {
+                        alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                      }
+                    }}
+                    className="btn btn-xs btn-warning"
+                  >
+                    🔧
+                  </button>
                 </div>
               </td>
             </tr>
