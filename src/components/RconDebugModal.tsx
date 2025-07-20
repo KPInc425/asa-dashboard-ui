@@ -49,6 +49,7 @@ const RconDebugModal: React.FC<RconDebugModalProps> = ({ isOpen, onClose, debugI
   };
 
   const formatJson = (obj: any) => {
+    if (!obj) return 'null';
     return JSON.stringify(obj, null, 2);
   };
 
@@ -162,25 +163,25 @@ const RconDebugModal: React.FC<RconDebugModalProps> = ({ isOpen, onClose, debugI
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span>Start.bat Exists:</span>
-                  <span className={`badge ${debugInfo.startBatInfo.exists ? 'badge-success' : 'badge-error'}`}>
-                    {debugInfo.startBatInfo.exists ? '✅ Yes' : '❌ No'}
+                  <span className={`badge ${debugInfo.startBatInfo?.exists ? 'badge-success' : 'badge-error'}`}>
+                    {debugInfo.startBatInfo?.exists ? '✅ Yes' : '❌ No'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span>Passwords Match:</span>
-                  <span className={`badge ${debugInfo.passwordComparison.allMatch ? 'badge-success' : 'badge-error'}`}>
-                    {debugInfo.passwordComparison.allMatch ? '✅ Yes' : '❌ No'}
+                  <span className={`badge ${debugInfo.passwordComparison?.allMatch ? 'badge-success' : 'badge-error'}`}>
+                    {debugInfo.passwordComparison?.allMatch ? '✅ Yes' : '❌ No'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span>Is Cluster Server:</span>
-                  <span className={`badge ${debugInfo.serverInfo.isClusterServer ? 'badge-info' : 'badge-warning'}`}>
-                    {debugInfo.serverInfo.isClusterServer ? '✅ Yes' : '❌ No'}
+                  <span className={`badge ${debugInfo.serverInfo?.isClusterServer ? 'badge-info' : 'badge-warning'}`}>
+                    {debugInfo.serverInfo?.isClusterServer ? '✅ Yes' : '❌ No'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span>Server Type:</span>
-                  <span className="badge badge-outline">{debugInfo.serverInfo.serverType}</span>
+                  <span className="badge badge-outline">{debugInfo.serverInfo?.serverType || 'Unknown'}</span>
                 </div>
               </div>
             </div>
