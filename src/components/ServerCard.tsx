@@ -430,7 +430,7 @@ const ServerCard: React.FC<ServerCardProps> = ({
                     alert(`❌ Debug failed: ${response.data.message}`);
                   }
                 } catch (error) {
-                  alert(`❌ Debug error: ${error.response?.data?.message || error.message}`);
+                  alert(`❌ Debug error: ${(error as any).response?.data?.message || (error as Error).message}`);
                 }
               }}
               className="btn btn-info btn-sm"
