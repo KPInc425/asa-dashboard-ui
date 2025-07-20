@@ -431,6 +431,36 @@ const Servers: React.FC = () => {
               >
                 🔧 Fix RCON
               </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await api.get('/api/native-servers/debug-clusters');
+                    if (response.data.success) {
+                      const debug = response.data.debug;
+                      let message = `🔍 Cluster Debug:\n\n`;
+                      message += `Path: ${debug.clustersPath}\n`;
+                      message += `Exists: ${debug.clustersPathExists ? '✅' : '❌'}\n\n`;
+                      
+                      if (debug.clustersPathExists) {
+                        message += `Clusters: ${debug.clusterDirs.join(', ')}\n\n`;
+                        message += `Raw config data:\n${JSON.stringify(debug.clusterConfigs, null, 2)}`;
+                      } else {
+                        message += `Error: ${String(debug.error || 'Path does not exist')}`;
+                      }
+                      
+                      alert(message);
+                    } else {
+                      alert(`❌ Debug failed: ${response.data.message}`);
+                    }
+                  } catch (error) {
+                    alert(`❌ Debug error: ${error.response?.data?.message || error.message}`);
+                  }
+                }}
+                className="btn btn-info btn-sm"
+                title="Debug cluster configuration"
+              >
+                🔍 Debug Clusters
+              </button>
             </div>
           </div>
         </div>

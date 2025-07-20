@@ -392,24 +392,52 @@ const ServerCard: React.FC<ServerCardProps> = ({
         
         {/* Fix RCON button for native servers */}
         {(server.type === 'native' || server.type === 'cluster-server' || server.type === 'individual') && server.rconPort && (
-          <button
-            title="Fix RCON authentication issues"
-            onClick={async () => {
-              try {
-                const response = await api.post(`/api/native-servers/${encodeURIComponent(server.name)}/fix-rcon`);
-                if (response.data.success) {
-                  alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
-                } else {
-                  alert(`❌ Failed to fix RCON: ${response.data.message}`);
+          <div className="flex gap-1">
+            <button
+              title="Fix RCON authentication issues"
+              onClick={async () => {
+                try {
+                  const response = await api.post(`/api/native-servers/${encodeURIComponent(server.name)}/fix-rcon`);
+                  if (response.data.success) {
+                    alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
+                  } else {
+                    alert(`❌ Failed to fix RCON: ${response.data.message}`);
+                  }
+                } catch (error) {
+                  alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
                 }
-              } catch (error) {
-                alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
-              }
-            }}
-            className="btn btn-warning btn-sm w-full"
-          >
-            🔧 Fix RCON
-          </button>
+              }}
+              className="btn btn-warning btn-sm flex-1"
+            >
+              🔧 Fix RCON
+            </button>
+            <button
+              title="Debug RCON configuration"
+              onClick={async () => {
+                try {
+                  const response = await api.get(`/api/native-servers/${encodeURIComponent(server.name)}/debug-rcon`);
+                  if (response.data.success) {
+                    const debug = response.data.debug;
+                    const message = `🔍 RCON Debug for ${server.name}:\n\n` +
+                      `Server Password: ${debug.serverInfo.adminPassword}\n` +
+                      `Database Password: ${debug.databaseConfig?.adminPassword}\n` +
+                      `Start.bat Password: ${debug.startBatInfo.password}\n` +
+                      `All Match: ${debug.passwordComparison.allMatch ? '✅' : '❌'}\n` +
+                      `Start.bat Exists: ${debug.startBatInfo.exists ? '✅' : '❌'}\n` +
+                      `Path: ${debug.startBatInfo.path}`;
+                    alert(message);
+                  } else {
+                    alert(`❌ Debug failed: ${response.data.message}`);
+                  }
+                } catch (error) {
+                  alert(`❌ Debug error: ${error.response?.data?.message || error.message}`);
+                }
+              }}
+              className="btn btn-info btn-sm"
+            >
+              🔍
+            </button>
+          </div>
         )}
       </div>
 
