@@ -1,0 +1,170 @@
+rcon_commands:
+  - name: ServerChat
+    syntax: "ServerChat <message>"
+    description: "Send a global chat message to all players"
+    category: "Chat & Messaging"
+
+  - name: ServerChatToPlayer
+    syntax: "ServerChatToPlayer <PlayerID> <message>"
+    description: "Send a private message to a specific player"
+    category: "Chat & Messaging"
+
+  - name: ServerChatTo
+    syntax: "ServerChatTo <SteamID> <message>"
+    description: "Send a direct message using Steam ID"
+    category: "Chat & Messaging"
+
+  - name: GetChat
+    syntax: "GetChat"
+    description: "Retrieve the latest chat buffer"
+    category: "Chat & Messaging"
+
+  - name: GiveItemToPlayer
+    syntax: "GiveItemToPlayer <PlayerID> <BlueprintPath> <Quantity> <Quality> <ForceBlueprint>"
+    description: "Give a specific item to a player"
+    category: "Item & Inventory"
+
+  - name: GiveItemNumToPlayer
+    syntax: "GiveItemNumToPlayer <PlayerID> <ItemID> <Quantity> <Quality> <ForceBlueprint>"
+    description: "Give item by numeric ID to a player"
+    category: "Item & Inventory"
+
+  - name: GiveResources
+    syntax: "GiveResources"
+    description: "Add 50 of each basic resource to inventory"
+    category: "Item & Inventory"
+
+  - name: GiveColors
+    syntax: "GiveColors <Quantity>"
+    description: "Add all dyes to inventory"
+    category: "Item & Inventory"
+
+  - name: GiveWeaponSet
+    syntax: "GiveWeaponSet <Tier> <Quality>"
+    description: "Give a full weapon set"
+    category: "Item & Inventory"
+
+  - name: GiveArmorSet
+    syntax: "GiveArmorSet <Tier> <Quality>"
+    description: "Give a full armor set"
+    category: "Item & Inventory"
+
+  - name: GiveItemSet
+    syntax: "GiveItemSet <Tier>"
+    description: "Give a predefined item set"
+    category: "Item & Inventory"
+
+  - name: Broadcast
+    syntax: "Broadcast <message>"
+    description: "Send a message to all players"
+    category: "Server & Player Management"
+
+  - name: BanPlayer
+    syntax: "BanPlayer <SteamID>"
+    description: "Ban a player by Steam ID"
+    category: "Server & Player Management"
+
+  - name: KickPlayer
+    syntax: "KickPlayer <SteamID>"
+    description: "Kick a player from the server"
+    category: "Server & Player Management"
+
+  - name: AllowPlayerToJoinNoCheck
+    syntax: "AllowPlayerToJoinNoCheck <SteamID>"
+    description: "Whitelist a player"
+    category: "Server & Player Management"
+
+  - name: DisallowPlayerToJoinNoCheck
+    syntax: "DisallowPlayerToJoinNoCheck <SteamID>"
+    description: "Remove player from whitelist"
+    category: "Server & Player Management"
+
+  - name: SaveWorld
+    syntax: "SaveWorld"
+    description: "Force a world save"
+    category: "Server & Player Management"
+
+  - name: DoExit
+    syntax: "DoExit"
+    description: "Shut down the server"
+    category: "Server & Player Management"
+
+  - name: DoRestartLevel
+    syntax: "DoRestartLevel"
+    description: "Restart current map"
+    category: "Server & Player Management"
+
+  - name: EnableCheats
+    syntax: "EnableCheats <AdminPassword>"
+    description: "Authenticate for admin commands"
+    category: "Player Control & Debugging"
+
+  - name: SetCheatPlayer
+    syntax: "SetCheatPlayer true|false"
+    description: "Toggle cheat mode for player"
+    category: "Player Control & Debugging"
+
+  - name: ClearPlayerInventory
+    syntax: "ClearPlayerInventory <PlayerID> <clearinventory> <clearslotitems> <clearequippeditems>"
+    description: "Clear player inventory"
+    category: "Player Control & Debugging"
+
+  - name: GiveExpToPlayer
+    syntax: "GiveExpToPlayer <PlayerID> <Amount> <FromTribeShare> <ShareWithTribe>"
+    description: "Grant XP to player"
+    category: "Player Control & Debugging"
+
+  - name: TeleportPlayerIDToMe
+    syntax: "TeleportPlayerIDToMe <PlayerID>"
+    description: "Teleport player to admin"
+    category: "Teleportation"
+
+  - name: TeleportToPlayer
+    syntax: "TeleportToPlayer <PlayerID>"
+    description: "Teleport admin to player"
+    category: "Teleportation"
+
+  - name: DestroyWildDinos
+    syntax: "DestroyWildDinos"
+    description: "Remove all untamed dinos"
+    category: "Dino & Structure Control"
+
+  - name: DestroyTribeDinos
+    syntax: "DestroyTribeDinos"
+    description: "Destroy tribe's dinos"
+    category: "Dino & Structure Control"
+
+  - name: DestroyTribeStructures
+    syntax: "DestroyTribeStructures"
+    description: "Destroy tribe's structures"
+    category: "Dino & Structure Control"
+
+  - name: DestroyMyTarget
+    syntax: "DestroyMyTarget"
+    description: "Remove targeted entity"
+    category: "Dino & Structure Control"
+
+  - name: ForceTame
+    syntax: "ForceTame"
+    description: "Instantly tame target dino"
+    category: "Dino & Structure Control"
+
+  - name: GiveAllStructure
+    syntax: "GiveAllStructure"
+    description: "Claim targeted structures"
+    category: "Dino & Structure Control"
+
+  - name: SetTimeOfDay
+    syntax: "SetTimeOfDay <HH:MM>"
+    description: "Set in-game time"
+    category: "World & Environment"
+
+  - name: CE
+    syntax: "CE <weatherType>"
+    description: "Trigger weather (e.g. start_superheat, makeitrain)"
+    category: "World & Environment"
+
+  - name: GameCommand
+    syntax: "GameCommand <command>"
+    description: "Run game-specific command"
+    category: "World & Environment"

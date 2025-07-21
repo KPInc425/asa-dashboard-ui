@@ -356,115 +356,68 @@ const Servers: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-primary mb-2">Server Management</h1>
-              <p className="text-base-content/70">Manage your ARK: Survival Ascended servers (containers & native)</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-primary mb-2">Server Management</h1>
+              <p className="text-sm md:text-base text-base-content/70">Manage your ARK: Survival Ascended servers (containers & native)</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="btn-group">
                 <button
                   onClick={() => setLayoutMode('cards')}
                   className={`btn btn-sm ${layoutMode === 'cards' ? 'btn-active' : 'btn-outline'}`}
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 mr-1 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                   </svg>
-                  Cards
+                  <span className="hidden sm:inline">Cards</span>
                 </button>
                 <button
                   onClick={() => setLayoutMode('list')}
                   className={`btn btn-sm ${layoutMode === 'list' ? 'btn-active' : 'btn-outline'}`}
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 mr-1 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                   </svg>
-                  List
+                  <span className="hidden sm:inline">List</span>
                 </button>
               </div>
-              <button
-                onClick={() => loadAllServers()}
-                className="btn btn-outline btn-sm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
-              <button
-                onClick={() => setShowUpdateManager(true)}
-                className="btn btn-primary btn-sm"
-              >
-                🔄 Update Manager
-              </button>
-              <button
-                onClick={() => navigate('/provisioning')}
-                className="btn btn-secondary btn-sm"
-              >
-                ➕ Create Server
-              </button>
-              {isDeveloperMode && (
+              
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                {isDeveloperMode && (
+                  <>
+                    <button
+                      onClick={() => navigate('/provisioning?action=fix-rcon')}
+                      className="btn btn-warning btn-sm"
+                      title="Fix RCON authentication for all servers"
+                    >
+                      <span className="hidden md:inline">🔧 Fix RCON</span>
+                      <span className="md:hidden">🔧</span>
+                    </button>
+                    <button
+                      onClick={() => navigate('/provisioning?action=debug-clusters')}
+                      className="btn btn-info btn-sm"
+                      title="Debug cluster configuration"
+                    >
+                      <span className="hidden md:inline">🐛 Debug Clusters</span>
+                      <span className="md:hidden">🐛</span>
+                    </button>
+                  </>
+                )}
                 <button
-                  onClick={async () => {
-                    try {
-                      // Find servers with RCON issues (you can customize this logic)
-                      const serversWithRcon = servers.filter(s => s.type !== 'container' && s.rconPort);
-                      if (serversWithRcon.length === 0) {
-                        alert('No servers with RCON found to fix.');
-                        return;
-                      }
-                      
-                      const serverName = serversWithRcon[0].name;
-                      const response = await api.post(`/api/native-servers/${encodeURIComponent(serverName)}/fix-rcon`);
-                      if (response.data.success) {
-                        alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
-                      } else {
-                        alert(`❌ Failed to fix RCON: ${response.data.message}`);
-                      }
-                    } catch (error) {
-                      alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                    }
-                  }}
-                  className="btn btn-warning btn-sm"
-                  title="Fix RCON authentication issues for servers"
+                  onClick={() => setShowUpdateManager(true)}
+                  className="btn btn-secondary btn-sm"
+                  title="Update all servers"
                 >
-                  🔧 Fix RCON
+                  <span className="hidden md:inline">🔄 Update All</span>
+                  <span className="md:hidden">🔄</span>
                 </button>
-              )}
-              {isDeveloperMode && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const response = await api.get('/api/native-servers/debug-clusters');
-                      if (response.data.success) {
-                        const debug = response.data.debug;
-                        let message = `🔍 Cluster Debug:\n\n`;
-                        message += `Path: ${debug.clustersPath}\n`;
-                        message += `Exists: ${debug.clustersPathExists ? '✅' : '❌'}\n\n`;
-                        if (debug.clustersPathExists) {
-                          message += `Clusters: ${debug.clusterDirs.join(', ')}\n\n`;
-                          message += `Raw config data:\n${JSON.stringify(debug.clusterConfigs, null, 2)}`;
-                        } else {
-                          message += `Error: ${String(debug.error || 'Path does not exist')}`;
-                        }
-                        alert(message);
-                      } else {
-                        alert(`❌ Debug failed: ${response.data.message}`);
-                      }
-                    } catch (error) {
-                      alert(`❌ Debug error: ${(error as any).response?.data?.message || (error as Error).message}`);
-                    }
-                  }}
-                  className="btn btn-info btn-sm"
-                  title="Debug cluster configuration"
-                >
-                  🔍 Debug Clusters
-                </button>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -474,30 +427,30 @@ const Servers: React.FC = () => {
             <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{error}</span>
+            <span className="text-sm">{error}</span>
           </div>
         )}
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-primary">{servers.length}</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-3 md:p-4 text-center">
+            <div className="text-lg md:text-xl lg:text-2xl font-bold text-primary">{servers.length}</div>
             <div className="text-xs md:text-sm text-base-content/70">Total Servers</div>
           </div>
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-success">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-3 md:p-4 text-center">
+            <div className="text-lg md:text-xl lg:text-2xl font-bold text-success">
               {servers.filter(s => s.status === 'running').length}
             </div>
             <div className="text-xs md:text-sm text-base-content/70">Running</div>
           </div>
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-error">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-3 md:p-4 text-center">
+            <div className="text-lg md:text-xl lg:text-2xl font-bold text-error">
               {servers.filter(s => s.status === 'stopped').length}
             </div>
             <div className="text-xs md:text-sm text-base-content/70">Stopped</div>
           </div>
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-warning">
+          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-3 md:p-4 text-center">
+            <div className="text-lg md:text-xl lg:text-2xl font-bold text-warning">
               {servers.filter(s => s.status === 'restarting' || s.status === 'starting').length}
             </div>
             <div className="text-xs md:text-sm text-base-content/70">Starting</div>
@@ -505,18 +458,18 @@ const Servers: React.FC = () => {
         </div>
 
         {/* Server List */}
-        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-6">
-          <h2 className="text-2xl font-bold text-primary mb-6">Server Status</h2>
+        <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4 md:p-6">
+          <h2 className="text-xl md:text-2xl font-bold text-primary mb-4 md:mb-6">Server Status</h2>
           
           {servers.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🦖</div>
+            <div className="text-center py-8 md:py-12">
+              <div className="text-4xl md:text-6xl mb-4">🦖</div>
               <p className="text-base-content/70 mb-4">No servers found</p>
               <p className="text-sm text-base-content/50">Start by creating your first ARK server</p>
             </div>
           ) : layoutMode === 'cards' ? (
             // Card Layout
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
               {servers.map((server, index) => (
                 <ServerCard
                   key={server.name || `server-${index}`}
