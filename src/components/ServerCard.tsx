@@ -45,6 +45,8 @@ interface LiveServerStats {
   currentDay: number;
   currentTime: string;
   serverUptime: string;
+  version?: string;
+  map?: string;
 }
 
 const ServerCard: React.FC<ServerCardProps> = ({
@@ -78,11 +80,32 @@ const ServerCard: React.FC<ServerCardProps> = ({
           const response = await api.get(`/api/native-servers/${encodeURIComponent(server.name)}/live-details`);
           if (response.data.success && response.data.details && Object.keys(response.data.details).length > 0) {
             const details = response.data.details;
+            // --- Version parsing logic ---
+            let version = undefined;
+            if (details.version && typeof details.version === 'string') {
+              version = details.version;
+            } else if (details.raw && details.raw.attributes) {
+              // Try to combine BUILDID and MINORBUILDID for float version
+              const build = details.raw.attributes.BUILDID_s;
+              const minor = details.raw.attributes.MINORBUILDID_s;
+              if (build && minor) {
+                version = `${build}.${minor}`;
+              } else if (build) {
+                version = build;
+              }
+            }
+            // --- Map parsing logic ---
+            let map = details.map;
+            if (!map && details.raw && details.raw.attributes) {
+              map = details.raw.attributes.MAPNAME_s || details.raw.attributes.FRIENDLYMAPNAME_s;
+            }
             setLiveStats({
               players: details.players || 0,
               currentDay: details.day || 1,
               currentTime: details.gameTime || 'Unknown',
-              serverUptime: 'Active'
+              serverUptime: 'Active',
+              version,
+              map
             });
             setStatsLoading(false);
             return;
@@ -286,8 +309,8 @@ const ServerCard: React.FC<ServerCardProps> = ({
                   <div>Day: <span className="font-bold">{liveStats.currentDay ?? 'N/A'}</span></div>
                   <div>Time: <span className="font-bold">{liveStats.currentTime ?? 'N/A'}</span></div>
                   <div>Status: <span className="font-bold">{liveStats.serverUptime}</span></div>
-                  <div>Version: <span className="font-bold">{server.version ?? 'N/A'}</span></div>
-                  <div>Map: <span className="font-bold">{server.map ?? 'N/A'}</span></div>
+                  <div>Version: <span className="font-bold">{liveStats.version ?? 'N/A'}</span></div>
+                  <div>Map: <span className="font-bold">{getMapDisplayName(liveStats.map ?? '')}</span></div>
                 </div>
               ) : (
                 <div className="text-xs text-error">Live stats unavailable. RCON or API may be unreachable.</div>
