@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Server } from '../utils/serverUtils';
-import { containerApi, type RconResponse } from '../services';
+import { containerApi } from '../services';
 import ServerModManager from '../components/ServerModManager';
 import ServerConfigEditor from '../components/ServerConfigEditor';
 import ServerLogViewer from '../components/ServerLogViewer';
@@ -10,13 +10,9 @@ import ServerUpdateManager from '../components/ServerUpdateManager';
 import ServerSettingsEditor from '../components/ServerSettingsEditor';
 import ServerLiveDetails from '../components/ServerLiveDetails';
 import SaveFileManager from '../components/SaveFileManager';
+import ServerDetailsRconConsole from '../components/ServerDetailsRconConsole';
 
-interface CommandHistory {
-  command: string;
-  response: string;
-  timestamp: Date;
-  success: boolean;
-}
+
 
 const ServerDetails: React.FC = () => {
   const { serverName } = useParams<{ serverName: string }>();
@@ -30,12 +26,6 @@ const ServerDetails: React.FC = () => {
   const [showStartScript, setShowStartScript] = useState(false);
   const [showUpdateManager, setShowUpdateManager] = useState(false);
   const [showSettingsEditor, setShowSettingsEditor] = useState(false);
-  
-  // RCON state
-  const [rconCommand, setRconCommand] = useState('');
-  const [rconHistory, setRconHistory] = useState<CommandHistory[]>([]);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [historyIndex, setHistoryIndex] = useState(-1);
 
   // Load server data
   useEffect(() => {
@@ -155,82 +145,7 @@ const ServerDetails: React.FC = () => {
     }
   };
 
-  const executeRconCommand = async () => {
-    if (!server || !rconCommand.trim()) return;
-    
-    setIsExecuting(true);
-    
-    try {
-      // Check if server is running before attempting RCON
-      if (server.status !== 'running') {
-        throw new Error('Server must be running to send RCON commands');
-      }
-      
-      // Try native server RCON first, fallback to container RCON
-      let response: RconResponse;
-      try {
-        response = await containerApi.sendNativeRconCommand(server.name, rconCommand);
-      } catch (nativeError) {
-        console.warn('Native RCON failed, trying container RCON:', nativeError);
-        try {
-          response = await containerApi.sendRconCommand(server.name, rconCommand);
-        } catch (containerError) {
-          console.error('Both RCON methods failed:', { nativeError, containerError });
-          throw new Error(`RCON connection failed. Server may not be running or RCON may not be configured.`);
-        }
-      }
-      
-      const newEntry: CommandHistory = {
-        command: rconCommand,
-        response: response.response || response.message,
-        timestamp: new Date(),
-        success: response.success
-      };
 
-      setRconHistory(prev => [...prev, newEntry]);
-      setRconCommand('');
-      setHistoryIndex(-1);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send command';
-      const newEntry: CommandHistory = {
-        command: rconCommand,
-        response: errorMessage,
-        timestamp: new Date(),
-        success: false
-      };
-
-      setRconHistory(prev => [...prev, newEntry]);
-      setRconCommand('');
-      setHistoryIndex(-1);
-    } finally {
-      setIsExecuting(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (historyIndex < rconHistory.length - 1) {
-        const newIndex = historyIndex + 1;
-        setHistoryIndex(newIndex);
-        setRconCommand(rconHistory[rconHistory.length - 1 - newIndex].command);
-      }
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (historyIndex > 0) {
-        const newIndex = historyIndex - 1;
-        setHistoryIndex(newIndex);
-        setRconCommand(rconHistory[rconHistory.length - 1 - newIndex].command);
-      } else if (historyIndex === 0) {
-        setHistoryIndex(-1);
-        setRconCommand('');
-      }
-    }
-  };
-
-  const clearHistory = () => {
-    setRconHistory([]);
-  };
 
   // Server control actions
   const handleServerAction = async (action: 'start' | 'stop' | 'restart') => {
@@ -564,125 +479,7 @@ const ServerDetails: React.FC = () => {
             )}
 
             {activeTab === 'rcon' && (
-              <div className="space-y-4">
-                {/* Console Output */}
-                <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl flex-1 flex flex-col" style={{ minHeight: '400px' }}>
-                  <div className="flex items-center justify-between p-4 border-b border-base-300 bg-base-300/50">
-                    <div className="flex items-center space-x-3">
-                      <h4 className="text-lg font-semibold text-primary">🖥️ Console Window</h4>
-                      <div className="flex space-x-1">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-base-content/70">
-                        {rconHistory.length} messages
-                      </span>
-                      <button
-                        onClick={clearHistory}
-                        className="btn btn-sm btn-outline btn-error"
-                      >
-                        🗑️ Clear Console
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 p-4 overflow-y-auto font-mono text-sm space-y-3 bg-black/90 text-green-400" style={{ minHeight: '300px' }}>
-                    {rconHistory.length === 0 ? (
-                      <div className="text-center py-12 text-green-400/60">
-                        <div className="text-4xl mb-4">💻</div>
-                        <p className="text-lg">Console Ready</p>
-                        <p className="text-sm">Type a command below to get started</p>
-                        <div className="mt-4 text-xs text-green-400/40">
-                          <p>Use ↑↓ arrow keys to navigate command history</p>
-                          <p>Press Enter to execute commands</p>
-                        </div>
-                      </div>
-                    ) : (
-                      rconHistory.map((entry, index) => (
-                        <div key={index} className="space-y-2">
-                          {/* Command Input */}
-                          <div className="flex items-center space-x-2 bg-blue-900/30 p-2 rounded border-l-4 border-blue-500">
-                            <span className="text-blue-400 font-bold">$</span>
-                            <span className="text-yellow-400 font-medium">{entry.command}</span>
-                            <span className="text-blue-400/50 text-xs">
-                              [{entry.timestamp.toLocaleTimeString()}]
-                            </span>
-                          </div>
-                          
-                          {/* Response Output */}
-                          <div className={`ml-4 p-2 rounded border-l-4 ${
-                            entry.success 
-                              ? 'bg-green-900/30 border-green-500 text-green-400' 
-                              : 'bg-red-900/30 border-red-500 text-red-400'
-                          }`}>
-                            {entry.response.split('\n').map((line, lineIndex) => (
-                              <div key={lineIndex} className="text-sm">
-                                {line || '\u00A0'}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                    
-                    {/* Cursor indicator when no history */}
-                    {rconHistory.length === 0 && (
-                      <div className="flex items-center space-x-2 text-green-400">
-                        <span className="text-green-400 font-bold">$</span>
-                        <span className="animate-pulse">█</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Command Input */}
-                <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-xl p-4">
-                  <div className="relative">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-primary font-bold text-lg">$</span>
-                      <input
-                        type="text"
-                        value={rconCommand}
-                        onChange={(e) => setRconCommand(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        onKeyPress={(e) => e.key === 'Enter' && executeRconCommand()}
-                        placeholder="Enter RCON command..."
-                        className="input input-bordered flex-1 font-mono"
-                        disabled={isExecuting}
-                      />
-                      <button
-                        onClick={executeRconCommand}
-                        disabled={isExecuting || !rconCommand.trim()}
-                        className="btn btn-primary"
-                      >
-                        {isExecuting ? (
-                          <span className="loading loading-spinner loading-sm"></span>
-                        ) : (
-                          'Send'
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Quick Commands */}
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <span className="text-sm text-base-content/70 mr-2">Quick commands:</span>
-                    {['listplayers', 'saveworld', 'broadcast', 'kickplayer'].map((cmd) => (
-                      <button
-                        key={cmd}
-                        type="button"
-                        onClick={() => setRconCommand(cmd)}
-                        className="btn btn-xs btn-outline btn-primary"
-                      >
-                        {cmd}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <ServerDetailsRconConsole serverName={server.name} />
             )}
 
             {activeTab === 'mods' && (

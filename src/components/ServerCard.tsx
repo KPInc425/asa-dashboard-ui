@@ -80,7 +80,7 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
       
       <div className="space-y-1 md:space-y-2 text-xs md:text-sm flex-grow">
         {/* Live Player Count - Show when server is running */}
-        <ServerLiveStats server={server} getMapDisplayName={getMapDisplayName} />
+        <ServerLiveStats server={server} />
         
         {/* Only show server count for actual clusters, not individual servers */}
         {server.serverCount && server.serverCount > 1 && (

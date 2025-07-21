@@ -18,10 +18,9 @@ interface Server {
 
 interface ServerLiveStatsProps {
   server: Server;
-  getMapDisplayName: (mapCode: string) => string;
 }
 
-const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server, getMapDisplayName }) => {
+const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
   const [liveStats, setLiveStats] = useState<LiveServerStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
@@ -174,23 +173,33 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server, getMapDisplay
   }
 
   return (
-    <div className="card bg-base-200 mb-2">
-      <div className="card-body p-3">
-        {statsLoading ? (
-          <div className="text-xs text-base-content/60">Loading live stats...</div>
-        ) : liveStats ? (
-          <div className="flex flex-col gap-1 text-xs">
-            <div>Players: <span className="font-bold">{liveStats.players}</span></div>
-            <div>Day: <span className="font-bold">{liveStats.currentDay ?? 'N/A'}</span></div>
-            <div>Time: <span className="font-bold">{liveStats.currentTime ?? 'N/A'}</span></div>
-            <div>Status: <span className="font-bold">{liveStats.serverUptime}</span></div>
-            <div>Version: <span className="font-bold">{liveStats.version ?? 'N/A'}</span></div>
-            <div>Map: <span className="font-bold">{getMapDisplayName(liveStats.map ?? '')}</span></div>
+    <div className="space-y-1 text-xs">
+      {statsLoading ? (
+        <div className="text-base-content/60">Loading live stats...</div>
+      ) : liveStats ? (
+        <>
+          <div className="flex justify-between items-center">
+            <span className="text-base-content/70">Players:</span>
+            <span className="font-bold text-primary">{liveStats.players}</span>
           </div>
-        ) : (
-          <div className="text-xs text-error">Live stats unavailable. RCON or API may be unreachable.</div>
-        )}
-      </div>
+          <div className="flex justify-between items-center">
+            <span className="text-base-content/70">Day:</span>
+            <span className="text-base-content/70">{liveStats.currentDay ?? 'N/A'}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-base-content/70">Time:</span>
+            <span className="text-base-content/70">{liveStats.currentTime ?? 'N/A'}</span>
+          </div>
+          {liveStats.version && (
+            <div className="flex justify-between items-center">
+              <span className="text-base-content/70">Version:</span>
+              <span className="text-base-content/70 text-xs">{liveStats.version}</span>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-xs text-error">Live stats unavailable</div>
+      )}
     </div>
   );
 };
