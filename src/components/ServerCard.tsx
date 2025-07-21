@@ -29,6 +29,7 @@ interface Server {
     error?: string;
   };
   startupErrors?: string;
+  version?: string;
 }
 
 interface ServerCardProps {
@@ -275,19 +276,23 @@ const ServerCard: React.FC<ServerCardProps> = ({
         
         {/* Live Player Count - Show when server is running */}
         {server.status === 'running' && (
-          <div>
-            {statsLoading ? (
-              <div className="text-xs text-base-content/60">Loading live stats...</div>
-            ) : liveStats ? (
-              <div className="flex flex-col gap-1 text-xs">
-                <div>Players: <span className="font-bold">{liveStats.players}</span></div>
-                <div>Day: <span className="font-bold">{liveStats.currentDay}</span></div>
-                <div>Time: <span className="font-bold">{liveStats.currentTime}</span></div>
-                <div>Status: <span className="font-bold">{liveStats.serverUptime}</span></div>
-              </div>
-            ) : (
-              <div className="text-xs text-error">Live stats unavailable. RCON or API may be unreachable.</div>
-            )}
+          <div className="card bg-base-200 mb-2">
+            <div className="card-body p-3">
+              {statsLoading ? (
+                <div className="text-xs text-base-content/60">Loading live stats...</div>
+              ) : liveStats ? (
+                <div className="flex flex-col gap-1 text-xs">
+                  <div>Players: <span className="font-bold">{liveStats.players}</span></div>
+                  <div>Day: <span className="font-bold">{liveStats.currentDay ?? 'N/A'}</span></div>
+                  <div>Time: <span className="font-bold">{liveStats.currentTime ?? 'N/A'}</span></div>
+                  <div>Status: <span className="font-bold">{liveStats.serverUptime}</span></div>
+                  <div>Version: <span className="font-bold">{server.version ?? 'N/A'}</span></div>
+                  <div>Map: <span className="font-bold">{server.map ?? 'N/A'}</span></div>
+                </div>
+              ) : (
+                <div className="text-xs text-error">Live stats unavailable. RCON or API may be unreachable.</div>
+              )}
+            </div>
           </div>
         )}
         
