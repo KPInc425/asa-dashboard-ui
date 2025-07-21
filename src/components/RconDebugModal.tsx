@@ -188,7 +188,7 @@ const RconDebugModal: React.FC<RconDebugModalProps> = ({ isOpen, onClose, debugI
                       Copy
                     </button>
                   </div>
-                  <pre className="whitespace-pre-wrap">{formatJson(debugInfo.configFiles)}</pre>
+                  <pre className="whitespace-pre-wrap overflow-auto">{formatJson(debugInfo.configFiles)}</pre>
                 </div>
               </div>
             </div>
