@@ -68,14 +68,14 @@ const ServerCard: React.FC<ServerCardProps> = ({
 
   const fetchLiveStats = async () => {
     if (server.status !== 'running') return;
-    
     setStatsLoading(true);
+    let usedFallback = false;
     try {
       // Try to use the live-details endpoint first (if available)
       if (server.type === 'native' || server.type === 'cluster-server') {
         try {
           const response = await api.get(`/api/native-servers/${encodeURIComponent(server.name)}/live-details`);
-          if (response.data.success && response.data.details) {
+          if (response.data.success && response.data.details && Object.keys(response.data.details).length > 0) {
             const details = response.data.details;
             setLiveStats({
               players: details.players || 0,
@@ -83,91 +83,68 @@ const ServerCard: React.FC<ServerCardProps> = ({
               currentTime: details.gameTime || 'Unknown',
               serverUptime: 'Active'
             });
+            setStatsLoading(false);
             return;
+          } else {
+            // If details is empty, trigger fallback
+            usedFallback = true;
+            console.warn(`Live details API returned empty for ${server.name}, falling back to RCON.`);
           }
         } catch (err) {
+          usedFallback = true;
           console.warn(`Live details API failed for ${server.name}, falling back to RCON:`, err);
         }
+      } else {
+        usedFallback = true;
       }
 
-      // Fallback to individual RCON commands
-      const commands = ['listplayers', 'getday', 'gettime'];
-      const responses = [];
-      
-      for (const command of commands) {
-        try {
-          let response;
-          if (server.type === 'native' || server.type === 'cluster-server') {
-            response = await containerApi.sendNativeRconCommand(server.name, command);
-          } else {
-            response = await containerApi.sendRconCommand(server.name, command);
-          }
-          
-          if (response.success) {
-            responses.push(response);
-            console.log(`RCON ${command} success for ${server.name}:`, response.response);
-          } else {
-            console.warn(`RCON ${command} failed for ${server.name}:`, response.message || 'Unknown error');
+      // Fallback to individual RCON commands if needed
+      if (usedFallback) {
+        const commands = ['listplayers', 'getday', 'gettime'];
+        const responses = [];
+        for (const command of commands) {
+          try {
+            let response;
+            if (server.type === 'native' || server.type === 'cluster-server') {
+              response = await containerApi.sendNativeRconCommand(server.name, command);
+            } else {
+              response = await containerApi.sendRconCommand(server.name, command);
+            }
+            if (response.success) {
+              responses.push(response);
+              console.log(`RCON ${command} success for ${server.name}:`, response.response);
+            } else {
+              console.warn(`RCON ${command} failed for ${server.name}:`, response.message || 'Unknown error');
+              responses.push({ success: false, response: '' });
+            }
+          } catch (err) {
+            console.warn(`RCON command ${command} failed for server ${server.name}:`, err);
             responses.push({ success: false, response: '' });
           }
-        } catch (err) {
-          console.warn(`RCON command ${command} failed for server ${server.name}:`, err);
-          responses.push({ success: false, response: '' });
         }
-      }
-
-      // Parse responses
-      const playersResponse = responses[0];
-      const dayResponse = responses[1];
-      const timeResponse = responses[2];
-
-      let playerCount = 0;
-      if (playersResponse && playersResponse.success && playersResponse.response) {
-        // Improved parsing for listplayers command (matches e.g. '0. Willow, 0002214a4a6742d9a347bd449b2dc143')
-        const responseText = playersResponse.response.toLowerCase();
-        if (responseText.includes('no players') || responseText.trim() === '' || responseText.includes('players online: 0')) {
-          playerCount = 0;
-        } else {
-          // Match lines like '0. Name, 0002214a4a6742d9a347bd449b2dc143'
-          const playerLines = playersResponse.response.split('\n').filter(line => {
-            const trimmed = line.trim();
-            return trimmed &&
-              !trimmed.toLowerCase().includes('players online') &&
-              !trimmed.toLowerCase().includes('total:') &&
-              /^\d+\.\s+[^,]+,\s*[0-9a-f]+$/i.test(trimmed);
-          });
+        // Parse responses
+        const playersResponse = responses[0];
+        const dayResponse = responses[1];
+        const timeResponse = responses[2];
+        let playerCount = 0;
+        if (playersResponse && playersResponse.success && playersResponse.response) {
+          // Improved regex for ARK listplayers output
+          const lines = playersResponse.response.split('\n');
+          const playerLines = lines.filter(line => /\d+\.\s+.+,\s+SteamID:\s+\d+/.test(line));
           playerCount = playerLines.length;
         }
+        setLiveStats({
+          players: playerCount,
+          currentDay: dayResponse && dayResponse.success && dayResponse.response ? parseInt(dayResponse.response.match(/\d+/)?.[0] || '1', 10) : 1,
+          currentTime: timeResponse && timeResponse.success && timeResponse.response ? timeResponse.response.trim() : 'Unknown',
+          serverUptime: 'Active'
+        });
+        setStatsLoading(false);
+        return;
       }
-
-      let currentDay = 1;
-      if (dayResponse && dayResponse.success && dayResponse.response) {
-        const dayMatch = dayResponse.response.match(/day\s*:?\s*(\d+)/i) || dayResponse.response.match(/(\d+)/);
-        if (dayMatch) {
-          currentDay = parseInt(dayMatch[1]);
-        }
-      }
-
-      let currentTime = 'Unknown';
-      if (timeResponse && timeResponse.success && timeResponse.response) {
-        currentTime = timeResponse.response.trim();
-      }
-
-      setLiveStats({
-        players: playerCount,
-        currentDay,
-        currentTime,
-        serverUptime: 'Active'
-      });
     } catch (err) {
       console.error(`Failed to fetch live stats for ${server.name}:`, err);
-      // Set fallback stats to avoid empty display
-      setLiveStats({
-        players: server.players || 0,
-        currentDay: 1,
-        currentTime: 'Unknown',
-        serverUptime: 'Active'
-      });
+      setLiveStats(null);
     } finally {
       setStatsLoading(false);
     }
@@ -298,17 +275,19 @@ const ServerCard: React.FC<ServerCardProps> = ({
         
         {/* Live Player Count - Show when server is running */}
         {server.status === 'running' && (
-          <div className="flex justify-between items-center">
-            <span className="text-base-content/70">Players:</span>
-            <span className="font-semibold text-success">
-              {statsLoading ? (
-                <span className="loading loading-spinner loading-xs"></span>
-              ) : liveStats ? (
-                `${liveStats.players}/${server.maxPlayers || 70}`
-              ) : (
-                `${server.players || 0}/${server.maxPlayers || 70}`
-              )}
-            </span>
+          <div>
+            {statsLoading ? (
+              <div className="text-xs text-base-content/60">Loading live stats...</div>
+            ) : liveStats ? (
+              <div className="flex flex-col gap-1 text-xs">
+                <div>Players: <span className="font-bold">{liveStats.players}</span></div>
+                <div>Day: <span className="font-bold">{liveStats.currentDay}</span></div>
+                <div>Time: <span className="font-bold">{liveStats.currentTime}</span></div>
+                <div>Status: <span className="font-bold">{liveStats.serverUptime}</span></div>
+              </div>
+            ) : (
+              <div className="text-xs text-error">Live stats unavailable. RCON or API may be unreachable.</div>
+            )}
           </div>
         )}
         
