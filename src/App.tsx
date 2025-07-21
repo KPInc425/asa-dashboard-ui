@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DeveloperProvider } from './contexts/DeveloperContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Servers from './pages/Servers';
@@ -185,9 +186,11 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <DeveloperProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </DeveloperProvider>
     </AuthProvider>
   );
 };

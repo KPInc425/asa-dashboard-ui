@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { apiService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import GlobalModManager from '../components/GlobalModManager';
+import { useDeveloper } from '../contexts/DeveloperContext';
 
 interface SystemInfo {
   mode: string;
@@ -73,6 +74,7 @@ interface DebugInfo {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { isDeveloperMode } = useDeveloper();
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [nativeServers, setNativeServers] = useState<NativeServer[]>([]);
@@ -221,25 +223,21 @@ const Dashboard: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowGlobalModManager(true)}
-              className="btn btn-primary"
-            >
-              🔧 Global Mods
-            </button>
-            <button
-              onClick={handleDebugClick}
-              disabled={debugLoading}
-              className="btn btn-outline btn-warning"
-            >
-              {debugLoading ? (
-                <span className="loading loading-spinner loading-sm"></span>
-              ) : (
-                '🐛 Debug Info'
-              )}
-            </button>
-          </div>
+          {isDeveloperMode && (
+            <div className="flex gap-2">
+              <button
+                onClick={handleDebugClick}
+                disabled={debugLoading}
+                className="btn btn-outline btn-warning"
+              >
+                {debugLoading ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                  '🐛 Debug Info'
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {error && (

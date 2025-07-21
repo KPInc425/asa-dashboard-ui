@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { containerApi, api } from '../services/api';
 import RconDebugModal from './RconDebugModal';
+import { useDeveloper } from '../contexts/DeveloperContext';
 
 interface Server {
   name: string;
@@ -52,6 +53,7 @@ const ServerCard: React.FC<ServerCardProps> = ({
   onAction,
   onViewDetails
 }) => {
+  const { isDeveloperMode } = useDeveloper();
   const [liveStats, setLiveStats] = useState<LiveServerStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [debugModalOpen, setDebugModalOpen] = useState(false);
@@ -69,7 +71,26 @@ const ServerCard: React.FC<ServerCardProps> = ({
     
     setStatsLoading(true);
     try {
-      // Fetch basic server stats via RCON
+      // Try to use the live-details endpoint first (if available)
+      if (server.type === 'native' || server.type === 'cluster-server') {
+        try {
+          const response = await api.get(`/api/native-servers/${encodeURIComponent(server.name)}/live-details`);
+          if (response.data.success && response.data.details) {
+            const details = response.data.details;
+            setLiveStats({
+              players: details.players || 0,
+              currentDay: details.day || 1,
+              currentTime: details.gameTime || 'Unknown',
+              serverUptime: 'Active'
+            });
+            return;
+          }
+        } catch (err) {
+          console.warn(`Live details API failed for ${server.name}, falling back to RCON:`, err);
+        }
+      }
+
+      // Fallback to individual RCON commands
       const commands = ['listplayers', 'getday', 'gettime'];
       const responses = [];
       
@@ -81,7 +102,14 @@ const ServerCard: React.FC<ServerCardProps> = ({
           } else {
             response = await containerApi.sendRconCommand(server.name, command);
           }
-          responses.push(response);
+          
+          if (response.success) {
+            responses.push(response);
+            console.log(`RCON ${command} success for ${server.name}:`, response.response);
+          } else {
+            console.warn(`RCON ${command} failed for ${server.name}:`, response.message || 'Unknown error');
+            responses.push({ success: false, response: '' });
+          }
         } catch (err) {
           console.warn(`RCON command ${command} failed for server ${server.name}:`, err);
           responses.push({ success: false, response: '' });
@@ -94,21 +122,31 @@ const ServerCard: React.FC<ServerCardProps> = ({
       const timeResponse = responses[2];
 
       let playerCount = 0;
-      if (playersResponse.success && playersResponse.response) {
-        const playerLines = playersResponse.response.split('\n').filter(line => line.trim());
-        playerCount = playerLines.length;
+      if (playersResponse && playersResponse.success && playersResponse.response) {
+        // Better parsing for listplayers command
+        const responseText = playersResponse.response.toLowerCase();
+        if (responseText.includes('no players')) {
+          playerCount = 0;
+        } else {
+          const playerLines = playersResponse.response.split('\n').filter(line => 
+            line.trim() && 
+            !line.toLowerCase().includes('players online') &&
+            !line.toLowerCase().includes('total:')
+          );
+          playerCount = playerLines.length;
+        }
       }
 
       let currentDay = 1;
-      if (dayResponse.success && dayResponse.response) {
-        const dayMatch = dayResponse.response.match(/(\d+)/);
+      if (dayResponse && dayResponse.success && dayResponse.response) {
+        const dayMatch = dayResponse.response.match(/day\s*:?\s*(\d+)/i) || dayResponse.response.match(/(\d+)/);
         if (dayMatch) {
           currentDay = parseInt(dayMatch[1]);
         }
       }
 
       let currentTime = 'Unknown';
-      if (timeResponse.success && timeResponse.response) {
+      if (timeResponse && timeResponse.success && timeResponse.response) {
         currentTime = timeResponse.response.trim();
       }
 
@@ -116,10 +154,17 @@ const ServerCard: React.FC<ServerCardProps> = ({
         players: playerCount,
         currentDay,
         currentTime,
-        serverUptime: 'Active' // We could fetch this separately if needed
+        serverUptime: 'Active'
       });
     } catch (err) {
-      console.warn(`Failed to fetch live stats for ${server.name}:`, err);
+      console.error(`Failed to fetch live stats for ${server.name}:`, err);
+      // Set fallback stats to avoid empty display
+      setLiveStats({
+        players: server.players || 0,
+        currentDay: 1,
+        currentTime: 'Unknown',
+        serverUptime: 'Active'
+      });
     } finally {
       setStatsLoading(false);
     }
@@ -224,7 +269,7 @@ const ServerCard: React.FC<ServerCardProps> = ({
   };
 
   return (
-    <div className="bg-base-300 rounded-lg p-4 hover:shadow-lg transition-all duration-200">
+    <div className="bg-base-300 rounded-lg p-4 hover:shadow-lg transition-all duration-200 flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-base-content">{server.name}</h3>
@@ -240,7 +285,7 @@ const ServerCard: React.FC<ServerCardProps> = ({
         <span className="text-2xl">{getStatusIcon(server.status, actionStatus[server.name])}</span>
       </div>
       
-      <div className="space-y-2 text-sm">
+      <div className="space-y-2 text-sm flex-grow">
         <div className="flex justify-between items-center">
           <span className="text-base-content/70">Status:</span>
           <span className={`badge ${getStatusColor(server.status, actionStatus[server.name])} badge-xs`}>
@@ -342,8 +387,8 @@ const ServerCard: React.FC<ServerCardProps> = ({
         )}
       </div>
       
-      {/* Action Buttons */}
-      <div className="mt-4 space-y-2">
+      {/* Action Buttons - Stick to bottom */}
+      <div className="mt-auto pt-4 space-y-2">
         {/* Control buttons in a row */}
         <div className="flex gap-2 flex-wrap">
           <button
@@ -393,8 +438,8 @@ const ServerCard: React.FC<ServerCardProps> = ({
           🔍 View Details
         </button>
         
-        {/* Fix RCON button for native servers */}
-        {(server.type === 'native' || server.type === 'cluster-server' || server.type === 'individual') && server.rconPort && (
+        {/* Fix RCON button for native servers - Only show in developer mode */}
+        {isDeveloperMode && (server.type === 'native' || server.type === 'cluster-server' || server.type === 'individual') && server.rconPort && (
           <div className="flex gap-1">
             <button
               title="Fix RCON authentication issues"

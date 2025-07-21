@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useDeveloper } from '../contexts/DeveloperContext';
 import { api as apiClient } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import PasswordInput from './PasswordInput';
@@ -40,6 +41,7 @@ interface Message {
 
 const UserProfile: React.FC = () => {
   const { logout } = useAuth();
+  const { isDeveloperMode, toggleDeveloperMode } = useDeveloper();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -407,6 +409,24 @@ const UserProfile: React.FC = () => {
                           <option value="ja">Japanese</option>
                         </select>
                       </div>
+                    </div>
+                    
+                    {/* Developer Mode Toggle */}
+                    <div className="form-control">
+                      <label className="label cursor-pointer">
+                        <span className="label-text font-medium">
+                          🛠️ Developer Mode
+                          <div className="text-xs text-base-content/60 mt-1">
+                            Show debug elements and developer tools
+                          </div>
+                        </span>
+                        <input 
+                          type="checkbox" 
+                          className="toggle toggle-primary" 
+                          checked={isDeveloperMode}
+                          onChange={toggleDeveloperMode}
+                        />
+                      </label>
                     </div>
                   </div>
                 </div>
