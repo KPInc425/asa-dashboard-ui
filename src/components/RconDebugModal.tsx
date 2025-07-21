@@ -30,7 +30,18 @@ interface DebugInfo {
     serverPassword: string;
     databasePassword: string;
     startBatPassword: string;
+    configAdminPassword: string;
     allMatch: boolean;
+  };
+  configFiles?: {
+    configsPath: string;
+    gameUserSettingsExists: boolean;
+    gameIniExists: boolean;
+    rconEnabled: string | null;
+    rconPort: string | null;
+    configAdminPassword: string | null;
+    gameUserSettingsContent: string | null;
+    gameIniContent: string | null;
   };
 }
 
@@ -54,13 +65,15 @@ const RconDebugModal: React.FC<RconDebugModalProps> = ({ isOpen, onClose, debugI
   };
 
   return (
-    <div className="modal modal-open">
-      <div className="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
-        <h3 className="font-bold text-lg mb-4">
-          🔍 RCON Debug: {serverName}
-        </h3>
+    <div className="modal modal-open z-50">
+      <div className="modal-box max-w-4xl max-h-[95vh] overflow-y-auto relative">
+        <div className="sticky top-0 bg-base-100 pb-2 border-b border-base-300">
+          <h3 className="font-bold text-lg">
+            🔍 RCON Debug: {serverName}
+          </h3>
+        </div>
         
-        <div className="space-y-4">
+        <div className="space-y-4 pt-4">
           {/* Environment Variables */}
           <div className="card bg-base-200">
             <div className="card-body p-4">
@@ -156,6 +169,27 @@ const RconDebugModal: React.FC<RconDebugModalProps> = ({ isOpen, onClose, debugI
             </div>
           </div>
 
+          {/* Config Files */}
+          {debugInfo.configFiles && (
+            <div className="card bg-base-200">
+              <div className="card-body p-4">
+                <h4 className="card-title text-sm">Configuration Files</h4>
+                <div className="bg-base-300 p-3 rounded font-mono text-xs">
+                  <div className="flex justify-between items-center mb-2">
+                    <span>Config Files Analysis:</span>
+                    <button 
+                      onClick={() => copyToClipboard(formatJson(debugInfo.configFiles))}
+                      className="btn btn-xs btn-primary"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre className="whitespace-pre-wrap">{formatJson(debugInfo.configFiles)}</pre>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Summary */}
           <div className="card bg-base-200">
             <div className="card-body p-4">
@@ -183,13 +217,37 @@ const RconDebugModal: React.FC<RconDebugModalProps> = ({ isOpen, onClose, debugI
                   <span>Server Type:</span>
                   <span className="badge badge-outline">{debugInfo.serverInfo?.serverType || 'Unknown'}</span>
                 </div>
+                {debugInfo.configFiles && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span>GameUserSettings.ini:</span>
+                      <span className={`badge ${debugInfo.configFiles.gameUserSettingsExists ? 'badge-success' : 'badge-error'}`}>
+                        {debugInfo.configFiles.gameUserSettingsExists ? '✅ Exists' : '❌ Missing'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>RCON Enabled:</span>
+                      <span className={`badge ${debugInfo.configFiles.rconEnabled === 'True' ? 'badge-success' : 'badge-error'}`}>
+                        {debugInfo.configFiles.rconEnabled === 'True' ? '✅ Enabled' : '❌ Disabled'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>Config Password Set:</span>
+                      <span className={`badge ${debugInfo.configFiles.configAdminPassword ? 'badge-success' : 'badge-error'}`}>
+                        {debugInfo.configFiles.configAdminPassword ? '✅ Set' : '❌ Missing'}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="modal-action">
-          <button className="btn" onClick={onClose}>Close</button>
+        <div className="sticky bottom-0 bg-base-100 pt-2 border-t border-base-300 mt-4">
+          <div className="modal-action">
+            <button className="btn" onClick={onClose}>Close</button>
+          </div>
         </div>
       </div>
     </div>
