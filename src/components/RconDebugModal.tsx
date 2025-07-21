@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 interface DebugInfo {
   serverName: string;
@@ -64,16 +65,19 @@ const RconDebugModal: React.FC<RconDebugModalProps> = ({ isOpen, onClose, debugI
     return JSON.stringify(obj, null, 2);
   };
 
-  return (
-    <div className="modal modal-open z-50">
-      <div className="modal-box max-w-4xl max-h-[95vh] overflow-y-auto relative">
-        <div className="sticky top-0 bg-base-100 pb-2 border-b border-base-300">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-50">
+      <div className="bg-base-100 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex-shrink-0 p-4 border-b border-base-300">
           <h3 className="font-bold text-lg">
             🔍 RCON Debug: {serverName}
           </h3>
         </div>
         
-        <div className="space-y-4 pt-4">
+                {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-4">
           {/* Environment Variables */}
           <div className="card bg-base-200">
             <div className="card-body p-4">
@@ -242,16 +246,21 @@ const RconDebugModal: React.FC<RconDebugModalProps> = ({ isOpen, onClose, debugI
               </div>
             </div>
           </div>
+          </div>
         </div>
-
-        <div className="sticky bottom-0 bg-base-100 pt-2 border-t border-base-300 mt-4">
-          <div className="modal-action">
-            <button className="btn" onClick={onClose}>Close</button>
+        
+        {/* Footer */}
+        <div className="flex-shrink-0 p-4 border-t border-base-300">
+          <div className="flex justify-end">
+            <button className="btn btn-primary" onClick={onClose}>Close</button>
           </div>
         </div>
       </div>
     </div>
   );
+
+  // Use portal to render outside of any container constraints
+  return createPortal(modalContent, document.body);
 };
 
 export default RconDebugModal; 
