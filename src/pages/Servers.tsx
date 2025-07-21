@@ -6,9 +6,11 @@ import ServerCard from '../components/ServerCard';
 import ServerList from '../components/ServerList';
 import ServerUpdateManager from '../components/ServerUpdateManager';
 import type { Server } from '../utils/serverUtils';
+import { useDeveloper } from '../contexts/DeveloperContext';
 
 const Servers: React.FC = () => {
   const navigate = useNavigate();
+  const { isDeveloperMode } = useDeveloper();
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -405,32 +407,34 @@ const Servers: React.FC = () => {
               >
                 ➕ Create Server
               </button>
-              <button
-                onClick={async () => {
-                  try {
-                    // Find servers with RCON issues (you can customize this logic)
-                    const serversWithRcon = servers.filter(s => s.type !== 'container' && s.rconPort);
-                    if (serversWithRcon.length === 0) {
-                      alert('No servers with RCON found to fix.');
-                      return;
+              {isDeveloperMode && (
+                <button
+                  onClick={async () => {
+                    try {
+                      // Find servers with RCON issues (you can customize this logic)
+                      const serversWithRcon = servers.filter(s => s.type !== 'container' && s.rconPort);
+                      if (serversWithRcon.length === 0) {
+                        alert('No servers with RCON found to fix.');
+                        return;
+                      }
+                      
+                      const serverName = serversWithRcon[0].name;
+                      const response = await api.post(`/api/native-servers/${encodeURIComponent(serverName)}/fix-rcon`);
+                      if (response.data.success) {
+                        alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
+                      } else {
+                        alert(`❌ Failed to fix RCON: ${response.data.message}`);
+                      }
+                    } catch (error) {
+                      alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
                     }
-                    
-                    const serverName = serversWithRcon[0].name;
-                    const response = await api.post(`/api/native-servers/${encodeURIComponent(serverName)}/fix-rcon`);
-                    if (response.data.success) {
-                      alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
-                    } else {
-                      alert(`❌ Failed to fix RCON: ${response.data.message}`);
-                    }
-                  } catch (error) {
-                    alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                  }
-                }}
-                className="btn btn-warning btn-sm"
-                title="Fix RCON authentication issues for servers"
-              >
-                🔧 Fix RCON
-              </button>
+                  }}
+                  className="btn btn-warning btn-sm"
+                  title="Fix RCON authentication issues for servers"
+                >
+                  🔧 Fix RCON
+                </button>
+              )}
               <button
                 onClick={async () => {
                   try {

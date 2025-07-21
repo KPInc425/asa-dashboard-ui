@@ -128,13 +128,13 @@ const ServerCard: React.FC<ServerCardProps> = ({
         if (responseText.includes('no players') || responseText.trim() === '' || responseText.includes('players online: 0')) {
           playerCount = 0;
         } else {
-          // Only count lines that look like player entries (e.g., '1. PlayerName (SteamID: ...)')
+          // Match lines like '0. Name, ...' or '1. Name (SteamID: ...)' or '1. Name, ...'
           const playerLines = playersResponse.response.split('\n').filter(line => {
             const trimmed = line.trim();
             return trimmed &&
               !trimmed.toLowerCase().includes('players online') &&
               !trimmed.toLowerCase().includes('total:') &&
-              /^\d+\.\s+.+\(steamid:/i.test(trimmed);
+              /^\d+\.[\s\w]+[,\(]/i.test(trimmed);
           });
           playerCount = playerLines.length;
         }
