@@ -128,9 +128,9 @@ const ServerCard: React.FC<ServerCardProps> = ({
         const timeResponse = responses[2];
         let playerCount = 0;
         if (playersResponse && playersResponse.success && playersResponse.response) {
-          // Improved regex for ARK listplayers output
+          // Improved regex for ARK listplayers output (matches e.g. '0. Willow, 0002214a4a6742d9a347bd449b2dc143')
           const lines = playersResponse.response.split('\n');
-          const playerLines = lines.filter(line => /\d+\.\s+.+,\s+SteamID:\s+\d+/.test(line));
+          const playerLines = lines.filter(line => /^\d+\.\s+[^,]+,\s*[0-9a-fA-F]+$/.test(line.trim()));
           playerCount = playerLines.length;
         }
         setLiveStats({
