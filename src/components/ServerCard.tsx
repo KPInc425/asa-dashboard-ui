@@ -123,18 +123,18 @@ const ServerCard: React.FC<ServerCardProps> = ({
 
       let playerCount = 0;
       if (playersResponse && playersResponse.success && playersResponse.response) {
-        // Improved parsing for listplayers command
+        // Improved parsing for listplayers command (matches e.g. '0. Willow, 0002214a4a6742d9a347bd449b2dc143')
         const responseText = playersResponse.response.toLowerCase();
         if (responseText.includes('no players') || responseText.trim() === '' || responseText.includes('players online: 0')) {
           playerCount = 0;
         } else {
-          // Match lines like '0. Name, ...' or '1. Name (SteamID: ...)' or '1. Name, ...'
+          // Match lines like '0. Name, 0002214a4a6742d9a347bd449b2dc143'
           const playerLines = playersResponse.response.split('\n').filter(line => {
             const trimmed = line.trim();
             return trimmed &&
               !trimmed.toLowerCase().includes('players online') &&
               !trimmed.toLowerCase().includes('total:') &&
-              /^\d+\.[\s\w]+[,\(]/i.test(trimmed);
+              /^\d+\.\s+[^,]+,\s*[0-9a-f]+$/i.test(trimmed);
           });
           playerCount = playerLines.length;
         }
