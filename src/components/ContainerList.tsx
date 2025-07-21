@@ -286,15 +286,6 @@ const ContainerList = () => {
               >
                 Add New Server
               </button>
-              <button
-                onClick={() => {
-                  // setSelectedServerForMods(null);
-                  setShowModManager(true);
-                }}
-                className="btn btn-info btn-sm"
-              >
-                Manage Global Mods
-              </button>
             </div>
           </div>
         </div>

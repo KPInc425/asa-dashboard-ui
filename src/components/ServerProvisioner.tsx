@@ -849,12 +849,6 @@ const ServerProvisioner: React.FC = () => {
               >
                 ⚙️ Global Config
               </button>
-              <button
-                onClick={() => setShowGlobalModManager(true)}
-                className="btn btn-outline btn-secondary hover:shadow-lg hover:shadow-secondary/25"
-              >
-                🎮 Global Mods
-              </button>
             </div>
           </div>
         </div>
