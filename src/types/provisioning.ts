@@ -54,6 +54,7 @@ export interface ServerConfig {
   tamingMultiplier: number;
   nameSuffix?: string;
   sessionName?: string;
+  status?: string; // Added for cluster status calculations
 }
 
 export type WizardStep = 'welcome' | 'cluster-basic' | 'map-selection' | 'server-config' | 'individual-servers' | 'game-settings' | 'mods' | 'review' | 'creating';

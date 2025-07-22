@@ -99,7 +99,7 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
         )}
         
         {server.clusterName && (
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center text-xs">
             <span className="text-base-content/70">Cluster:</span>
             <span className="text-base-content/70 truncate max-w-[60%] text-right">{server.clusterName}</span>
           </div>

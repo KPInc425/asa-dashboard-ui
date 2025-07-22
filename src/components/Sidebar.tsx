@@ -34,7 +34,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: '📝',
       description: 'Edit server configurations'
     },
-
+    {
+      path: '/rcon',
+      label: 'RCON',
+      icon: '⌨️',
+      description: 'RCON console and chat for all servers'
+    },
     {
       path: '/system-logs',
       label: 'System Logs',

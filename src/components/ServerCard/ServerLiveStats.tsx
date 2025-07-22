@@ -173,27 +173,27 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
   }
 
   return (
-    <div className="space-y-1 text-xs">
+    <div className="space-y-1 text-sm md:text-base">
       {statsLoading ? (
         <div className="text-base-content/60">Loading live stats...</div>
       ) : liveStats ? (
         <>
           <div className="flex justify-between items-center">
             <span className="text-base-content/70">Players:</span>
-            <span className="font-bold text-primary">{liveStats.players}</span>
+            <span className="font-bold text-primary text-lg md:text-xl">{liveStats.players}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-base-content/70">Day:</span>
-            <span className="text-base-content/70">{liveStats.currentDay ?? 'N/A'}</span>
+            <span className="text-base-content/70 font-semibold">{liveStats.currentDay ?? 'N/A'}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-base-content/70">Time:</span>
-            <span className="text-base-content/70">{liveStats.currentTime ?? 'N/A'}</span>
+            <span className="text-base-content/70 font-semibold">{liveStats.currentTime ?? 'N/A'}</span>
           </div>
           {liveStats.version && (
             <div className="flex justify-between items-center">
               <span className="text-base-content/70">Version:</span>
-              <span className="text-base-content/70 text-xs">{liveStats.version}</span>
+              <span className="text-base-content/70 font-semibold text-xs md:text-sm">{liveStats.version}</span>
             </div>
           )}
         </>

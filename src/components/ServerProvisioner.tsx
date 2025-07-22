@@ -11,7 +11,7 @@ import IndividualServersStep from './provisioning/IndividualServersStep';
 import ModsStep from './provisioning/ModsStep';
 
 const ReviewStep: React.FC<StepProps> = ({ wizardData, generateServers }) => {
-  const servers = generateServers();
+  const servers: ServerConfig[] = generateServers();
   
   return (
     <div className="space-y-6">
@@ -246,7 +246,8 @@ const ServerProvisioner: React.FC = () => {
   ]);
 
   // Add state for restore modal
-  const [restoreModal, setRestoreModal] = useState<{ clusterName: string; backups: any[]; open: boolean } | null>(null);
+  type Backup = { path: string; name: string; backupDate?: string; sizeFormatted?: string };
+  const [restoreModal, setRestoreModal] = useState<{ clusterName: string; backups: Backup[]; open: boolean } | null>(null);
   const [selectedBackup, setSelectedBackup] = useState<string | null>(null);
 
   useEffect(() => {
@@ -658,7 +659,7 @@ const ServerProvisioner: React.FC = () => {
             ? `${wizardData.clusterName}-${mapConfig.displayName || mapConfig.map}`
             : `${wizardData.clusterName}-${mapConfig.displayName || mapConfig.map}-${i + 1}`;
           
-          servers.push({
+          const serverConfig: ServerConfig = {
             name: serverName,
             map: mapConfig.map,
             gamePort: portCounter,
@@ -673,8 +674,8 @@ const ServerProvisioner: React.FC = () => {
             tamingMultiplier: wizardData.tamingMultiplier,
             nameSuffix: mapConfig.displayName,
             sessionName: serverName
-          });
-          
+          };
+          servers.push(serverConfig);
           portCounter += 3;
         }
       }
@@ -717,10 +718,11 @@ const ServerProvisioner: React.FC = () => {
   };
 
   const getClusterStatus = (cluster: Cluster) => {
-    if (cluster.config.servers && cluster.config.servers.length > 0) {
-      const running = cluster.config.servers.filter((s: any) => s.status === 'running').length;
-      const stopped = cluster.config.servers.filter((s: any) => s.status === 'stopped').length;
-      const total = cluster.config.servers.length;
+    const servers: ServerConfig[] = (cluster.config.servers || []) as ServerConfig[];
+    if (servers.length > 0) {
+      const running = servers.filter((s: ServerConfig) => s.status === 'running').length;
+      const stopped = servers.filter((s: ServerConfig) => s.status === 'stopped').length;
+      const total = servers.length;
       if (running === total) return { status: 'running', runningServers: running, totalServers: total };
       if (stopped === total) return { status: 'stopped', runningServers: running, totalServers: total };
       if (running > 0 && running < total) return { status: 'partial', runningServers: running, totalServers: total };
@@ -893,7 +895,7 @@ const ServerProvisioner: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-base-content/70">Memory:</span>
                       <span className="font-mono text-xs">
-                        {formatGB(systemInfo?.memory?.free || 0)} GB free
+                        {formatGB(systemInfo?.memory?.free || 0)} GB available
                       </span>
                     </div>
                   </div>
