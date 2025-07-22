@@ -82,13 +82,19 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
     if (activeView !== 'chat') return;
     const handleChatUpdate = (data: { serverName: string; messages: any[] }) => {
       if (data.serverName === serverName) {
-        setChatMessages(
-          data.messages.map(m => ({
+        setChatMessages(prev => {
+          // Remove optimistic messages that are now present in the server log
+          const canonical = data.messages.map(m => ({
             ...m,
             timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
             optimistic: false
-          }))
-        );
+          }));
+          // Keep optimistic messages that are not in the canonical log
+          const optimistic = prev.filter(
+            m => m.optimistic && !canonical.some(c => c.message === m.message && c.sender !== 'You')
+          );
+          return [...canonical, ...optimistic];
+        });
       }
     };
     socketService.onCustomEvent('chat:update', handleChatUpdate);
