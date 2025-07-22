@@ -95,6 +95,34 @@ See [../asa-docker-control-api/README.md](../asa-docker-control-api/README.md) f
    ```
 5. Access the dashboard at the port shown in the output (default: 5173).
 
+## Windows All-in-One Setup (PowerShell)
+
+For Windows 10/11 users running native ARK servers, you can use the provided PowerShell script for a one-click install and launch:
+
+1. Open PowerShell as Administrator.
+2. Navigate to the dashboard scripts directory:
+   ```powershell
+   cd asa-servers-dashboard/scripts
+   ./install-all-in-one.ps1
+   ```
+   Or, from the backend scripts directory:
+   ```powershell
+   cd asa-docker-control-api/scripts
+   ./install-all-in-one.ps1
+   ```
+3. This will install dependencies, build the frontend, and start both backend and frontend in new windows.
+4. Access the dashboard at [http://localhost:5173](http://localhost:5173) and the API at [http://localhost:4000](http://localhost:4000)
+
+## Linux All-in-One Setup (Bash)
+
+Linux users can use the bash script:
+
+```bash
+bash scripts/install-all-in-one.sh
+```
+
+Or use Docker Compose for containerized deployment (see `asa-docker-control-api/docker/` and documentation for details).
+
 ---
 
 For more details, see the backend README and the documentation in the `docs/` folder.
