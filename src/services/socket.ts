@@ -580,6 +580,15 @@ export const socketService = {
   connectToSystemLogs: () => socketManager.connectToSystemLogs(),
   onSystemLog: (callback: (data: LogMessage) => void) => socketManager.onSystemLog(callback),
   offSystemLog: () => socketManager.offSystemLog(),
+  // Custom event subscription for scalability
+  onCustomEvent: (event: string, callback: (...args: any[]) => void) => {
+    const sock = (socketManager as any).socket;
+    if (sock) sock.on(event, callback);
+  },
+  offCustomEvent: (event: string, callback: (...args: any[]) => void) => {
+    const sock = (socketManager as any).socket;
+    if (sock) sock.off(event, callback);
+  },
 };
 
 export default socketService; 

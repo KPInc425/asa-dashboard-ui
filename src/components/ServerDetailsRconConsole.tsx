@@ -46,7 +46,6 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
   const inputRef = useRef<HTMLInputElement>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
-  const chatIntervalRef = useRef<number | null>(null);
 
   // Load RCON commands from YAML file
   useEffect(() => {
@@ -82,7 +81,6 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
     if (activeView !== 'chat') return;
     const handleChatUpdate = (data: { serverName: string; messages: any[] }) => {
       if (data.serverName === serverName) {
-        // Convert timestamp to Date if needed
         setChatMessages(
           data.messages.map(m => ({
             ...m,
@@ -91,13 +89,9 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
         );
       }
     };
-    if (socketService && socketService.socketManager && socketService.socketManager.socket) {
-      socketService.socketManager.socket.on('chat:update', handleChatUpdate);
-    }
+    socketService.onCustomEvent('chat:update', handleChatUpdate);
     return () => {
-      if (socketService && socketService.socketManager && socketService.socketManager.socket) {
-        socketService.socketManager.socket.off('chat:update', handleChatUpdate);
-      }
+      socketService.offCustomEvent('chat:update', handleChatUpdate);
     };
   }, [activeView, serverName]);
 
@@ -161,7 +155,7 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
 
     try {
       // Always send as ServerChat <message>
-      const response = await executeCommand(`ServerChat ${command}`);
+      await executeCommand(`ServerChat ${command}`);
       setCommand('');
       // No need to fetchChatMessages; backend will push update
     } catch (err) {
@@ -287,14 +281,6 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
 
   const clearChat = () => {
     setChatMessages([]);
-  };
-
-  const sendChatMessage = (message: string) => {
-    setCommand(`ServerChat ${message}`);
-    // Auto-submit the command
-    setTimeout(() => {
-      handleCommandSubmit(new Event('submit') as any);
-    }, 100);
   };
 
   return (
