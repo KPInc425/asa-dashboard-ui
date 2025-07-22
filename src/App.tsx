@@ -167,8 +167,8 @@ const AppContent: React.FC = () => {
             <Route path="/servers" element={<Servers />} />
             <Route path="/servers/:serverName" element={<ServerDetails />} />
             <Route path="/clusters/:clusterName" element={<ClusterDetails />} />
-            <Route path="/rcon/:containerName" element={<RconConsole />} />
             <Route path="/rcon" element={<RconPage />} />
+            <Route path="/rcon/:containerName" element={<RconConsole />} />
             <Route path="/configs" element={<Configs />} />
             <Route path="/global-configs" element={<GlobalServerConfigs />} />
 
