@@ -80,7 +80,10 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
   // Listen for chat:update events from Socket.IO for this server
   useEffect(() => {
     if (activeView !== 'chat') return;
+    console.log('[ChatView] useEffect: subscribing to chat:update for', serverName);
+    console.log('[ChatView] Socket connected:', socketService.isConnected());
     const handleChatUpdate = (data: { serverName: string; messages: any[] }) => {
+      console.log('[ChatView] Received chat:update event for', data.serverName, data);
       if (data.serverName === serverName) {
         setChatMessages(prev => {
           // Remove optimistic messages that are now present in the server log
@@ -99,9 +102,14 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
     };
     socketService.onCustomEvent('chat:update', handleChatUpdate);
     return () => {
+      console.log('[ChatView] Unsubscribing from chat:update for', serverName);
       socketService.offCustomEvent('chat:update', handleChatUpdate);
     };
   }, [activeView, serverName]);
+
+  useEffect(() => {
+    console.log('[ChatView] Mounted for server', serverName);
+  }, []);
 
   // Load command history from localStorage
   useEffect(() => {
@@ -406,19 +414,21 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
                 <p className="text-sm">Chat will update automatically</p>
               </div>
             ) : (
-              chatMessages.map((msg, index) => (
-                <div key={index} className="flex items-start space-x-3 p-2 rounded hover:bg-base-200">
-                  <span className="text-xs text-base-content/50 min-w-[60px]">
-                    {msg.timestamp.toLocaleTimeString()}
-                  </span>
-                  <span className="font-semibold text-primary min-w-[100px]">
-                    {msg.sender}:
-                  </span>
-                  <span className="text-base-content flex-1">
-                    {msg.message}
-                  </span>
-                </div>
-              ))
+              <div className="bg-base-200 rounded-lg p-2 mb-2 max-h-80 overflow-y-auto">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className="flex items-start space-x-3 p-2 rounded hover:bg-base-200">
+                    <span className="text-xs text-base-content/50 min-w-[60px]">
+                      {msg.timestamp.toLocaleTimeString()}
+                    </span>
+                    <span className="font-semibold text-primary min-w-[100px]">
+                      {msg.sender}:
+                    </span>
+                    <span className="text-base-content flex-1">
+                      {msg.message}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
