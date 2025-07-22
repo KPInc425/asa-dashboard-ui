@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { containerApi, type RconResponse } from '../services';
 import yaml from 'js-yaml';
+import socketService from '../services/socket';
 
 interface CommandHistory {
   command: string;
@@ -42,7 +43,6 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
   const [rconCommands, setRconCommands] = useState<RconCommand[]>([]);
   const [activeView, setActiveView] = useState<'console' | 'chat'>('console');
-  const [autoRefreshChat, setAutoRefreshChat] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
@@ -77,26 +77,29 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
     loadRconCommands();
   }, []);
 
-  // Auto-refresh chat when enabled
+  // Listen for chat:update events from Socket.IO for this server
   useEffect(() => {
-    if (autoRefreshChat && activeView === 'chat') {
-      chatIntervalRef.current = window.setInterval(() => {
-        fetchChatMessages();
-      }, 5000);
-    } else {
-      if (chatIntervalRef.current) {
-        window.clearInterval(chatIntervalRef.current);
-        chatIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (chatIntervalRef.current) {
-        window.clearInterval(chatIntervalRef.current);
-        chatIntervalRef.current = null;
+    if (activeView !== 'chat') return;
+    const handleChatUpdate = (data: { serverName: string; messages: any[] }) => {
+      if (data.serverName === serverName) {
+        // Convert timestamp to Date if needed
+        setChatMessages(
+          data.messages.map(m => ({
+            ...m,
+            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+          }))
+        );
       }
     };
-  }, [autoRefreshChat, activeView]);
+    if (socketService && socketService.socketManager && socketService.socketManager.socket) {
+      socketService.socketManager.socket.on('chat:update', handleChatUpdate);
+    }
+    return () => {
+      if (socketService && socketService.socketManager && socketService.socketManager.socket) {
+        socketService.socketManager.socket.off('chat:update', handleChatUpdate);
+      }
+    };
+  }, [activeView, serverName]);
 
   // Load command history from localStorage
   useEffect(() => {
@@ -130,39 +133,6 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
     }
   }, [history, chatMessages, activeView]);
 
-  const fetchChatMessages = async () => {
-    try {
-      const response = await executeCommand('GetChat');
-      if (response.success && response.response) {
-        const chatLines = response.response.split('\n').filter(line => line.trim());
-        const newMessages: ChatMessage[] = chatLines.map(line => {
-          // Parse chat format: [timestamp] PlayerName: message
-          const chatMatch = line.match(/^\[(.*?)\]\s*(.*?):\s*(.*)$/);
-          if (chatMatch) {
-            return {
-              timestamp: new Date(),
-              message: chatMatch[3],
-              sender: chatMatch[2]
-            };
-          }
-          return {
-            timestamp: new Date(),
-            message: line,
-            sender: 'System'
-          };
-        });
-        setChatMessages(prev => {
-          // Only add new unique messages
-          const existing = new Set(prev.map(m => `${m.sender}:${m.message}`));
-          const filtered = newMessages.filter(m => !existing.has(`${m.sender}:${m.message}`));
-          return [...prev, ...filtered].slice(-100); // Keep last 100 messages
-        });
-      }
-    } catch (error) {
-      console.error('Failed to fetch chat messages:', error);
-    }
-  };
-
   const executeCommand = async (cmd: string): Promise<RconResponse> => {
     try {
       let response: RconResponse;
@@ -178,6 +148,28 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
       return response;
     } catch (error) {
       throw error;
+    }
+  };
+
+  // Only allow sending chat messages in chat view
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!command.trim() || !serverName) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Always send as ServerChat <message>
+      const response = await executeCommand(`ServerChat ${command}`);
+      setCommand('');
+      // No need to fetchChatMessages; backend will push update
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send chat message';
+      setError(errorMessage);
+      setCommand('');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -203,10 +195,7 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
       setCommand('');
       setHistoryIndex(-1);
 
-      // If it was a chat command, refresh chat view
-      if (command.toLowerCase().includes('chat') || command.toLowerCase() === 'getchat') {
-        setTimeout(() => fetchChatMessages(), 500);
-      }
+      // No need to fetchChatMessages; backend will push update
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send command';
       setError(errorMessage);
@@ -323,32 +312,12 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
             className={`tab ${activeView === 'chat' ? 'tab-active' : ''}`}
             onClick={() => {
               setActiveView('chat');
-              fetchChatMessages();
+              // fetchChatMessages(); // Now handled by useEffect
             }}
           >
             💬 Chat
           </button>
         </div>
-
-        {activeView === 'chat' && (
-          <div className="flex items-center gap-2">
-            <label className="cursor-pointer label">
-              <span className="label-text text-sm mr-2">Auto-refresh</span>
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={autoRefreshChat}
-                onChange={(e) => setAutoRefreshChat(e.target.checked)}
-              />
-            </label>
-            <button
-              onClick={fetchChatMessages}
-              className="btn btn-sm btn-outline btn-primary"
-            >
-              🔄 Refresh
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Console/Chat Output */}
@@ -430,7 +399,7 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
               <div className="text-center py-12 text-base-content/50">
                 <div className="text-4xl mb-4">💬</div>
                 <p className="text-lg">No chat messages</p>
-                <p className="text-sm">Use "GetChat" command or enable auto-refresh to see chat messages</p>
+                <p className="text-sm">Chat will update automatically</p>
               </div>
             ) : (
               chatMessages.map((msg, index) => (
@@ -462,102 +431,102 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
           </div>
         )}
 
-        <form onSubmit={handleCommandSubmit}>
-          <div className="relative">
-            <div className="flex items-center space-x-2">
-              <span className="text-primary font-bold text-lg">$</span>
-              <input
-                ref={inputRef}
-                type="text"
-                value={command}
-                onChange={(e) => handleCommandChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={activeView === 'chat' ? 'Enter chat message or RCON command...' : 'Enter RCON command...'}
-                className="input input-bordered flex-1 font-mono"
-                disabled={isLoading}
-              />
-              <button
-                type="submit"
-                disabled={isLoading || !command.trim()}
-                className="btn btn-primary"
-              >
-                {isLoading ? (
-                  <span className="loading loading-spinner loading-sm"></span>
-                ) : (
-                  'Send'
-                )}
-              </button>
-            </div>
-
-            {/* Command Suggestions */}
-            {showSuggestions && (
-              <div className="absolute top-full left-8 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                {filteredCommands.map((suggestion, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => {
-                      setCommand(suggestion.syntax);
-                      setShowSuggestions(false);
-                      inputRef.current?.focus();
-                    }}
-                    className={`w-full text-left px-4 py-3 hover:bg-base-200 border-l-4 ${
-                      index === selectedSuggestion ? 'bg-base-200 border-primary' : 'border-transparent'
-                    }`}
-                  >
-                    <div className="font-mono text-sm font-bold text-primary">{suggestion.name}</div>
-                    <div className="text-xs text-base-content/70 mb-1">{suggestion.description}</div>
-                    <div className="text-xs font-mono bg-base-300 px-2 py-1 rounded inline-block">
-                      {suggestion.syntax}
-                    </div>
-                  </button>
-                ))}
+        {activeView === 'console' ? (
+          <form onSubmit={handleCommandSubmit}>
+            <div className="relative">
+              <div className="flex items-center space-x-2">
+                <span className="text-primary font-bold text-lg">$</span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={command}
+                  onChange={(e) => handleCommandChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter RCON command..."
+                  className="input input-bordered flex-1 font-mono"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !command.trim()}
+                  className="btn btn-primary"
+                >
+                  {isLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    'Send'
+                  )}
+                </button>
               </div>
-            )}
-          </div>
-        </form>
-
-        {/* Quick Commands */}
-        <div className="flex flex-wrap gap-2 mt-3">
-          <span className="text-sm text-base-content/70 mr-2">Quick commands:</span>
-          {activeView === 'console' ? (
-            ['listplayers', 'saveworld', 'broadcast', 'destroywilddinos'].map((cmd) => (
-              <button
-                key={cmd}
-                type="button"
-                onClick={() => setCommand(cmd)}
-                className="btn btn-xs btn-outline btn-primary"
-              >
-                {cmd}
-              </button>
-            ))
-          ) : (
-            <>
-              {['GetChat', 'ServerChat '].map((cmd) => (
+              {showSuggestions && (
+                <div className="absolute top-full left-8 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                  {filteredCommands.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        setCommand(suggestion.syntax);
+                        setShowSuggestions(false);
+                        inputRef.current?.focus();
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-base-200 border-l-4 ${
+                        index === selectedSuggestion ? 'bg-base-200 border-primary' : 'border-transparent'
+                      }`}
+                    >
+                      <div className="font-mono text-sm font-bold text-primary">{suggestion.name}</div>
+                      <div className="text-xs text-base-content/70 mb-1">{suggestion.description}</div>
+                      <div className="text-xs font-mono bg-base-300 px-2 py-1 rounded inline-block">
+                        {suggestion.syntax}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Quick Commands */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <span className="text-sm text-base-content/70 mr-2">Quick commands:</span>
+              {['listplayers', 'saveworld', 'broadcast', 'destroywilddinos'].map((cmd) => (
                 <button
                   key={cmd}
                   type="button"
                   onClick={() => setCommand(cmd)}
                   className="btn btn-xs btn-outline btn-primary"
                 >
-                  {cmd.trim()}
+                  {cmd}
                 </button>
               ))}
-              <div className="divider divider-horizontal"></div>
-              <input
-                type="text"
-                placeholder="Quick chat message..."
-                className="input input-xs input-bordered"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                    sendChatMessage(e.currentTarget.value);
-                    e.currentTarget.value = '';
-                  }
-                }}
-              />
-            </>
-          )}
-        </div>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleChatSubmit}>
+            <div className="relative">
+              <div className="flex items-center space-x-2">
+                <span className="text-primary font-bold text-lg">💬</span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={command}
+                  onChange={(e) => setCommand(e.target.value)}
+                  placeholder="Enter chat message..."
+                  className="input input-bordered flex-1"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !command.trim()}
+                  className="btn btn-primary"
+                >
+                  {isLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    'Send'
+                  )}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

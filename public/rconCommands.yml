@@ -168,3 +168,58 @@ rcon_commands:
     syntax: "GameCommand <command>"
     description: "Run game-specific command"
     category: "World & Environment"
+
+  - name: ListPlayers
+    syntax: "ListPlayers"
+    description: "List all online players"
+    category: "Server & Player Management"
+
+  - name: GetGameLog
+    syntax: "GetGameLog"
+    description: "Print 100 entries of the game log"
+    category: "Server & Player Management"
+
+  - name: SaveBackup
+    syntax: "SaveBackup"
+    description: "Trigger a backup of the world/save"
+    category: "Server & Player Management"
+
+  - name: ShowMessageOfTheDay
+    syntax: "ShowMessageOfTheDay"
+    description: "Show the server's message of the day to all players"
+    category: "Server & Player Management"
+
+  - name: UnbanPlayer
+    syntax: "UnbanPlayer <SteamID>"
+    description: "Unban a player by SteamID"
+    category: "Server & Player Management"
+
+  - name: TribeMessage
+    syntax: "TribeMessage <TribeId> <Message>"
+    description: "Add a message to the specified tribe's Tribelog"
+    category: "Chat & Messaging"
+
+  - name: TribeStructureAudit
+    syntax: "TribeStructureAudit <TribeID>"
+    description: "Output types and counts of a tribe's structures"
+    category: "Tribe Management"
+
+  - name: TribeDinoAudit
+    syntax: "TribeDinoAudit <TribeID>"
+    description: "Output types and counts of a tribe's dinos"
+    category: "Tribe Management"
+
+  - name: GetTribeIdPlayerList
+    syntax: "GetTribeIdPlayerList <TribeID>"
+    description: "List all players in a tribe"
+    category: "Tribe Management"
+
+  - name: DestroyTribeId
+    syntax: "DestroyTribeId <TribeID>"
+    description: "Destroy all entities of a tribe"
+    category: "Tribe Management"
+
+  - name: PrintColors
+    syntax: "PrintColors"
+    description: "Print all color IDs"
+    category: "Debug"
