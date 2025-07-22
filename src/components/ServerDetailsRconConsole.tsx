@@ -25,6 +25,7 @@ interface ChatMessage {
   timestamp: Date;
   message: string;
   sender?: string;
+  optimistic?: boolean; // Added for optimistic updates
 }
 
 interface ServerDetailsRconConsoleProps {
@@ -85,6 +86,7 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
           data.messages.map(m => ({
             ...m,
             timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+            optimistic: false
           }))
         );
       }
@@ -156,6 +158,16 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
     try {
       // Always send as ServerChat <message>
       await executeCommand(`ServerChat ${command}`);
+      const now = new Date();
+      setChatMessages(prev => [
+        ...prev,
+        {
+          timestamp: now,
+          sender: 'You',
+          message: command.trim(),
+          optimistic: true
+        }
+      ]);
       setCommand('');
       // No need to fetchChatMessages; backend will push update
     } catch (err) {
