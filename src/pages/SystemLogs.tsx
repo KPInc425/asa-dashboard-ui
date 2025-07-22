@@ -109,7 +109,7 @@ const SystemLogs: React.FC = () => {
   const formatLogContent = (content: string) => {
     if (!content) return 'No logs available';
     
-    return content.split('\n').map((line, index) => {
+    return content.split('\n').reverse().map((line, index) => {
       // Improved log level detection
       let logLevel = 'info';
       
