@@ -1,36 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import ServerDetailsRconConsole from '../components/ServerDetailsRconConsole';
-import ServerCard from '../components/ServerCard';
 
-// Redefine the Server type locally to match ServerCard's expected props
 interface CardServer {
   name: string;
   status: 'container' | 'native' | 'cluster' | 'cluster-server' | 'individual' | string;
   type: 'container' | 'native' | 'cluster' | 'cluster-server' | 'individual';
-  image?: string;
-  ports?: any[];
-  created?: string;
-  serverCount?: number;
-  maps?: string;
-  config?: any;
-  clusterName?: string;
   map?: string;
-  gamePort?: number;
-  queryPort?: number;
-  rconPort?: number;
-  maxPlayers?: number;
-  serverPath?: string;
-  players?: number;
-  isClusterServer?: boolean;
-  crashInfo?: {
-    exitCode: number;
-    exitSignal: string;
-    exitTime: string;
-    error?: string;
-  };
-  startupErrors?: string;
-  version?: string;
+  clusterName?: string;
 }
 
 const RconPage: React.FC = () => {
@@ -47,7 +24,6 @@ const RconPage: React.FC = () => {
       try {
         const response = await api.get('/api/native-servers');
         if (response.data && Array.isArray(response.data.servers)) {
-          // Map type property to the expected union type if needed
           const mappedServers = response.data.servers.map((s: any) => ({
             ...s,
             type: (s.type === 'native' || s.type === 'cluster' || s.type === 'container' || s.type === 'cluster-server' || s.type === 'individual') ? s.type : 'native',
@@ -65,22 +41,17 @@ const RconPage: React.FC = () => {
     fetchServers();
   }, []);
 
-  // Custom card for RCON selection
+  // Minimal card for RCON selection
   const renderServerCard = (server: CardServer) => (
     <div
       key={server.name}
-      className={`relative cursor-pointer ${selectedServer?.name === server.name ? 'ring-2 ring-primary' : ''}`}
+      className={`bg-base-200 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center p-6 min-h-[160px] relative ${selectedServer?.name === server.name ? 'ring-2 ring-primary' : ''}`}
       onClick={() => setSelectedServer(server)}
     >
-      <ServerCard
-        server={server}
-        actionLoading={null}
-        actionStatus={{}}
-        onAction={() => {}}
-        onViewDetails={() => setSelectedServer(server)}
-      />
+      <div className="font-bold text-primary text-lg mb-2 text-center">{server.name}</div>
+      <span className={`badge mb-4 ${server.status === 'running' ? 'badge-success' : server.status === 'stopped' ? 'badge-error' : 'badge-outline'}`}>{server.status.charAt(0).toUpperCase() + server.status.slice(1)}</span>
       <button
-        className="btn btn-primary btn-xs absolute bottom-4 right-4"
+        className="btn btn-primary btn-md w-full mt-auto"
         onClick={e => {
           e.stopPropagation();
           setSelectedServer(server);
@@ -98,10 +69,7 @@ const RconPage: React.FC = () => {
         <thead>
           <tr>
             <th>Server</th>
-            <th>Type</th>
             <th>Status</th>
-            <th>Map</th>
-            <th>Cluster</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -114,10 +82,9 @@ const RconPage: React.FC = () => {
               style={{ cursor: 'pointer' }}
             >
               <td>{server.name}</td>
-              <td>{server.type}</td>
-              <td>{server.status}</td>
-              <td>{server.map || '-'}</td>
-              <td>{server.clusterName || '-'}</td>
+              <td>
+                <span className={`badge ${server.status === 'running' ? 'badge-success' : server.status === 'stopped' ? 'badge-error' : 'badge-outline'}`}>{server.status.charAt(0).toUpperCase() + server.status.slice(1)}</span>
+              </td>
               <td>
                 <button
                   className="btn btn-primary btn-xs"
