@@ -2,19 +2,40 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import ServerDetailsRconConsole from '../components/ServerDetailsRconConsole';
 import ServerCard from '../components/ServerCard';
-import ServerList from '../components/ServerList';
 
-interface Server {
+// Redefine the Server type locally to match ServerCard's expected props
+interface CardServer {
   name: string;
-  status: string;
-  type: string;
-  map?: string;
+  status: 'container' | 'native' | 'cluster' | 'cluster-server' | 'individual' | string;
+  type: 'container' | 'native' | 'cluster' | 'cluster-server' | 'individual';
+  image?: string;
+  ports?: any[];
+  created?: string;
+  serverCount?: number;
+  maps?: string;
+  config?: any;
   clusterName?: string;
+  map?: string;
+  gamePort?: number;
+  queryPort?: number;
+  rconPort?: number;
+  maxPlayers?: number;
+  serverPath?: string;
+  players?: number;
+  isClusterServer?: boolean;
+  crashInfo?: {
+    exitCode: number;
+    exitSignal: string;
+    exitTime: string;
+    error?: string;
+  };
+  startupErrors?: string;
+  version?: string;
 }
 
 const RconPage: React.FC = () => {
-  const [servers, setServers] = useState<Server[]>([]);
-  const [selectedServer, setSelectedServer] = useState<Server | null>(null);
+  const [servers, setServers] = useState<CardServer[]>([]);
+  const [selectedServer, setSelectedServer] = useState<CardServer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
@@ -26,7 +47,12 @@ const RconPage: React.FC = () => {
       try {
         const response = await api.get('/api/native-servers');
         if (response.data && Array.isArray(response.data.servers)) {
-          setServers(response.data.servers);
+          // Map type property to the expected union type if needed
+          const mappedServers = response.data.servers.map((s: any) => ({
+            ...s,
+            type: (s.type === 'native' || s.type === 'cluster' || s.type === 'container' || s.type === 'cluster-server' || s.type === 'individual') ? s.type : 'native',
+          })) as CardServer[];
+          setServers(mappedServers);
         } else {
           setError('Failed to load servers');
         }
@@ -40,7 +66,7 @@ const RconPage: React.FC = () => {
   }, []);
 
   // Custom card for RCON selection
-  const renderServerCard = (server: Server) => (
+  const renderServerCard = (server: CardServer) => (
     <div
       key={server.name}
       className={`relative cursor-pointer ${selectedServer?.name === server.name ? 'ring-2 ring-primary' : ''}`}
