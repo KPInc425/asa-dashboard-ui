@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import ServerDetailsRconConsole from '../components/ServerDetailsRconConsole';
+import ServerCard from '../components/ServerCard';
+import ServerList from '../components/ServerList';
 
 interface Server {
   name: string;
@@ -15,6 +17,7 @@ const RconPage: React.FC = () => {
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
 
   useEffect(() => {
     const fetchServers = async () => {
@@ -36,33 +39,110 @@ const RconPage: React.FC = () => {
     fetchServers();
   }, []);
 
+  // Custom card for RCON selection
+  const renderServerCard = (server: Server) => (
+    <div
+      key={server.name}
+      className={`relative cursor-pointer ${selectedServer?.name === server.name ? 'ring-2 ring-primary' : ''}`}
+      onClick={() => setSelectedServer(server)}
+    >
+      <ServerCard
+        server={server}
+        actionLoading={null}
+        actionStatus={{}}
+        onAction={() => {}}
+        onViewDetails={() => setSelectedServer(server)}
+      />
+      <button
+        className="btn btn-primary btn-xs absolute bottom-4 right-4"
+        onClick={e => {
+          e.stopPropagation();
+          setSelectedServer(server);
+        }}
+      >
+        Open RCON/Chat
+      </button>
+    </div>
+  );
+
+  // Custom list for RCON selection
+  const renderServerList = () => (
+    <div className="overflow-x-auto">
+      <table className="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>Server</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Map</th>
+            <th>Cluster</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {servers.map(server => (
+            <tr
+              key={server.name}
+              className={selectedServer?.name === server.name ? 'ring-2 ring-primary' : ''}
+              onClick={() => setSelectedServer(server)}
+              style={{ cursor: 'pointer' }}
+            >
+              <td>{server.name}</td>
+              <td>{server.type}</td>
+              <td>{server.status}</td>
+              <td>{server.map || '-'}</td>
+              <td>{server.clusterName || '-'}</td>
+              <td>
+                <button
+                  className="btn btn-primary btn-xs"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setSelectedServer(server);
+                  }}
+                >
+                  Open RCON/Chat
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-7xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-4 text-primary">RCON Console & Chat</h1>
       <p className="mb-4 text-base-content/70">Select a server to open its RCON console and chat view.</p>
+      <div className="mb-4 flex gap-2 items-center">
+        <span className="text-sm text-base-content/60">View mode:</span>
+        <button
+          className={`btn btn-xs ${viewMode === 'cards' ? 'btn-active' : 'btn-outline'}`}
+          onClick={() => setViewMode('cards')}
+        >
+          Cards
+        </button>
+        <button
+          className={`btn btn-xs ${viewMode === 'list' ? 'btn-active' : 'btn-outline'}`}
+          onClick={() => setViewMode('list')}
+        >
+          List
+        </button>
+      </div>
       {loading ? (
         <div className="text-base-content/60">Loading servers...</div>
       ) : error ? (
         <div className="text-error">{error}</div>
       ) : (
-        <div className="mb-6">
-          <label className="block mb-2 font-semibold">Select Server:</label>
-          <select
-            className="select select-bordered w-full max-w-md"
-            value={selectedServer?.name || ''}
-            onChange={e => {
-              const server = servers.find(s => s.name === e.target.value) || null;
-              setSelectedServer(server);
-            }}
-          >
-            <option value="" disabled>Select a server...</option>
-            {servers.map(server => (
-              <option key={server.name} value={server.name}>
-                {server.name} {server.map ? `(${server.map})` : ''} {server.clusterName ? `- ${server.clusterName}` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+        <>
+          {viewMode === 'cards' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mb-6">
+              {servers.map(renderServerCard)}
+            </div>
+          ) : (
+            <div className="mb-6">{renderServerList()}</div>
+          )}
+        </>
       )}
       {selectedServer && (
         <div className="mt-8">
