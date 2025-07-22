@@ -48,6 +48,20 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
   const consoleRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
+  // Reset state when server changes
+  useEffect(() => {
+    console.log('[RCON] Switching to server:', serverName, 'clearing state');
+    setHistory([]);
+    setChatMessages([]);
+    setCommand('');
+    setError('');
+    setHistoryIndex(-1);
+    setFilteredCommands([]);
+    setShowSuggestions(false);
+    setSelectedSuggestion(0);
+    setIsLoading(false);
+  }, [serverName]);
+
   // Load RCON commands from YAML file
   useEffect(() => {
     const loadRconCommands = async () => {
