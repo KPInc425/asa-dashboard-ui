@@ -376,29 +376,31 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
                 </div>
               </div>
             ) : (
-              history.map((entry, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center space-x-2 bg-blue-900/30 p-2 rounded border-l-4 border-blue-500">
-                    <span className="text-blue-400 font-bold">$</span>
-                    <span className="text-yellow-400 font-medium">{entry.command}</span>
-                    <span className="text-blue-400/50 text-xs">
-                      [{entry.timestamp.toLocaleTimeString()}]
-                    </span>
+              <div className="bg-base-200 rounded-lg p-2 mb-2 max-h-80 overflow-y-auto">
+                {history.map((entry, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center space-x-2 bg-blue-900/30 p-2 rounded border-l-4 border-blue-500">
+                      <span className="text-blue-400 font-bold">$</span>
+                      <span className="text-yellow-400 font-medium">{entry.command}</span>
+                      <span className="text-blue-400/50 text-xs">
+                        [{entry.timestamp.toLocaleTimeString()}]
+                      </span>
+                    </div>
+                    
+                    <div className={`ml-4 p-2 rounded border-l-4 ${
+                      entry.success 
+                        ? 'bg-green-900/30 border-green-500 text-green-400' 
+                        : 'bg-red-900/30 border-red-500 text-red-400'
+                    }`}>
+                      {entry.response.split('\n').map((line, lineIndex) => (
+                        <div key={lineIndex} className="text-sm">
+                          {line || '\u00A0'}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  
-                  <div className={`ml-4 p-2 rounded border-l-4 ${
-                    entry.success 
-                      ? 'bg-green-900/30 border-green-500 text-green-400' 
-                      : 'bg-red-900/30 border-red-500 text-red-400'
-                  }`}>
-                    {entry.response.split('\n').map((line, lineIndex) => (
-                      <div key={lineIndex} className="text-sm">
-                        {line || '\u00A0'}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         ) : (
