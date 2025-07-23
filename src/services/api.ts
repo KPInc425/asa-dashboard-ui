@@ -2118,6 +2118,31 @@ export const provisioningApi = {
     }
     return { success: true, backups: response.data.data.backups, count: response.data.data.count, message: response.data.message };
   },
+
+  /**
+   * Export cluster config as downloadable JSON
+   */
+  exportClusterConfig: async (clusterName: string): Promise<Blob> => {
+    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/export`, {
+      responseType: 'blob',
+    });
+    if (response.status !== 200) {
+      throw new Error('Failed to export cluster config');
+    }
+    return response.data;
+  },
+
+  /**
+   * Import cluster config from JSON file
+   */
+  importClusterConfig: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/provisioning/clusters/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };
 
 // Provisioning API

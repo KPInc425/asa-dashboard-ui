@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { apiService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import GlobalModManager from '../components/GlobalModManager';
 import { useDeveloper } from '../contexts/DeveloperContext';
+import { provisioningApi } from '../services/api';
 
 interface SystemInfo {
   mode: string;
@@ -91,6 +92,10 @@ const Dashboard: React.FC = () => {
   const [showDebugModal, setShowDebugModal] = useState(false);
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [debugLoading, setDebugLoading] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -153,6 +158,34 @@ const Dashboard: React.FC = () => {
       alert('Failed to get debug info. Check console for details.');
     } finally {
       setDebugLoading(false);
+    }
+  };
+
+  // Import cluster config handler
+  const handleImportClick = () => {
+    setImportError(null);
+    setImportSuccess(null);
+    fileInputRef.current?.click();
+  };
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportLoading(true);
+    setImportError(null);
+    setImportSuccess(null);
+    try {
+      const result = await provisioningApi.importClusterConfig(file);
+      if (result.success) {
+        setImportSuccess(result.message || 'Cluster imported successfully');
+        await loadDashboardData();
+      } else {
+        setImportError(result.message || 'Failed to import cluster');
+      }
+    } catch (err: any) {
+      setImportError(err.message || 'Failed to import cluster');
+    } finally {
+      setImportLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -463,6 +496,36 @@ const Dashboard: React.FC = () => {
           <div className="card bg-base-100 shadow-sm">
             <div className="card-body">
               <h3 className="card-title">Clusters ({clusters.length})</h3>
+              <div className="mb-3 flex flex-wrap gap-2 items-center">
+                <button
+                  className="btn btn-outline btn-info"
+                  onClick={handleImportClick}
+                  disabled={importLoading}
+                >
+                  {importLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    '⬆️ Import/Restore Cluster'
+                  )}
+                </button>
+                <input
+                  type="file"
+                  accept="application/json"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                />
+                {importError && (
+                  <div className="alert alert-error mt-2">
+                    <span>{importError}</span>
+                  </div>
+                )}
+                {importSuccess && (
+                  <div className="alert alert-success mt-2">
+                    <span>{importSuccess}</span>
+                  </div>
+                )}
+              </div>
               {clusters.length === 0 ? (
                 <p className="text-base-content/70">No clusters found</p>
               ) : (

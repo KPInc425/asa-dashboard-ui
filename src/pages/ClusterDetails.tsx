@@ -33,6 +33,8 @@ const ClusterDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'mods' | 'configs' | 'servers'>('overview');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   // Load cluster data
   useEffect(() => {
@@ -118,6 +120,27 @@ const ClusterDetails: React.FC = () => {
       setError(err instanceof Error ? err.message : `Failed to ${action} cluster`);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  // Download cluster config handler
+  const handleDownloadConfig = async () => {
+    setDownloadLoading(true);
+    setDownloadError(null);
+    try {
+      const blob = await provisioningApi.exportClusterConfig(cluster.name);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cluster.name}-cluster.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setDownloadError(err.message || 'Failed to download config');
+    } finally {
+      setDownloadLoading(false);
     }
   };
 
@@ -307,7 +330,23 @@ const ClusterDetails: React.FC = () => {
                           '🔄 Restart All'
                         )}
                       </button>
+                      <button
+                        onClick={handleDownloadConfig}
+                        disabled={downloadLoading}
+                        className="btn btn-outline btn-info"
+                      >
+                        {downloadLoading ? (
+                          <span className="loading loading-spinner loading-sm"></span>
+                        ) : (
+                          '⬇️ Download Config'
+                        )}
+                      </button>
                     </div>
+                    {downloadError && (
+                      <div className="alert alert-error mt-2">
+                        <span>{downloadError}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
