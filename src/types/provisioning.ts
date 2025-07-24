@@ -165,6 +165,9 @@ export interface WizardData {
   };
   
   autoStart: boolean;
+  // Add these fields for INI/config sync
+  gameIni?: string;
+  gameUserSettingsIni?: string;
 }
 
 export interface StepProps {

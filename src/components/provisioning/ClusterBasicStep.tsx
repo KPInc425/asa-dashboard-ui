@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import type { StepProps } from '../../types/provisioning';
+import type { StepProps, WizardStep } from '../../types/provisioning';
 import PortAllocationPreview from './PortAllocationPreview';
 
-const ClusterBasicStep: React.FC<StepProps> = ({ wizardData, setWizardData }) => {
+const ClusterBasicStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => void }> = ({ wizardData, setWizardData, setCurrentStep }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [showImportPrompt, setShowImportPrompt] = useState(false);
 
   const handleImportConfig = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -14,15 +15,29 @@ const ClusterBasicStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
       const text = await file.text();
       const config = JSON.parse(text);
       if (!config.name) throw new Error('Config must have a name');
-      setWizardData(prev => ({
-        ...prev,
+      // Build new wizardData from config
+      const newWizardData: Partial<typeof wizardData> = {
         clusterName: config.name || '',
         description: config.description || '',
-        serverCount: config.serverCount || 1,
+        serverCount: config.serverCount || (config.servers ? config.servers.length : 1),
         basePort: config.basePort || 7777,
-        portAllocationMode: config.portAllocationMode || 'sequential',
+        // If explicit servers, use them and skip port allocation mode
+        servers: config.servers || [],
+        portAllocationMode: config.servers ? undefined : (config.portAllocationMode || 'sequential'),
+        selectedMaps: config.maps ? config.maps.map((map: string) => ({ map, count: 1, enabled: true })) : [],
+        customDynamicConfigUrl: config.customDynamicConfigUrl || '',
+        // Game settings
+        gameSettings: config.gameSettings || {},
+        // Mods
+        globalMods: config.globalMods || [],
+        serverMods: config.serverMods || {},
+        // INI values (if present)
+        gameIni: config.gameIni || '',
+        gameUserSettingsIni: config.gameUserSettingsIni || '',
         // Add more fields as needed
-      }));
+      };
+      setWizardData(prev => ({ ...prev, ...newWizardData }));
+      setShowImportPrompt(true);
     } catch (err) {
       setImportError('Invalid config file: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
@@ -59,6 +74,22 @@ const ClusterBasicStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
         />
         {importError && <span className="text-error ml-2">{importError}</span>}
       </div>
+      {showImportPrompt && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Config Imported</h3>
+            <p className="mb-4">The cluster config was imported. Would you like to review all settings now, or walk through the wizard step-by-step?</p>
+            <div className="flex gap-2 mt-4">
+              <button className="btn btn-primary" onClick={() => { setShowImportPrompt(false); setCurrentStep && setCurrentStep('review'); }}>
+                Go to Review
+              </button>
+              <button className="btn btn-outline" onClick={() => setShowImportPrompt(false)}>
+                Step-by-Step
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="form-control">
           <label className="label">
