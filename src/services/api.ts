@@ -1991,7 +1991,7 @@ export const provisioningApi = {
   /**
    * Backup cluster
    */
-  backupCluster: async (clusterName: string, options?: { destination?: string; saves?: boolean; configs?: boolean; logs?: boolean; mods?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+  backupCluster: async (clusterName: string, options?: { destination?: string; saves?: boolean; configs?: boolean; logs?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
     const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/backup`, options || {});
     return response.data;
   },
@@ -1999,7 +1999,7 @@ export const provisioningApi = {
   /**
    * Restore cluster
    */
-  restoreCluster: async (clusterName: string, options?: { source?: string; saves?: boolean; configs?: boolean; logs?: boolean; mods?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+  restoreCluster: async (clusterName: string, options?: { source?: string; saves?: boolean; configs?: boolean; logs?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
     const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/restore`, options || {});
     return response.data;
   },

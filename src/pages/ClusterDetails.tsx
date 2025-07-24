@@ -60,8 +60,8 @@ const ClusterDetails: React.FC = () => {
 
   const [showBackupOptionsModal, setShowBackupOptionsModal] = useState(false);
   const [showRestoreOptionsModal, setShowRestoreOptionsModal] = useState(false);
-  const [backupOptions, setBackupOptions] = useState({ saves: true, configs: true, logs: true, mods: true });
-  const [restoreOptions, setRestoreOptions] = useState({ saves: true, configs: true, logs: true, mods: true });
+  const [backupOptions, setBackupOptions] = useState({ saves: true, configs: true, logs: true });
+  const [restoreOptions, setRestoreOptions] = useState({ saves: true, configs: true, logs: true });
 
   // Load cluster data
   useEffect(() => {
@@ -839,10 +839,6 @@ const ClusterDetails: React.FC = () => {
                 <input type="checkbox" checked={backupOptions.logs} onChange={e => setBackupOptions(o => ({ ...o, logs: e.target.checked }))} />
                 <span className="ml-2">Logs</span>
               </label>
-              <label className="flex items-center mb-2">
-                <input type="checkbox" checked={backupOptions.mods} onChange={e => setBackupOptions(o => ({ ...o, mods: e.target.checked }))} />
-                <span className="ml-2">Mods</span>
-              </label>
               <div className="flex gap-2 mt-4">
                 <button type="button" className="btn btn-primary" onClick={async () => {
   if (!cluster) return;
@@ -852,8 +848,7 @@ const ClusterDetails: React.FC = () => {
     const response = await provisioningApi.backupCluster(cluster.name, {
       saves: backupOptions.saves,
       configs: backupOptions.configs,
-      logs: backupOptions.logs,
-      mods: backupOptions.mods
+      logs: backupOptions.logs
     });
     if (response.success) {
       // Optionally show a toast or success message
@@ -896,10 +891,6 @@ const ClusterDetails: React.FC = () => {
                 <input type="checkbox" checked={restoreOptions.logs} onChange={e => setRestoreOptions(o => ({ ...o, logs: e.target.checked }))} />
                 <span className="ml-2">Logs</span>
               </label>
-              <label className="flex items-center mb-2">
-                <input type="checkbox" checked={restoreOptions.mods} onChange={e => setRestoreOptions(o => ({ ...o, mods: e.target.checked }))} />
-                <span className="ml-2">Mods</span>
-              </label>
               <div className="flex gap-2 mt-4">
                 <button type="button" className="btn btn-warning" onClick={async () => {
   if (!cluster) return;
@@ -909,8 +900,7 @@ const ClusterDetails: React.FC = () => {
     const response = await provisioningApi.restoreCluster(cluster.name, {
       saves: restoreOptions.saves,
       configs: restoreOptions.configs,
-      logs: restoreOptions.logs,
-      mods: restoreOptions.mods
+      logs: restoreOptions.logs
     });
     if (response.success) {
       // Optionally show a toast or success message
