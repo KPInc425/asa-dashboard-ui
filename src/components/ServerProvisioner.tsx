@@ -561,7 +561,7 @@ const ServerProvisioner: React.FC = () => {
     try {
       setStatusMessage(`Restoring cluster "${restoreModal.clusterName}" from backup...`);
       setStatusType('info');
-      const response = await apiService.provisioning.restoreCluster(restoreModal.clusterName, selectedBackup);
+      const response = await apiService.provisioning.restoreCluster(restoreModal.clusterName, { source: selectedBackup });
       if (response.success) {
         setStatusMessage(`✅ Cluster "${restoreModal.clusterName}" restored successfully!`);
         setStatusType('success');

@@ -3,7 +3,6 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { provisioningApi } from '../services/api';
 import GlobalModManager from '../components/GlobalModManager';
 import GlobalConfigManager from '../components/GlobalConfigManager';
-import Modal from '../components/Modal'; // If you have a Modal component, otherwise use a div
 
 interface Cluster {
   name: string;

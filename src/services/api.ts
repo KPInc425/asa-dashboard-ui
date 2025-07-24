@@ -1991,44 +1991,16 @@ export const provisioningApi = {
   /**
    * Backup cluster
    */
-  backupCluster: async (name: string, destination?: string): Promise<{ success: boolean; message: string; data?: any }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: `Cluster ${name} backed up successfully (mock)`,
-            data: { backupPath: '/mock/backup/path' }
-          });
-        }, 2000);
-      });
-    }
-
-    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(name)}/backup`, {
-      destination
-    });
+  backupCluster: async (clusterName: string, options?: { destination?: string; saves?: boolean; configs?: boolean; logs?: boolean; mods?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/backup`, options || {});
     return response.data;
   },
 
   /**
    * Restore cluster
    */
-  restoreCluster: async (name: string, source: string): Promise<{ success: boolean; message: string; data?: any }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: `Cluster ${name} restored successfully (mock)`,
-            data: { sourcePath: source }
-          });
-        }, 3000);
-      });
-    }
-
-    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(name)}/restore`, {
-      source
-    });
+  restoreCluster: async (clusterName: string, options?: { source?: string; saves?: boolean; configs?: boolean; logs?: boolean; mods?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/restore`, options || {});
     return response.data;
   },
 
