@@ -50,7 +50,7 @@ const ClusterDetails: React.FC = () => {
   const [serverBackups, setServerBackups] = useState<Record<string, any[]>>({});
   const [serverBackupLoading, setServerBackupLoading] = useState<Record<string, boolean>>({});
   const [serverBackupError, setServerBackupError] = useState<Record<string, string>>({});
-  const [downloadServerBackupLoading, setDownloadServerBackupLoading] = useState<Record<string, string>>({});
+  const [downloadServerBackupLoading, setDownloadServerBackupLoading] = useState<Record<string, boolean>>({});
   const [showServerBackupModal, setShowServerBackupModal] = useState<string | null>(null);
   const [showServerRestoreModal, setShowServerRestoreModal] = useState<string | null>(null);
   const [serverRestoreFile, setServerRestoreFile] = useState<Record<string, File | null>>({});
@@ -147,6 +147,7 @@ const ClusterDetails: React.FC = () => {
 
   // Download cluster config handler
   const handleDownloadConfig = async () => {
+    if (!cluster) return;
     setDownloadLoading(true);
     setDownloadError(null);
     try {
@@ -168,11 +169,12 @@ const ClusterDetails: React.FC = () => {
 
   // Download backup modal handler
   const openBackupModal = async () => {
+    if (!cluster) return;
     setShowBackupModal(true);
     setBackupLoading(true);
     setBackupError(null);
     try {
-      const result = await provisioningApi.listClusterBackups(cluster.name);
+      const result = await provisioningApi.getClusterBackups(cluster.name);
       if (result.success) {
         setBackups(result.backups || []);
       } else {
@@ -185,6 +187,7 @@ const ClusterDetails: React.FC = () => {
     }
   };
   const handleDownloadBackup = async (backupName: string) => {
+    if (!cluster) return;
     setDownloadBackupLoading(backupName);
     try {
       const blob = await provisioningApi.downloadClusterBackup(cluster.name, backupName);
@@ -199,7 +202,7 @@ const ClusterDetails: React.FC = () => {
     } catch (err) {
       alert('Failed to download backup');
     } finally {
-      setDownloadBackupLoading(null);
+      setDownloadBackupLoading('');
     }
   };
 
@@ -217,7 +220,7 @@ const ClusterDetails: React.FC = () => {
   };
   const handleRestoreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!restoreFile) {
+    if (!restoreFile || !cluster) {
       setRestoreError('Please select a backup ZIP file');
       return;
     }

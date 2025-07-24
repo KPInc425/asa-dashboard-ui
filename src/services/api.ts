@@ -2118,6 +2118,75 @@ export const provisioningApi = {
     }
     return { success: true, backups: response.data.data.backups, count: response.data.data.count, message: response.data.message };
   },
+
+  /**
+   * Export cluster config (download as JSON)
+   */
+  exportClusterConfig: async (clusterName: string): Promise<Blob> => {
+    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/export`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  /**
+   * Import cluster config (upload JSON)
+   */
+  importClusterConfig: async (file: File): Promise<{ success: boolean; message?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/provisioning/clusters/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  /**
+   * Download cluster backup (as ZIP)
+   */
+  downloadClusterBackup: async (clusterName: string, backupName: string): Promise<Blob> => {
+    const response = await api.get(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}/${encodeURIComponent(backupName)}/download`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  /**
+   * Download server backup (as ZIP)
+   */
+  downloadServerBackup: async (serverName: string, backupName: string): Promise<Blob> => {
+    const response = await api.get(`/api/provisioning/server-backups/${encodeURIComponent(serverName)}/${encodeURIComponent(backupName)}/download`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  /**
+   * Restore cluster backup (alias for restoreCluster)
+   */
+  restoreClusterBackup: async (file: File, clusterName: string): Promise<{ success: boolean; message?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('clusterName', clusterName);
+    const response = await api.post(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}/restore`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  /**
+   * Restore server backup (alias for restoreServer)
+   */
+  restoreServerBackup: async (file: File, serverName: string): Promise<{ success: boolean; message?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('serverName', serverName);
+    const response = await api.post(`/api/provisioning/server-backups/${encodeURIComponent(serverName)}/restore`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  /**
+   * List cluster backups (alias for getClusterBackups)
+   */
+  listClusterBackups: async (clusterName: string) => {
+    return provisioningApi.getClusterBackups(clusterName);
+  },
 };
 
 // Provisioning API
