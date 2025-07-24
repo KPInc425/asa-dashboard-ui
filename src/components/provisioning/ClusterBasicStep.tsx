@@ -202,6 +202,11 @@ const ClusterBasicStep: React.FC<StepProps & { setCurrentStep?: (step: WizardSte
           </select>
         </div>
       </div>
+      {setCurrentStep && (
+        <button className="btn btn-outline mt-6" onClick={() => setCurrentStep('review')}>
+          Back to Review
+        </button>
+      )}
       <PortAllocationPreview wizardData={wizardData} />
     </div>
   );

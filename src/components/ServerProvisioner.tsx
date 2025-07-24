@@ -62,10 +62,43 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
             {setCurrentStep && <button className="btn btn-xs btn-outline" onClick={() => setCurrentStep('cluster-basic')}>Edit</button>}
           </div>
           <div className="space-y-2 text-sm">
+            {/* Determine allocation mode */}
+            {(() => {
+              const ports = servers.map(s => s.gamePort);
+              const base = wizardData.portConfiguration?.basePort || wizardData.basePort;
+              const inc = wizardData.portConfiguration?.portIncrement || 1;
+              const isSequential = ports.every((p, i) => p === base + i * inc);
+              // You can add logic for 'even' mode if needed
+              if (isSequential) {
+                return <div><span className="font-medium">Allocation Mode:</span> Sequential</div>;
+              } else {
+                return <div><span className="font-medium">Allocation Mode:</span> Custom</div>;
+              }
+            })()}
             <div><span className="font-medium">Base Port:</span> {wizardData.portConfiguration?.basePort || wizardData.basePort}</div>
             <div><span className="font-medium">Port Increment:</span> {wizardData.portConfiguration?.portIncrement || 1}</div>
             <div><span className="font-medium">Query Port Base:</span> {wizardData.portConfiguration?.queryPortBase || 27015}</div>
             <div><span className="font-medium">RCON Port Base:</span> {wizardData.portConfiguration?.rconPortBase || 32330}</div>
+            {/* If not sequential, show per-server ports */}
+            {(() => {
+              const ports = servers.map(s => s.gamePort);
+              const base = wizardData.portConfiguration?.basePort || wizardData.basePort;
+              const inc = wizardData.portConfiguration?.portIncrement || 1;
+              const isSequential = ports.every((p, i) => p === base + i * inc);
+              if (!isSequential) {
+                return (
+                  <div className="mt-2">
+                    <span className="font-medium">Per-Server Ports:</span>
+                    <ul className="ml-4">
+                      {servers.map(server => (
+                        <li key={server.name} className="text-xs">{server.name}: Game {server.gamePort}, Query {server.queryPort}, RCON {server.rconPort}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
       </div>
