@@ -15,27 +15,68 @@ const ClusterBasicStep: React.FC<StepProps & { setCurrentStep?: (step: WizardSte
       const text = await file.text();
       const config = JSON.parse(text);
       if (!config.name) throw new Error('Config must have a name');
+      
+      // Extract common settings from first server (fallback values)
+      const firstServer = config.servers?.[0] || {};
+      
       // Build new wizardData from config
       const newWizardData: Partial<typeof wizardData> = {
         clusterName: config.name || '',
         description: config.description || '',
         serverCount: config.serverCount || (config.servers ? config.servers.length : 1),
         basePort: config.basePort || 7777,
+        
+        // Server settings (use first server as template)
+        maxPlayers: firstServer.maxPlayers || 50,
+        adminPassword: firstServer.adminPassword || '',
+        serverPassword: firstServer.serverPassword || '',
+        
         // If explicit servers, use them and skip port allocation mode
         servers: config.servers || [],
         portAllocationMode: config.servers ? undefined : (config.portAllocationMode || 'sequential'),
-        selectedMaps: config.maps ? config.maps.map((map: string) => ({ map, count: 1, enabled: true })) : [],
-        customDynamicConfigUrl: config.customDynamicConfigUrl || '',
-        // Game settings
-        gameSettings: config.gameSettings || {},
+        
+        // Maps - handle both 'maps' and 'selectedMaps' properties
+        selectedMaps: config.selectedMaps || (config.maps ? config.maps.map((map: string) => ({ map, count: 1, enabled: true })) : []),
+        
+        // Custom dynamic config URL - extract from first server or global
+        customDynamicConfigUrl: firstServer.customDynamicConfigUrl || config.customDynamicConfigUrl || '',
+        
+        // Game settings - extract from config or first server
+        gameSettings: {
+          ...config.gameSettings,
+          harvestMultiplier: firstServer.harvestMultiplier || config.harvestMultiplier || 1,
+          xpMultiplier: firstServer.xpMultiplier || config.xpMultiplier || 1,
+          tamingMultiplier: firstServer.tamingMultiplier || config.tamingMultiplier || 1,
+        },
+        
         // Mods
         globalMods: config.globalMods || [],
         serverMods: config.serverMods || {},
+        
+        // Cluster settings
+        clusterSettings: config.clusterSettings || {
+          clusterId: config.clusterId || config.name || '',
+          clusterName: config.clusterName || config.name || '',
+          clusterDescription: config.clusterDescription || config.description || '',
+          clusterPassword: config.clusterPassword || firstServer.clusterPassword || '',
+          clusterOwner: config.clusterOwner || 'Admin'
+        },
+        
+        // Port configuration
+        portConfiguration: config.portConfiguration || {
+          basePort: config.basePort || 7777,
+          portIncrement: 1,
+          queryPortBase: 27015,
+          queryPortIncrement: 1,
+          rconPortBase: 32330,
+          rconPortIncrement: 1
+        },
+        
         // INI values (if present)
         gameIni: config.gameIni || '',
         gameUserSettingsIni: config.gameUserSettingsIni || '',
-        // Add more fields as needed
       };
+      
       setWizardData(prev => ({ ...prev, ...newWizardData }));
       setShowImportPrompt(true);
     } catch (err) {
@@ -80,7 +121,10 @@ const ClusterBasicStep: React.FC<StepProps & { setCurrentStep?: (step: WizardSte
             <h3 className="font-bold text-lg mb-4">Config Imported</h3>
             <p className="mb-4">The cluster config was imported. Would you like to review all settings now, or walk through the wizard step-by-step?</p>
             <div className="flex gap-2 mt-4">
-              <button className="btn btn-primary" onClick={() => { setShowImportPrompt(false); setCurrentStep && setCurrentStep('review'); }}>
+              <button className="btn btn-primary" onClick={() => { 
+                setShowImportPrompt(false); 
+                if (setCurrentStep) setCurrentStep('review'); 
+              }}>
                 Go to Review
               </button>
               <button className="btn btn-outline" onClick={() => setShowImportPrompt(false)}>

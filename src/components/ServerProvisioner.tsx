@@ -41,7 +41,31 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
             <div><span className="font-medium">Max Players:</span> {wizardData.maxPlayers}</div>
             <div><span className="font-medium">Admin Password:</span> {wizardData.adminPassword ? '***' : 'Not set'}</div>
             <div><span className="font-medium">Server Password:</span> {wizardData.serverPassword ? '***' : 'Not set'}</div>
-            <div><span className="font-medium">Cluster Password:</span> {wizardData.clusterPassword ? '***' : 'Not set'}</div>
+            <div><span className="font-medium">Cluster Password:</span> {wizardData.clusterSettings?.clusterPassword ? '***' : 'Not set'}</div>
+          </div>
+        </div>
+        <div className="bg-base-300 rounded-lg p-4">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-semibold">Cluster Settings</h3>
+            {setCurrentStep && <button className="btn btn-xs btn-outline" onClick={() => setCurrentStep('cluster-basic')}>Edit</button>}
+          </div>
+          <div className="space-y-2 text-sm">
+            <div><span className="font-medium">Cluster ID:</span> {wizardData.clusterSettings?.clusterId || 'Not set'}</div>
+            <div><span className="font-medium">Cluster Name:</span> {wizardData.clusterSettings?.clusterName || 'Not set'}</div>
+            <div><span className="font-medium">Cluster Description:</span> {wizardData.clusterSettings?.clusterDescription || 'Not set'}</div>
+            <div><span className="font-medium">Cluster Owner:</span> {wizardData.clusterSettings?.clusterOwner || 'Not set'}</div>
+          </div>
+        </div>
+        <div className="bg-base-300 rounded-lg p-4">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-semibold">Port Configuration</h3>
+            {setCurrentStep && <button className="btn btn-xs btn-outline" onClick={() => setCurrentStep('cluster-basic')}>Edit</button>}
+          </div>
+          <div className="space-y-2 text-sm">
+            <div><span className="font-medium">Base Port:</span> {wizardData.portConfiguration?.basePort || wizardData.basePort}</div>
+            <div><span className="font-medium">Port Increment:</span> {wizardData.portConfiguration?.portIncrement || 1}</div>
+            <div><span className="font-medium">Query Port Base:</span> {wizardData.portConfiguration?.queryPortBase || 27015}</div>
+            <div><span className="font-medium">RCON Port Base:</span> {wizardData.portConfiguration?.rconPortBase || 32330}</div>
           </div>
         </div>
       </div>
@@ -77,7 +101,7 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
         </div>
         <div className="mb-2 text-sm">
           <span className="font-medium">Server Mods:</span> {Object.entries(wizardData.serverMods).map(([server, mods]) => (
-            <span key={server} className="badge badge-secondary mr-1">{server}: {(mods as any).additionalMods?.join(', ') || 'None'}</span>
+            <span key={server} className="badge badge-secondary mr-1">{server}: {mods.additionalMods?.join(', ') || 'None'}</span>
           ))}
         </div>
       </div>
@@ -109,8 +133,10 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
             <div key={index} className="bg-base-200 rounded p-3 text-sm">
               <div className="font-semibold">{server.name}</div>
               <div>Map: {server.map}</div>
-              <div>Port: {server.gamePort}</div>
-              <div>Players: {server.maxPlayers}</div>
+              <div>Game Port: {server.gamePort}</div>
+              <div>Query Port: {server.queryPort}</div>
+              <div>RCON Port: {server.rconPort}</div>
+              <div>Max Players: {server.maxPlayers}</div>
             </div>
           ))}
         </div>
@@ -119,7 +145,7 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
   );
 };
 
-const ServerConfigStep: React.FC<StepProps & { setCurrentStep: (step: WizardStep) => void }> = ({ wizardData, setWizardData }) => {
+const ServerConfigStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => void }> = ({ wizardData, setWizardData, setCurrentStep }) => {
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -177,6 +203,11 @@ const ServerConfigStep: React.FC<StepProps & { setCurrentStep: (step: WizardStep
           />
         </div>
       </div>
+      {setCurrentStep && (
+        <button className="btn btn-outline mt-6" onClick={() => setCurrentStep('review')}>
+          Back to Review
+        </button>
+      )}
     </div>
   );
 };
@@ -1203,13 +1234,13 @@ const ServerProvisioner: React.FC = () => {
 
             <div className="min-h-[400px]">
               {currentStep === 'welcome' && <WelcomeStep />}
-              {currentStep === 'cluster-basic' && <ClusterBasicStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={(step: WizardStep) => setCurrentStep(step)} />}
-              {currentStep === 'map-selection' && <MapSelectionStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} toggleMap={toggleMap} updateMapCount={updateMapCount} generateServers={generateServers} />}
-              {currentStep === 'server-config' && <ServerConfigStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={(step: WizardStep) => setCurrentStep(step)} />}
-              {currentStep === 'individual-servers' && <IndividualServersStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
-              {currentStep === 'game-settings' && <GameSettingsStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
-              {currentStep === 'mods' && <ModsStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} />}
-              {currentStep === 'review' && <ReviewStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={(step: WizardStep) => setCurrentStep(step)} />}
+              {currentStep === 'cluster-basic' && <ClusterBasicStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
+              {currentStep === 'map-selection' && <MapSelectionStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} toggleMap={toggleMap} updateMapCount={updateMapCount} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
+              {currentStep === 'server-config' && <ServerConfigStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
+              {currentStep === 'individual-servers' && <IndividualServersStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
+              {currentStep === 'game-settings' && <GameSettingsStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
+              {currentStep === 'mods' && <ModsStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
+              {currentStep === 'review' && <ReviewStep wizardData={wizardData} setWizardData={setWizardData} availableMaps={availableMaps} generateServers={generateServers} setCurrentStep={setCurrentStep} />}
               {currentStep === 'creating' && <CreatingStep jobId={currentJobId} jobProgress={jobProgress} />}
             </div>
 

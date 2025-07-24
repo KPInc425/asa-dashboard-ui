@@ -1,7 +1,7 @@
 import React from 'react';
-import type { StepProps } from '../../types/provisioning';
+import type { StepProps, WizardStep } from '../../types/provisioning';
 
-const GameSettingsStep: React.FC<StepProps> = ({ wizardData, setWizardData }) => {
+const GameSettingsStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => void }> = ({ wizardData, setWizardData, setCurrentStep }) => {
   const updateGameSetting = (field: string, value: any) => {
     setWizardData(prev => ({
       ...prev,
@@ -309,6 +309,11 @@ const GameSettingsStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
         </div>
       </div>
     </div>
+    {setCurrentStep && (
+      <button className="btn btn-outline mt-6" onClick={() => setCurrentStep('review')}>
+        Back to Review
+      </button>
+    )}
   </div>
   );
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { StepProps } from '../../types/provisioning';
+import type { StepProps, WizardStep } from '../../types/provisioning';
 
 // Shared port assignment logic
 const getServerPorts = (wizardData: any, index: number) => {
@@ -21,7 +21,7 @@ const getServerPorts = (wizardData: any, index: number) => {
   }
 };
 
-const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData, generateServers }) => {
+const IndividualServersStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => void }> = ({ wizardData, setWizardData, generateServers, setCurrentStep }) => {
   const servers = generateServers();
   const [activeTab, setActiveTab] = React.useState(0);
 
@@ -256,6 +256,11 @@ const IndividualServersStep: React.FC<StepProps> = ({ wizardData, setWizardData,
           </button>
         </div>
       </div>
+      {setCurrentStep && (
+        <button className="btn btn-outline mt-6" onClick={() => setCurrentStep('review')}>
+          Back to Review
+        </button>
+      )}
     </div>
   );
 };

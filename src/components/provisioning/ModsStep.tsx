@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { StepProps } from '../../types/provisioning';
+import type { StepProps, WizardStep } from '../../types/provisioning';
 
 const POPULAR_MODS = [
   { id: '111111111', name: 'Structures Plus (S+)' },
@@ -10,7 +10,7 @@ const POPULAR_MODS = [
   { id: '1005639', name: 'Club ARK' }
 ];
 
-const ModsStep: React.FC<StepProps> = ({ wizardData, setWizardData, generateServers }) => {
+const ModsStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => void }> = ({ wizardData, setWizardData, generateServers, setCurrentStep }) => {
   const servers = generateServers();
 
   // State for global mod input
@@ -232,6 +232,11 @@ const ModsStep: React.FC<StepProps> = ({ wizardData, setWizardData, generateServ
           </div>
         ))}
       </div>
+      {setCurrentStep && (
+        <button className="btn btn-outline mt-6" onClick={() => setCurrentStep('review')}>
+          Back to Review
+        </button>
+      )}
     </div>
   );
 };

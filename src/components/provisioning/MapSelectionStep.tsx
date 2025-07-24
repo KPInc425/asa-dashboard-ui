@@ -1,7 +1,7 @@
 import React from 'react';
-import type { StepProps } from '../../types/provisioning';
+import type { StepProps, WizardStep } from '../../types/provisioning';
 
-const MapSelectionStep: React.FC<StepProps> = ({ wizardData, setWizardData, availableMaps, toggleMap, updateMapCount }) => {
+const MapSelectionStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => void }> = ({ wizardData, setWizardData, availableMaps, toggleMap, updateMapCount, setCurrentStep }) => {
   // Streamline for single-server clusters
   React.useEffect(() => {
     if (wizardData.serverCount === 1 && availableMaps.length > 0) {
@@ -164,6 +164,11 @@ const MapSelectionStep: React.FC<StepProps> = ({ wizardData, setWizardData, avai
             </div>
           )}
         </div>
+      )}
+      {setCurrentStep && (
+        <button className="btn btn-outline mt-6" onClick={() => setCurrentStep('review')}>
+          Back to Review
+        </button>
       )}
     </div>
   );
