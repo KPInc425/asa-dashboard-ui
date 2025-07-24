@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Server } from '../utils/serverUtils';
-import { containerApi } from '../services';
+import { containerApi, provisioningApi } from '../services';
 import ServerModManager from '../components/ServerModManager';
 import ServerConfigEditor from '../components/ServerConfigEditor';
 import ServerLogViewer from '../components/ServerLogViewer';
@@ -26,6 +26,18 @@ const ServerDetails: React.FC = () => {
   const [showStartScript, setShowStartScript] = useState(false);
   const [showUpdateManager, setShowUpdateManager] = useState(false);
   const [showSettingsEditor, setShowSettingsEditor] = useState(false);
+
+  // Backup/Restore state
+  const [serverBackups, setServerBackups] = useState<any[]>([]);
+  const [serverBackupLoading, setServerBackupLoading] = useState(false);
+  const [serverBackupError, setServerBackupError] = useState<string>('');
+  const [downloadServerBackupLoading, setDownloadServerBackupLoading] = useState<string>('');
+  const [showServerBackupModal, setShowServerBackupModal] = useState(false);
+  const [showServerRestoreModal, setShowServerRestoreModal] = useState(false);
+  const [serverRestoreFile, setServerRestoreFile] = useState<File | null>(null);
+  const [serverRestoreLoading, setServerRestoreLoading] = useState(false);
+  const [serverRestoreError, setServerRestoreError] = useState<string>('');
+  const [serverRestoreSuccess, setServerRestoreSuccess] = useState<string>('');
 
   // Load server data
   useEffect(() => {
@@ -223,6 +235,84 @@ const ServerDetails: React.FC = () => {
     }
   };
 
+  // Server backup modal handlers
+  const openServerBackupModal = async () => {
+    if (!serverName) return;
+    setShowServerBackupModal(true);
+    setServerBackupLoading(true);
+    setServerBackupError('');
+    try {
+      const result = await provisioningApi.listServerBackups();
+      if (result.success) {
+        const serverBackups = (result.data?.backups || []).filter((b: any) => b.serverName === serverName);
+        setServerBackups(serverBackups);
+      } else {
+        setServerBackupError(result.message || 'Failed to load backups');
+      }
+    } catch (err: any) {
+      setServerBackupError(err.message || 'Failed to load backups');
+    } finally {
+      setServerBackupLoading(false);
+    }
+  };
+
+  const handleDownloadServerBackup = async (backupName: string) => {
+    if (!serverName) return;
+    setDownloadServerBackupLoading(backupName);
+    try {
+      const blob = await provisioningApi.downloadServerBackup(serverName, backupName);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${backupName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to download server backup');
+    } finally {
+      setDownloadServerBackupLoading('');
+    }
+  };
+
+  // Server restore modal handlers
+  const openServerRestoreModal = () => {
+    setShowServerRestoreModal(true);
+    setServerRestoreFile(null);
+    setServerRestoreError('');
+    setServerRestoreSuccess('');
+  };
+
+  const handleServerRestoreFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setServerRestoreFile(e.target.files?.[0] || null);
+    setServerRestoreError('');
+    setServerRestoreSuccess('');
+  };
+
+  const handleServerRestoreSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!serverName || !serverRestoreFile) {
+      setServerRestoreError('Please select a backup ZIP file');
+      return;
+    }
+    setServerRestoreLoading(true);
+    setServerRestoreError('');
+    setServerRestoreSuccess('');
+    try {
+      const result = await provisioningApi.restoreServerBackup(serverRestoreFile, serverName);
+      if (result.success) {
+        setServerRestoreSuccess(result.message || 'Server restored successfully');
+      } else {
+        setServerRestoreError(result.message || 'Failed to restore server');
+      }
+    } catch (err: any) {
+      setServerRestoreError(err.message || 'Failed to restore server');
+    } finally {
+      setServerRestoreLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -339,6 +429,22 @@ const ServerDetails: React.FC = () => {
                 className="btn btn-sm btn-outline btn-primary ml-2"
               >
                 ⚙️ Settings
+              </button>
+
+              {/* Backup Button */}
+              <button
+                onClick={openServerBackupModal}
+                className="btn btn-sm btn-outline btn-secondary ml-2"
+              >
+                🗄️ Backup
+              </button>
+
+              {/* Restore Button */}
+              <button
+                onClick={openServerRestoreModal}
+                className="btn btn-sm btn-outline btn-warning ml-2"
+              >
+                ♻️ Restore
               </button>
             </div>
           </div>
@@ -526,6 +632,87 @@ const ServerDetails: React.FC = () => {
             window.location.reload();
           }}
         />
+      )}
+
+      {/* Server Backup Modal */}
+      {showServerBackupModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-2xl">
+            <h3 className="font-bold text-lg mb-4">Available Backups for {serverName}</h3>
+            {serverBackupLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <span className="loading loading-spinner loading-lg"></span>
+              </div>
+            ) : serverBackupError ? (
+              <div className="alert alert-error mb-4">{serverBackupError}</div>
+            ) : serverBackups.length === 0 ? (
+              <div className="text-base-content/70">No backups found for this server.</div>
+            ) : (
+              <ul className="space-y-3">
+                {serverBackups.map((b: any) => (
+                  <li key={b.name} className="flex items-center justify-between bg-base-200 rounded p-3">
+                    <div>
+                      <div className="font-mono text-sm">{b.name}</div>
+                      <div className="text-xs text-base-content/70">{b.backupDate ? new Date(b.backupDate).toLocaleString() : ''}</div>
+                    </div>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      disabled={downloadServerBackupLoading === b.name}
+                      onClick={() => handleDownloadServerBackup(b.name)}
+                    >
+                      {downloadServerBackupLoading === b.name ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      ) : (
+                        '⬇️ Download ZIP'
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="modal-action">
+              <button className="btn" onClick={() => setShowServerBackupModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Server Restore Modal */}
+      {showServerRestoreModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-4">Restore Server Saves</h3>
+            <form onSubmit={handleServerRestoreSubmit} className="space-y-4">
+              <div>
+                <label className="label">Target Server</label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={serverName || ''}
+                  disabled
+                />
+              </div>
+              <div>
+                <label className="label">Backup ZIP File</label>
+                <input
+                  type="file"
+                  accept=".zip"
+                  className="file-input file-input-bordered w-full"
+                  onChange={handleServerRestoreFileChange}
+                  disabled={serverRestoreLoading}
+                />
+              </div>
+              {serverRestoreError && <div className="alert alert-error">{serverRestoreError}</div>}
+              {serverRestoreSuccess && <div className="alert alert-success">{serverRestoreSuccess}</div>}
+              <div className="modal-action">
+                <button type="button" className="btn" onClick={() => setShowServerRestoreModal(false)} disabled={serverRestoreLoading}>Cancel</button>
+                <button type="submit" className="btn btn-warning" disabled={serverRestoreLoading}>
+                  {serverRestoreLoading ? <span className="loading loading-spinner loading-xs"></span> : '♻️ Restore'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
