@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { provisioningApi } from '../services/api';
 import GlobalModManager from '../components/GlobalModManager';
 import GlobalConfigManager from '../components/GlobalConfigManager';
+import Modal from '../components/Modal'; // If you have a Modal component, otherwise use a div
 
 interface Cluster {
   name: string;
@@ -57,6 +58,11 @@ const ClusterDetails: React.FC = () => {
   const [serverRestoreLoading, setServerRestoreLoading] = useState<Record<string, boolean>>({});
   const [serverRestoreError, setServerRestoreError] = useState<Record<string, string>>({});
   const [serverRestoreSuccess, setServerRestoreSuccess] = useState<Record<string, string>>({});
+
+  const [showBackupOptionsModal, setShowBackupOptionsModal] = useState(false);
+  const [showRestoreOptionsModal, setShowRestoreOptionsModal] = useState(false);
+  const [backupOptions, setBackupOptions] = useState({ saves: true, configs: true, logs: true, mods: true });
+  const [restoreOptions, setRestoreOptions] = useState({ saves: true, configs: true, logs: true, mods: true });
 
   // Load cluster data
   useEffect(() => {
@@ -563,6 +569,14 @@ const ClusterDetails: React.FC = () => {
                     </div>
                   </div>
                 )}
+                <div className="flex gap-2 mb-4">
+                  <button className="btn btn-info" onClick={() => setShowBackupOptionsModal(true)}>
+                    Backup Cluster Data
+                  </button>
+                  <button className="btn btn-warning" onClick={() => setShowRestoreOptionsModal(true)}>
+                    Restore Cluster Data
+                  </button>
+                </div>
               </div>
             )}
 
@@ -802,6 +816,119 @@ const ClusterDetails: React.FC = () => {
                 <button type="button" className="btn" onClick={() => setShowServerRestoreModal(null)} disabled={serverRestoreLoading[showServerRestoreModal]}>Cancel</button>
                 <button type="submit" className="btn btn-warning" disabled={serverRestoreLoading[showServerRestoreModal]}>
                   {serverRestoreLoading[showServerRestoreModal] ? <span className="loading loading-spinner loading-xs"></span> : '♻️ Restore'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Backup Options Modal */}
+      {showBackupOptionsModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Backup Cluster Data</h3>
+            <form>
+              <label className="flex items-center mb-2">
+                <input type="checkbox" checked={backupOptions.saves} onChange={e => setBackupOptions(o => ({ ...o, saves: e.target.checked }))} />
+                <span className="ml-2">Saves</span>
+              </label>
+              <label className="flex items-center mb-2">
+                <input type="checkbox" checked={backupOptions.configs} onChange={e => setBackupOptions(o => ({ ...o, configs: e.target.checked }))} />
+                <span className="ml-2">Configs</span>
+              </label>
+              <label className="flex items-center mb-2">
+                <input type="checkbox" checked={backupOptions.logs} onChange={e => setBackupOptions(o => ({ ...o, logs: e.target.checked }))} />
+                <span className="ml-2">Logs</span>
+              </label>
+              <label className="flex items-center mb-2">
+                <input type="checkbox" checked={backupOptions.mods} onChange={e => setBackupOptions(o => ({ ...o, mods: e.target.checked }))} />
+                <span className="ml-2">Mods</span>
+              </label>
+              <div className="flex gap-2 mt-4">
+                <button type="button" className="btn btn-primary" onClick={async () => {
+  if (!cluster) return;
+  setDownloadLoading(true);
+  setDownloadError(null);
+  try {
+    const response = await provisioningApi.backupCluster(cluster.name, {
+      saves: backupOptions.saves,
+      configs: backupOptions.configs,
+      logs: backupOptions.logs,
+      mods: backupOptions.mods
+    });
+    if (response.success) {
+      // Optionally show a toast or success message
+    } else {
+      setDownloadError(response.message || 'Backup failed');
+    }
+  } catch (err) {
+    setDownloadError(err instanceof Error ? err.message : 'Backup failed');
+  } finally {
+    setDownloadLoading(false);
+    setShowBackupOptionsModal(false);
+  }
+}}>
+                  Start Backup
+                </button>
+                <button type="button" className="btn btn-outline" onClick={() => setShowBackupOptionsModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Options Modal */}
+      {showRestoreOptionsModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Restore Cluster Data</h3>
+            <form>
+              <label className="flex items-center mb-2">
+                <input type="checkbox" checked={restoreOptions.saves} onChange={e => setRestoreOptions(o => ({ ...o, saves: e.target.checked }))} />
+                <span className="ml-2">Saves</span>
+              </label>
+              <label className="flex items-center mb-2">
+                <input type="checkbox" checked={restoreOptions.configs} onChange={e => setRestoreOptions(o => ({ ...o, configs: e.target.checked }))} />
+                <span className="ml-2">Configs</span>
+              </label>
+              <label className="flex items-center mb-2">
+                <input type="checkbox" checked={restoreOptions.logs} onChange={e => setRestoreOptions(o => ({ ...o, logs: e.target.checked }))} />
+                <span className="ml-2">Logs</span>
+              </label>
+              <label className="flex items-center mb-2">
+                <input type="checkbox" checked={restoreOptions.mods} onChange={e => setRestoreOptions(o => ({ ...o, mods: e.target.checked }))} />
+                <span className="ml-2">Mods</span>
+              </label>
+              <div className="flex gap-2 mt-4">
+                <button type="button" className="btn btn-warning" onClick={async () => {
+  if (!cluster) return;
+  setRestoreLoading(true);
+  setRestoreError(null);
+  try {
+    const response = await provisioningApi.restoreCluster(cluster.name, {
+      saves: restoreOptions.saves,
+      configs: restoreOptions.configs,
+      logs: restoreOptions.logs,
+      mods: restoreOptions.mods
+    });
+    if (response.success) {
+      // Optionally show a toast or success message
+    } else {
+      setRestoreError(response.message || 'Restore failed');
+    }
+  } catch (err) {
+    setRestoreError(err instanceof Error ? err.message : 'Restore failed');
+  } finally {
+    setRestoreLoading(false);
+    setShowRestoreOptionsModal(false);
+  }
+}}>
+                  Start Restore
+                </button>
+                <button type="button" className="btn btn-outline" onClick={() => setShowRestoreOptionsModal(false)}>
+                  Cancel
                 </button>
               </div>
             </form>

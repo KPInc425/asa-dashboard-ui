@@ -9,6 +9,7 @@ import type { SystemInfo, Cluster, WizardData, WizardStep, ServerConfig, StepPro
 import { WelcomeStep, ClusterBasicStep, MapSelectionStep, GameSettingsStep, CreatingStep } from './provisioning';
 import IndividualServersStep from './provisioning/IndividualServersStep';
 import ModsStep from './provisioning/ModsStep';
+import { Link } from 'react-router-dom';
 
 const ReviewStep: React.FC<StepProps> = ({ wizardData, generateServers }) => {
   const servers: ServerConfig[] = generateServers();
@@ -1056,7 +1057,9 @@ const ServerProvisioner: React.FC = () => {
                         <div key={cluster.name} className="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
                           <div className="card-body p-4">
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold text-primary">{cluster.name}</h4>
+                              <Link to={`/clusters/${encodeURIComponent(cluster.name)}`} className="font-semibold text-primary hover:underline">
+                                {cluster.name}
+                              </Link>
                               {getStatusBadge(status.status)}
                             </div>
                             

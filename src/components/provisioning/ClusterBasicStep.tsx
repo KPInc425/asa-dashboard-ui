@@ -1,8 +1,35 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import type { StepProps } from '../../types/provisioning';
 import PortAllocationPreview from './PortAllocationPreview';
 
 const ClusterBasicStep: React.FC<StepProps> = ({ wizardData, setWizardData }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImportConfig = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError(null);
+    try {
+      const text = await file.text();
+      const config = JSON.parse(text);
+      if (!config.name) throw new Error('Config must have a name');
+      setWizardData(prev => ({
+        ...prev,
+        clusterName: config.name || '',
+        description: config.description || '',
+        serverCount: config.serverCount || 1,
+        basePort: config.basePort || 7777,
+        portAllocationMode: config.portAllocationMode || 'sequential',
+        // Add more fields as needed
+      }));
+    } catch (err) {
+      setImportError('Invalid config file: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // Keep portConfiguration.basePort in sync with basePort
   React.useEffect(() => {
     if (wizardData.basePort !== wizardData.portConfiguration?.basePort) {
@@ -19,6 +46,19 @@ const ClusterBasicStep: React.FC<StepProps> = ({ wizardData, setWizardData }) =>
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-primary">Cluster Information</h2>
+      <div className="mb-4 flex gap-2 items-center">
+        <button className="btn btn-outline btn-info" onClick={() => fileInputRef.current?.click()}>
+          Import Config
+        </button>
+        <input
+          type="file"
+          accept="application/json"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={handleImportConfig}
+        />
+        {importError && <span className="text-error ml-2">{importError}</span>}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="form-control">
           <label className="label">
