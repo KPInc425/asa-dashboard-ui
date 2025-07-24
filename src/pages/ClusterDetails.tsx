@@ -477,6 +477,7 @@ const ClusterDetails: React.FC = () => {
                         onClick={() => handleClusterAction('start')}
                         disabled={actionLoading === 'start'}
                         className="btn btn-success"
+                        title="Start all servers in this cluster."
                       >
                         {actionLoading === 'start' ? (
                           <span className="loading loading-spinner loading-sm"></span>
@@ -488,6 +489,7 @@ const ClusterDetails: React.FC = () => {
                         onClick={() => handleClusterAction('stop')}
                         disabled={actionLoading === 'stop'}
                         className="btn btn-error"
+                        title="Stop all servers in this cluster."
                       >
                         {actionLoading === 'stop' ? (
                           <span className="loading loading-spinner loading-sm"></span>
@@ -499,6 +501,7 @@ const ClusterDetails: React.FC = () => {
                         onClick={() => handleClusterAction('restart')}
                         disabled={actionLoading === 'restart'}
                         className="btn btn-warning"
+                        title="Restart all servers in this cluster."
                       >
                         {actionLoading === 'restart' ? (
                           <span className="loading loading-spinner loading-sm"></span>
@@ -510,6 +513,7 @@ const ClusterDetails: React.FC = () => {
                         onClick={handleDownloadConfig}
                         disabled={downloadLoading}
                         className="btn btn-outline btn-info"
+                        title="Download the cluster configuration as a JSON file."
                       >
                         {downloadLoading ? (
                           <span className="loading loading-spinner loading-sm"></span>
@@ -520,16 +524,22 @@ const ClusterDetails: React.FC = () => {
                       <button
                         onClick={openBackupModal}
                         className="btn btn-outline btn-secondary"
+                        title="Download a previously created backup archive (ZIP) for this cluster."
                       >
                         🗄️ Download Backup
                       </button>
                       <button
                         onClick={openRestoreModal}
                         className="btn btn-outline btn-warning"
+                        title="Restore the entire cluster from a previously created backup archive (ZIP)."
                       >
                         ♻️ Restore from Backup
                       </button>
                     </div>
+                    <span className="text-xs text-base-content/60 block mt-1">
+                      <b>Restore from Backup:</b> Restore the entire cluster from a previously created backup archive (ZIP).<br />
+                      <b>Restore Cluster Data:</b> Restore specific data types (saves, configs, logs) for this cluster. You can select which data to restore.
+                    </span>
                     {downloadError && (
                       <div className="alert alert-error mt-2">
                         <span>{downloadError}</span>
@@ -710,6 +720,7 @@ const ClusterDetails: React.FC = () => {
         <div className="modal modal-open">
           <div className="modal-box max-w-md">
             <h3 className="font-bold text-lg mb-4">Restore from Backup</h3>
+            <p className="text-xs text-base-content/60 mb-2">Restore the entire cluster from a previously created backup archive (ZIP). This will overwrite all current data with the contents of the backup.</p>
             <form onSubmit={handleRestoreSubmit} className="space-y-4">
               <div>
                 <label className="label">Target Cluster Name</label>
@@ -878,6 +889,7 @@ const ClusterDetails: React.FC = () => {
         <div className="modal modal-open">
           <div className="modal-box">
             <h3 className="font-bold text-lg mb-4">Restore Cluster Data</h3>
+            <p className="text-xs text-base-content/60 mb-2">Restore specific data types (saves, configs, logs) for this cluster. You can select which data to restore. This will not affect other data types.</p>
             <form>
               <label className="flex items-center mb-2">
                 <input type="checkbox" checked={restoreOptions.saves} onChange={e => setRestoreOptions(o => ({ ...o, saves: e.target.checked }))} />

@@ -12,6 +12,8 @@ const EnvironmentEditor = () => {
   const [success, setSuccess] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   const [originalContent, setOriginalContent] = useState('');
+  const [showDownloadWarning, setShowDownloadWarning] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -126,6 +128,32 @@ const EnvironmentEditor = () => {
     if (activeTab === 'env') return 'properties';
     if (activeTab === 'docker-compose') return 'yaml';
     return 'text';
+  };
+
+  const handleDownloadEnv = async () => {
+    setDownloadLoading(true);
+    setError('');
+    try {
+      const envData = await environmentApi.getEnvironmentFile();
+      if (envData && envData.content) {
+        const blob = new Blob([envData.content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '.env';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        setError('Failed to download .env file');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download .env file');
+    } finally {
+      setDownloadLoading(false);
+      setShowDownloadWarning(false);
+    }
   };
 
   if (isLoading) {
@@ -250,6 +278,35 @@ const EnvironmentEditor = () => {
               </button>
             </div>
           </div>
+
+          {activeTab === 'env' && (
+            <div className="flex gap-2 mb-4">
+              <button
+                className="btn btn-outline btn-info"
+                onClick={() => setShowDownloadWarning(true)}
+                disabled={downloadLoading}
+                title="Download the current .env file (admin only)."
+              >
+                {downloadLoading ? <span className="loading loading-spinner loading-xs"></span> : '⬇️ Download .env'}
+              </button>
+            </div>
+          )}
+          {showDownloadWarning && (
+            <div className="modal modal-open">
+              <div className="modal-box">
+                <h3 className="font-bold text-lg mb-4">Download .env File</h3>
+                <p className="mb-4 text-warning">This file contains sensitive secrets. Only download if you understand the risks. Make sure to store it securely.</p>
+                <div className="flex gap-2 mt-4">
+                  <button className="btn btn-primary" onClick={handleDownloadEnv} disabled={downloadLoading}>
+                    {downloadLoading ? <span className="loading loading-spinner loading-xs"></span> : 'Download .env'}
+                  </button>
+                  <button className="btn btn-outline" onClick={() => setShowDownloadWarning(false)} disabled={downloadLoading}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="h-96 border border-base-300 rounded-lg overflow-hidden">
             <Editor
