@@ -100,9 +100,26 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
           <span className="font-medium">Global Mods:</span> {wizardData.globalMods.join(', ') || 'None'}
         </div>
         <div className="mb-2 text-sm">
-          <span className="font-medium">Server Mods:</span> {Object.entries(wizardData.serverMods).map(([server, mods]) => (
-            <span key={server} className="badge badge-secondary mr-1">{server}: {mods.additionalMods?.join(', ') || 'None'}</span>
-          ))}
+          <span className="font-medium">Server Mods:</span>
+          <ul className="ml-4">
+            {servers.map((server) => {
+              const modsConfig = wizardData.serverMods[server.name] || { additionalMods: [], excludeSharedMods: false };
+              const globalMods = wizardData.globalMods || [];
+              const additionalMods = modsConfig.additionalMods || [];
+              const excludeShared = modsConfig.excludeSharedMods;
+              // Effective mods: global mods unless excluded, plus additional mods
+              const effectiveMods = (excludeShared ? [] : globalMods).concat(additionalMods);
+              return (
+                <li key={server.name} className="mb-1">
+                  <span className="font-medium">{server.name}:</span>
+                  {excludeShared && <span className="badge badge-warning ml-2">Excludes Global Mods</span>}
+                  <br />
+                  <span className="text-xs">Additional Mods: {additionalMods.length > 0 ? additionalMods.join(', ') : 'None'}</span><br />
+                  <span className="text-xs">Effective Mods: {effectiveMods.length > 0 ? effectiveMods.join(', ') : 'None'}</span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
       <div className="bg-base-300 rounded-lg p-4">

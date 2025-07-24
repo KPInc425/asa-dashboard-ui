@@ -20,27 +20,41 @@ const ClusterBasicStep: React.FC<StepProps & { setCurrentStep?: (step: WizardSte
       const firstServer = config.servers?.[0] || {};
       
       // Build new wizardData from config
+      const clusterSettings = {
+        clusterId: (config.clusterSettings && config.clusterSettings.clusterId) || config.clusterId || config.name || 'default-cluster-id',
+        clusterName: (config.clusterSettings && config.clusterSettings.clusterName) || config.name || 'default-cluster-name',
+        clusterDescription: (config.clusterSettings && config.clusterSettings.clusterDescription) || config.description || '',
+        clusterPassword: (config.clusterSettings && config.clusterSettings.clusterPassword) || '',
+        clusterOwner: (config.clusterSettings && config.clusterSettings.clusterOwner) || 'Admin'
+      };
+
+      // Build serverMods from servers array
+      const serverMods: Record<string, { additionalMods: string[]; excludeSharedMods: boolean }> = {};
+      if (Array.isArray(config.servers)) {
+        for (const server of config.servers) {
+          serverMods[server.name] = {
+            additionalMods: Array.isArray(server.mods) ? server.mods.filter((mod: string) => !!mod && (!config.globalMods || !config.globalMods.includes(mod))) : [],
+            excludeSharedMods: !!server.excludeSharedMods
+          };
+        }
+      }
+
       const newWizardData: Partial<typeof wizardData> = {
         clusterName: config.name || '',
         description: config.description || '',
         serverCount: config.serverCount || (config.servers ? config.servers.length : 1),
         basePort: config.basePort || 7777,
-        
         // Server settings (use first server as template)
         maxPlayers: firstServer.maxPlayers || 50,
         adminPassword: firstServer.adminPassword || '',
         serverPassword: firstServer.serverPassword || '',
-        
         // If explicit servers, use them and skip port allocation mode
         servers: config.servers || [],
         portAllocationMode: config.servers ? undefined : (config.portAllocationMode || 'sequential'),
-        
         // Maps - handle both 'maps' and 'selectedMaps' properties
         selectedMaps: config.selectedMaps || (config.maps ? config.maps.map((map: string) => ({ map, count: 1, enabled: true })) : []),
-        
         // Custom dynamic config URL - extract from first server or global
         customDynamicConfigUrl: firstServer.customDynamicConfigUrl || config.customDynamicConfigUrl || '',
-        
         // Game settings - extract from config or first server
         gameSettings: {
           ...config.gameSettings,
@@ -48,20 +62,11 @@ const ClusterBasicStep: React.FC<StepProps & { setCurrentStep?: (step: WizardSte
           xpMultiplier: firstServer.xpMultiplier || config.xpMultiplier || 1,
           tamingMultiplier: firstServer.tamingMultiplier || config.tamingMultiplier || 1,
         },
-        
         // Mods
         globalMods: config.globalMods || [],
-        serverMods: config.serverMods || {},
-        
+        serverMods,
         // Cluster settings
-        clusterSettings: config.clusterSettings || {
-          clusterId: config.clusterId || config.name || '',
-          clusterName: config.clusterName || config.name || '',
-          clusterDescription: config.clusterDescription || config.description || '',
-          clusterPassword: config.clusterPassword || firstServer.clusterPassword || '',
-          clusterOwner: config.clusterOwner || 'Admin'
-        },
-        
+        clusterSettings,
         // Port configuration
         portConfiguration: config.portConfiguration || {
           basePort: config.basePort || 7777,
@@ -71,12 +76,10 @@ const ClusterBasicStep: React.FC<StepProps & { setCurrentStep?: (step: WizardSte
           rconPortBase: 32330,
           rconPortIncrement: 1
         },
-        
         // INI values (if present)
         gameIni: config.gameIni || '',
         gameUserSettingsIni: config.gameUserSettingsIni || '',
       };
-      
       setWizardData(prev => ({ ...prev, ...newWizardData }));
       setShowImportPrompt(true);
     } catch (err) {
