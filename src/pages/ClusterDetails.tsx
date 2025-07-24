@@ -35,6 +35,17 @@ const ClusterDetails: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [showBackupModal, setShowBackupModal] = useState(false);
+  const [backups, setBackups] = useState<any[]>([]);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [downloadBackupLoading, setDownloadBackupLoading] = useState<string | null>(null);
+
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [restoreSuccess, setRestoreSuccess] = useState<string | null>(null);
 
   // Load cluster data
   useEffect(() => {
@@ -141,6 +152,78 @@ const ClusterDetails: React.FC = () => {
       setDownloadError(err.message || 'Failed to download config');
     } finally {
       setDownloadLoading(false);
+    }
+  };
+
+  // Download backup modal handler
+  const openBackupModal = async () => {
+    setShowBackupModal(true);
+    setBackupLoading(true);
+    setBackupError(null);
+    try {
+      const result = await provisioningApi.listClusterBackups(cluster.name);
+      if (result.success) {
+        setBackups(result.backups || []);
+      } else {
+        setBackupError(result.message || 'Failed to load backups');
+      }
+    } catch (err: any) {
+      setBackupError(err.message || 'Failed to load backups');
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+  const handleDownloadBackup = async (backupName: string) => {
+    setDownloadBackupLoading(backupName);
+    try {
+      const blob = await provisioningApi.downloadClusterBackup(cluster.name, backupName);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${backupName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to download backup');
+    } finally {
+      setDownloadBackupLoading(null);
+    }
+  };
+
+  // Restore from backup modal handler
+  const openRestoreModal = () => {
+    setShowRestoreModal(true);
+    setRestoreFile(null);
+    setRestoreError(null);
+    setRestoreSuccess(null);
+  };
+  const handleRestoreFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRestoreFile(e.target.files?.[0] || null);
+    setRestoreError(null);
+    setRestoreSuccess(null);
+  };
+  const handleRestoreSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restoreFile) {
+      setRestoreError('Please select a backup ZIP file');
+      return;
+    }
+    setRestoreLoading(true);
+    setRestoreError(null);
+    setRestoreSuccess(null);
+    try {
+      const result = await provisioningApi.restoreClusterBackup(restoreFile, cluster.name);
+      if (result.success) {
+        setRestoreSuccess(result.message || 'Cluster restored successfully');
+      } else {
+        setRestoreError(result.message || 'Failed to restore cluster');
+      }
+    } catch (err: any) {
+      setRestoreError(err.message || 'Failed to restore cluster');
+    } finally {
+      setRestoreLoading(false);
     }
   };
 
@@ -341,6 +424,18 @@ const ClusterDetails: React.FC = () => {
                           '⬇️ Download Config'
                         )}
                       </button>
+                      <button
+                        onClick={openBackupModal}
+                        className="btn btn-outline btn-secondary"
+                      >
+                        🗄️ Download Backup
+                      </button>
+                      <button
+                        onClick={openRestoreModal}
+                        className="btn btn-outline btn-warning"
+                      >
+                        ♻️ Restore from Backup
+                      </button>
                     </div>
                     {downloadError && (
                       <div className="alert alert-error mt-2">
@@ -455,6 +550,85 @@ const ClusterDetails: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Backup Modal */}
+      {showBackupModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-2xl">
+            <h3 className="font-bold text-lg mb-4">Available Backups</h3>
+            {backupLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <span className="loading loading-spinner loading-lg"></span>
+              </div>
+            ) : backupError ? (
+              <div className="alert alert-error mb-4">{backupError}</div>
+            ) : backups.length === 0 ? (
+              <div className="text-base-content/70">No backups found for this cluster.</div>
+            ) : (
+              <ul className="space-y-3">
+                {backups.map((b: any) => (
+                  <li key={b.name} className="flex items-center justify-between bg-base-200 rounded p-3">
+                    <div>
+                      <div className="font-mono text-sm">{b.name}</div>
+                      <div className="text-xs text-base-content/70">{b.backupDate ? new Date(b.backupDate).toLocaleString() : ''}</div>
+                    </div>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      disabled={downloadBackupLoading === b.name}
+                      onClick={() => handleDownloadBackup(b.name)}
+                    >
+                      {downloadBackupLoading === b.name ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      ) : (
+                        '⬇️ Download ZIP'
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="modal-action">
+              <button className="btn" onClick={() => setShowBackupModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Restore Modal */}
+      {showRestoreModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-4">Restore from Backup</h3>
+            <form onSubmit={handleRestoreSubmit} className="space-y-4">
+              <div>
+                <label className="label">Target Cluster Name</label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={cluster.name}
+                  disabled
+                />
+              </div>
+              <div>
+                <label className="label">Backup ZIP File</label>
+                <input
+                  type="file"
+                  accept=".zip"
+                  className="file-input file-input-bordered w-full"
+                  onChange={handleRestoreFileChange}
+                  disabled={restoreLoading}
+                />
+              </div>
+              {restoreError && <div className="alert alert-error">{restoreError}</div>}
+              {restoreSuccess && <div className="alert alert-success">{restoreSuccess}</div>}
+              <div className="modal-action">
+                <button type="button" className="btn" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading}>Cancel</button>
+                <button type="submit" className="btn btn-warning" disabled={restoreLoading}>
+                  {restoreLoading ? <span className="loading loading-spinner loading-xs"></span> : '♻️ Restore'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

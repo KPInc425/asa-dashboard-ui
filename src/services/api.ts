@@ -2143,6 +2143,40 @@ export const provisioningApi = {
     });
     return response.data;
   },
+
+  /**
+   * List available backups for a cluster
+   */
+  listClusterBackups: async (clusterName: string): Promise<any> => {
+    const response = await api.get(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}`);
+    return response.data;
+  },
+
+  /**
+   * Download a cluster backup as ZIP
+   */
+  downloadClusterBackup: async (clusterName: string, backup: string): Promise<Blob> => {
+    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/download-backup?backup=${encodeURIComponent(backup)}`, {
+      responseType: 'blob',
+    });
+    if (response.status !== 200) {
+      throw new Error('Failed to download cluster backup');
+    }
+    return response.data;
+  },
+
+  /**
+   * Restore cluster from backup ZIP
+   */
+  restoreClusterBackup: async (file: File, targetClusterName: string): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('targetClusterName', targetClusterName);
+    const response = await api.post('/api/provisioning/clusters/restore-backup', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };
 
 // Provisioning API
