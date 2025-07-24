@@ -77,8 +77,6 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
             })()}
             <div><span className="font-medium">Base Port:</span> {wizardData.portConfiguration?.basePort || wizardData.basePort}</div>
             <div><span className="font-medium">Port Increment:</span> {wizardData.portConfiguration?.portIncrement || 1}</div>
-            <div><span className="font-medium">Query Port Base:</span> {wizardData.portConfiguration?.queryPortBase || 27015}</div>
-            <div><span className="font-medium">RCON Port Base:</span> {wizardData.portConfiguration?.rconPortBase || 32330}</div>
             {/* If not sequential, show per-server ports */}
             {(() => {
               const ports = servers.map(s => s.gamePort);
@@ -136,22 +134,33 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
           <span className="font-medium">Server Mods:</span>
           <ul className="ml-4">
             {servers.map((server) => {
-              const modsConfig = wizardData.serverMods[server.name] || { additionalMods: [], excludeSharedMods: false, customDynamicConfigUrl: '' };
+              const modsConfig = wizardData.serverMods[server.name] as { additionalMods: string[]; excludeSharedMods: boolean; customDynamicConfigUrl?: string } || { additionalMods: [], excludeSharedMods: false, customDynamicConfigUrl: '' };
               const globalMods = wizardData.globalMods || [];
               const additionalMods = modsConfig.additionalMods || [];
               const excludeShared = modsConfig.excludeSharedMods;
-              // Effective mods: global mods unless excluded, plus additional mods
-              const effectiveMods = (excludeShared ? [] : globalMods).concat(additionalMods);
+              // For excluded servers, use all server mods as effective
+              const serverMods: string[] = (server && typeof server === 'object' && 'mods' in server && Array.isArray((server as unknown as { mods: unknown }).mods))
+                ? (server as unknown as { mods: string[] }).mods
+                : [];
+              let effectiveMods: string[] = [];
+              if (excludeShared) {
+                effectiveMods = serverMods;
+              } else {
+                effectiveMods = globalMods.concat(additionalMods);
+              }
               return (
                 <li key={server.name} className="mb-1">
                   <span className="font-medium">{server.name}:</span>
                   {excludeShared && <span className="badge badge-warning ml-2">Excludes Global Mods</span>}
                   <br />
-                  <span className="text-xs">Additional Mods: {additionalMods.length > 0 ? additionalMods.join(', ') : 'None'}</span><br />
+                  {excludeShared ? (
+                    <span className="text-xs">Server Mods: {serverMods.length > 0 ? serverMods.join(', ') : 'None'}</span>
+                  ) : (
+                    <span className="text-xs">Additional Mods: {additionalMods.length > 0 ? additionalMods.join(', ') : 'None'}</span>
+                  )}
+                  <br />
                   <span className="text-xs">Effective Mods: {effectiveMods.length > 0 ? effectiveMods.join(', ') : 'None'}</span>
-                  {/* Show effective customDynamicConfigUrl for this server */}
                   {(() => {
-                    // Try to get the per-server customDynamicConfigUrl from modsConfig, else from the server object, else global
                     let perServerUrl = '';
                     if (typeof (modsConfig as unknown) === 'object' && modsConfig && 'customDynamicConfigUrl' in modsConfig) {
                       perServerUrl = String((modsConfig as Record<string, unknown>).customDynamicConfigUrl || '');
