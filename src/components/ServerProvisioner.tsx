@@ -149,9 +149,29 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
                   <br />
                   <span className="text-xs">Additional Mods: {additionalMods.length > 0 ? additionalMods.join(', ') : 'None'}</span><br />
                   <span className="text-xs">Effective Mods: {effectiveMods.length > 0 ? effectiveMods.join(', ') : 'None'}</span>
-                  {modsConfig.customDynamicConfigUrl && (
-                    <><br /><span className="text-xs text-info">Custom Config URL: {modsConfig.customDynamicConfigUrl}</span></>
-                  )}
+                  {/* Show effective customDynamicConfigUrl for this server */}
+                  {(() => {
+                    // Try to get the per-server customDynamicConfigUrl from modsConfig, else from the server object, else global
+                    let perServerUrl = '';
+                    if (typeof (modsConfig as unknown) === 'object' && modsConfig && 'customDynamicConfigUrl' in modsConfig) {
+                      perServerUrl = String((modsConfig as Record<string, unknown>).customDynamicConfigUrl || '');
+                    } else if (typeof (server as unknown) === 'object' && server && 'customDynamicConfigUrl' in server) {
+                      perServerUrl = String((server as Record<string, unknown>).customDynamicConfigUrl || '');
+                    }
+                    const effectiveUrl = perServerUrl || wizardData.customDynamicConfigUrl || '';
+                    if (effectiveUrl) {
+                      return (
+                        <>
+                          <br />
+                          <span className="text-xs text-info">
+                            Custom Config URL: {effectiveUrl}
+                            {perServerUrl ? ' (Server Override)' : wizardData.customDynamicConfigUrl ? ' (Global)' : ''}
+                          </span>
+                        </>
+                      );
+                    }
+                    return null;
+                  })()}
                 </li>
               );
             })}
