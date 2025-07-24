@@ -136,7 +136,7 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
           <span className="font-medium">Server Mods:</span>
           <ul className="ml-4">
             {servers.map((server) => {
-              const modsConfig = wizardData.serverMods[server.name] || { additionalMods: [], excludeSharedMods: false };
+              const modsConfig = wizardData.serverMods[server.name] || { additionalMods: [], excludeSharedMods: false, customDynamicConfigUrl: '' };
               const globalMods = wizardData.globalMods || [];
               const additionalMods = modsConfig.additionalMods || [];
               const excludeShared = modsConfig.excludeSharedMods;
@@ -149,6 +149,9 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
                   <br />
                   <span className="text-xs">Additional Mods: {additionalMods.length > 0 ? additionalMods.join(', ') : 'None'}</span><br />
                   <span className="text-xs">Effective Mods: {effectiveMods.length > 0 ? effectiveMods.join(', ') : 'None'}</span>
+                  {modsConfig.customDynamicConfigUrl && (
+                    <><br /><span className="text-xs text-info">Custom Config URL: {modsConfig.customDynamicConfigUrl}</span></>
+                  )}
                 </li>
               );
             })}

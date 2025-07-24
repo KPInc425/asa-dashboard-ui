@@ -29,13 +29,22 @@ const ClusterBasicStep: React.FC<StepProps & { setCurrentStep?: (step: WizardSte
       };
 
       // Build serverMods from servers array
-      const serverMods: Record<string, { additionalMods: string[]; excludeSharedMods: boolean }> = {};
+      const serverMods: Record<string, { additionalMods: string[]; excludeSharedMods: boolean; customDynamicConfigUrl?: string }> = {};
       if (Array.isArray(config.servers)) {
         for (const server of config.servers) {
           serverMods[server.name] = {
             additionalMods: Array.isArray(server.mods) ? server.mods.filter((mod: string) => !!mod && (!config.globalMods || !config.globalMods.includes(mod))) : [],
-            excludeSharedMods: !!server.excludeSharedMods
+            excludeSharedMods: !!server.excludeSharedMods,
+            customDynamicConfigUrl: server.customDynamicConfigUrl || ''
           };
+          // Remove path fields if present
+          delete server.serverPath;
+          delete server.binariesPath;
+          delete server.configsPath;
+          delete server.savesPath;
+          delete server.logsPath;
+          delete server.created;
+          delete server.updated;
         }
       }
 
