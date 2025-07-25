@@ -139,15 +139,16 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
               const additionalMods = modsConfig.additionalMods || [];
               const excludeShared = modsConfig.excludeSharedMods;
               // For excluded servers, use all server mods as effective
-              const serverMods: string[] = (server && typeof server === 'object' && 'mods' in server && Array.isArray((server as unknown as { mods: unknown }).mods))
-                ? (server as unknown as { mods: string[] }).mods
-                : [];
-              let effectiveMods: string[] = [];
+              let serverMods: string[] = [];
               if (excludeShared) {
-                effectiveMods = serverMods;
+                // Use the mods array from the server config (imported cluster.json)
+                const s = server as { mods?: string[] };
+                serverMods = Array.isArray(s.mods) ? s.mods : [];
               } else {
-                effectiveMods = globalMods.concat(additionalMods);
+                serverMods = additionalMods;
               }
+              let effectiveMods: string[] = [];
+              effectiveMods = excludeShared ? serverMods : globalMods.concat(serverMods);
               return (
                 <li key={server.name} className="mb-1">
                   <span className="font-medium">{server.name}:</span>
@@ -156,7 +157,7 @@ const ReviewStep: React.FC<StepProps & { setCurrentStep?: (step: WizardStep) => 
                   {excludeShared ? (
                     <span className="text-xs">Server Mods: {serverMods.length > 0 ? serverMods.join(', ') : 'None'}</span>
                   ) : (
-                    <span className="text-xs">Additional Mods: {additionalMods.length > 0 ? additionalMods.join(', ') : 'None'}</span>
+                    <span className="text-xs">Additional Mods: {serverMods.length > 0 ? serverMods.join(', ') : 'None'}</span>
                   )}
                   <br />
                   <span className="text-xs">Effective Mods: {effectiveMods.length > 0 ? effectiveMods.join(', ') : 'None'}</span>
