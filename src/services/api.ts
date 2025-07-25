@@ -2115,7 +2115,7 @@ export const provisioningApi = {
    * Download cluster backup (as ZIP)
    */
   downloadClusterBackup: async (clusterName: string, backupName: string): Promise<Blob> => {
-    const response = await api.get(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}/${encodeURIComponent(backupName)}/download`, { responseType: 'blob' });
+    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/download-backup?backup=${encodeURIComponent(backupName)}`, { responseType: 'blob' });
     return response.data;
   },
 
@@ -2123,7 +2123,7 @@ export const provisioningApi = {
    * Download server backup (as ZIP)
    */
   downloadServerBackup: async (serverName: string, backupName: string): Promise<Blob> => {
-    const response = await api.get(`/api/provisioning/server-backups/${encodeURIComponent(serverName)}/${encodeURIComponent(backupName)}/download`, { responseType: 'blob' });
+    const response = await api.get(`/api/provisioning/servers/${encodeURIComponent(serverName)}/download-backup?backup=${encodeURIComponent(backupName)}`, { responseType: 'blob' });
     return response.data;
   },
 
