@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { provisioningApi } from '../services/api';
 import GlobalModManager from '../components/GlobalModManager';
 import GlobalConfigManager from '../components/GlobalConfigManager';
+import { useToast } from '../components/ToastProvider';
 
 interface Cluster {
   name: string;
@@ -62,6 +63,8 @@ const ClusterDetails: React.FC = () => {
   const [showRestoreOptionsModal, setShowRestoreOptionsModal] = useState(false);
   const [backupOptions, setBackupOptions] = useState({ saves: true, configs: true, logs: true });
   const [restoreOptions, setRestoreOptions] = useState({ saves: true, configs: true, logs: true });
+
+  const toast = useToast();
 
   // Load cluster data
   useEffect(() => {
@@ -200,10 +203,16 @@ const ClusterDetails: React.FC = () => {
       const a = document.createElement('a');
       a.href = url;
       a.download = `${backupName}.zip`;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      // Show toast notification
+      toast.success('Download started. Your browser may prompt you to choose a location.');
+      // Delay revocation to ensure the download starts
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      }, 1000);
     } catch (err) {
       alert('Failed to download backup');
     } finally {
