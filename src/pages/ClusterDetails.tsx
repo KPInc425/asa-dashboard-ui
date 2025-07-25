@@ -24,6 +24,26 @@ interface Cluster {
   };
 }
 
+type ClusterBackup = {
+  clusterName: string;
+  backupName: string;
+  created: string;
+  backupPath: string;
+  size: number;
+  type: string;
+  hasMetadata: boolean;
+};
+
+type ServerBackup = {
+  serverName: string;
+  backupName: string;
+  created: string;
+  backupPath: string;
+  size: number;
+  type: string;
+  hasMetadata: boolean;
+};
+
 const ClusterDetails: React.FC = () => {
   const { clusterName } = useParams<{ clusterName: string }>();
   const navigate = useNavigate();
@@ -36,7 +56,7 @@ const ClusterDetails: React.FC = () => {
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [showBackupModal, setShowBackupModal] = useState(false);
-  const [backups, setBackups] = useState<any[]>([]);
+  const [backups, setBackups] = useState<ClusterBackup[]>([]);
   const [backupLoading, setBackupLoading] = useState(false);
   const [backupError, setBackupError] = useState<string | null>(null);
   const [downloadBackupLoading, setDownloadBackupLoading] = useState<string | null>(null);
@@ -47,7 +67,7 @@ const ClusterDetails: React.FC = () => {
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [restoreSuccess, setRestoreSuccess] = useState<string | null>(null);
 
-  const [serverBackups, setServerBackups] = useState<Record<string, any[]>>({});
+  const [serverBackups, setServerBackups] = useState<Record<string, ServerBackup[]>>({});
   const [serverBackupLoading, setServerBackupLoading] = useState<Record<string, boolean>>({});
   const [serverBackupError, setServerBackupError] = useState<Record<string, string>>({});
   const [downloadServerBackupLoading, setDownloadServerBackupLoading] = useState<Record<string, boolean>>({});
@@ -82,7 +102,7 @@ const ClusterDetails: React.FC = () => {
         } else {
           setError(`Cluster "${clusterName}" not found`);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to load cluster data');
       } finally {
         setLoading(false);
@@ -145,7 +165,7 @@ const ClusterDetails: React.FC = () => {
           }
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : `Failed to ${action} cluster`);
     } finally {
       setActionLoading(null);
@@ -167,8 +187,8 @@ const ClusterDetails: React.FC = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err: any) {
-      setDownloadError(err.message || 'Failed to download config');
+    } catch {
+      setDownloadError('Failed to download config');
     } finally {
       setDownloadLoading(false);
     }
@@ -181,14 +201,16 @@ const ClusterDetails: React.FC = () => {
     setBackupLoading(true);
     setBackupError(null);
     try {
-      const result = await provisioningApi.getClusterBackups(cluster.name);
-      if (result.success) {
-        setBackups(result.backups || []);
+      const result: unknown = await provisioningApi.getClusterBackups(cluster.name);
+      if (typeof result === 'object' && result && (result as { success: boolean }).success) {
+        setBackups((result as { backups: ClusterBackup[] }).backups || []);
+      } else if (typeof result === 'object' && result) {
+        setBackupError((result as { message?: string }).message || 'Failed to load backups');
       } else {
-        setBackupError(result.message || 'Failed to load backups');
+        setBackupError('Failed to load backups');
       }
-    } catch (err: any) {
-      setBackupError(err.message || 'Failed to load backups');
+    } catch {
+      setBackupError('Failed to load backups');
     } finally {
       setBackupLoading(false);
     }
@@ -211,7 +233,7 @@ const ClusterDetails: React.FC = () => {
         a.remove();
       }, 1000);
       setTimeout(() => setDownloadNotification(null), 4000);
-    } catch (err) {
+    } catch {
       alert('Failed to download backup');
     } finally {
       setDownloadBackupLoading('');
@@ -246,8 +268,8 @@ const ClusterDetails: React.FC = () => {
       } else {
         setRestoreError(result.message || 'Failed to restore cluster');
       }
-    } catch (err: any) {
-      setRestoreError(err.message || 'Failed to restore cluster');
+    } catch {
+      setRestoreError('Failed to restore cluster');
     } finally {
       setRestoreLoading(false);
     }
@@ -259,15 +281,17 @@ const ClusterDetails: React.FC = () => {
     setServerBackupLoading(prev => ({ ...prev, [serverName]: true }));
     setServerBackupError(prev => ({ ...prev, [serverName]: '' }));
     try {
-      const result = await provisioningApi.listServerBackups();
-      if (result.success) {
-        const serverBackups = (result.data?.backups || []).filter((b: any) => b.serverName === serverName);
+      const result: unknown = await provisioningApi.listServerBackups();
+      if (typeof result === 'object' && result && (result as { success: boolean }).success) {
+        const serverBackups = ((result as { data?: { backups?: ServerBackup[] } }).data?.backups || []).filter((b: ServerBackup) => b.serverName === serverName);
         setServerBackups(prev => ({ ...prev, [serverName]: serverBackups }));
+      } else if (typeof result === 'object' && result) {
+        setServerBackupError(prev => ({ ...prev, [serverName]: (result as { message?: string }).message || 'Failed to load backups' }));
       } else {
-        setServerBackupError(prev => ({ ...prev, [serverName]: result.message || 'Failed to load backups' }));
+        setServerBackupError(prev => ({ ...prev, [serverName]: 'Failed to load backups' }));
       }
-    } catch (err: any) {
-      setServerBackupError(prev => ({ ...prev, [serverName]: err.message || 'Failed to load backups' }));
+    } catch {
+      setServerBackupError(prev => ({ ...prev, [serverName]: 'Failed to load backups' }));
     } finally {
       setServerBackupLoading(prev => ({ ...prev, [serverName]: false }));
     }
@@ -284,7 +308,7 @@ const ClusterDetails: React.FC = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch {
       alert('Failed to download server backup');
     } finally {
       setDownloadServerBackupLoading(prev => ({ ...prev, [backupName]: false }));
@@ -320,8 +344,8 @@ const ClusterDetails: React.FC = () => {
       } else {
         setServerRestoreError(prev => ({ ...prev, [serverName]: result.message || 'Failed to restore server' }));
       }
-    } catch (err: any) {
-      setServerRestoreError(prev => ({ ...prev, [serverName]: err.message || 'Failed to restore server' }));
+    } catch {
+      setServerRestoreError(prev => ({ ...prev, [serverName]: 'Failed to restore server' }));
     } finally {
       setServerRestoreLoading(prev => ({ ...prev, [serverName]: false }));
     }
@@ -461,13 +485,13 @@ const ClusterDetails: React.FC = () => {
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Running:</span>
                           <span className="text-success">
-                            {cluster.config?.servers?.filter((s: any) => s.status === 'running').length || 0}
+                            {cluster.config?.servers?.filter((s: { status: string }) => s.status === 'running').length || 0}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Stopped:</span>
                           <span className="text-error">
-                            {cluster.config?.servers?.filter((s: any) => s.status === 'stopped').length || 0}
+                            {cluster.config?.servers?.filter((s: { status: string }) => s.status === 'stopped').length || 0}
                           </span>
                         </div>
                       </div>
@@ -615,7 +639,7 @@ const ClusterDetails: React.FC = () => {
 
                 {cluster.config?.servers && cluster.config.servers.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {cluster.config.servers.map((server: any) => (
+                    {cluster.config.servers.map((server: { name: string, status: string, map: string, gamePort: number, queryPort: number, rconPort: number }) => (
                       <div key={server.name} className="card bg-base-200 hover:shadow-lg transition-shadow">
                         <div className="card-body">
                           <div className="flex items-center justify-between mb-2">
@@ -695,18 +719,18 @@ const ClusterDetails: React.FC = () => {
               <div className="text-base-content/70">No backups found for this cluster.</div>
             ) : (
               <ul className="space-y-3">
-                {backups.map((b: any) => (
-                  <li key={b.name} className="flex items-center justify-between bg-base-200 rounded p-3">
+                {backups.map((b) => (
+                  <li key={b.backupName} className="flex items-center justify-between bg-base-200 rounded p-3">
                     <div>
-                      <div className="font-mono text-sm">{b.name}</div>
-                      <div className="text-xs text-base-content/70">{b.backupDate ? new Date(b.backupDate).toLocaleString() : ''}</div>
+                      <div className="font-mono text-sm">{b.backupName}</div>
+                      <div className="text-xs text-base-content/70">{b.created ? new Date(b.created).toLocaleString() : ''}</div>
                     </div>
                     <button
                       className="btn btn-sm btn-primary"
-                      disabled={downloadBackupLoading === b.name}
-                      onClick={() => handleDownloadBackup(b.name)}
+                      disabled={downloadBackupLoading === b.backupName}
+                      onClick={() => handleDownloadBackup(b.backupName)}
                     >
-                      {downloadBackupLoading === b.name ? (
+                      {downloadBackupLoading === b.backupName ? (
                         <span className="loading loading-spinner loading-xs"></span>
                       ) : (
                         '⬇️ Download ZIP'
@@ -775,18 +799,18 @@ const ClusterDetails: React.FC = () => {
               <div className="text-base-content/70">No backups found for this server.</div>
             ) : (
               <ul className="space-y-3">
-                {serverBackups[showServerBackupModal]?.map((b: any) => (
-                  <li key={b.name} className="flex items-center justify-between bg-base-200 rounded p-3">
+                {serverBackups[showServerBackupModal]?.map((b: ServerBackup) => (
+                  <li key={b.backupName} className="flex items-center justify-between bg-base-200 rounded p-3">
                     <div>
-                      <div className="font-mono text-sm">{b.name}</div>
-                      <div className="text-xs text-base-content/70">{b.backupDate ? new Date(b.backupDate).toLocaleString() : ''}</div>
+                      <div className="font-mono text-sm">{b.backupName}</div>
+                      <div className="text-xs text-base-content/70">{b.created ? new Date(b.created).toLocaleString() : ''}</div>
                     </div>
                     <button
                       className="btn btn-sm btn-primary"
-                      disabled={downloadServerBackupLoading[b.name]}
-                      onClick={() => handleDownloadServerBackup(showServerBackupModal, b.name)}
+                      disabled={downloadServerBackupLoading[b.backupName]}
+                      onClick={() => handleDownloadServerBackup(showServerBackupModal, b.backupName)}
                     >
-                      {downloadServerBackupLoading[b.name] ? (
+                      {downloadServerBackupLoading[b.backupName] ? (
                         <span className="loading loading-spinner loading-xs"></span>
                       ) : (
                         '⬇️ Download ZIP'
@@ -873,7 +897,7 @@ const ClusterDetails: React.FC = () => {
     } else {
       setDownloadError(response.message || 'Backup failed');
     }
-  } catch (err) {
+  } catch (err: unknown) {
     setDownloadError(err instanceof Error ? err.message : 'Backup failed');
   } finally {
     setDownloadLoading(false);
@@ -926,7 +950,7 @@ const ClusterDetails: React.FC = () => {
     } else {
       setRestoreError(response.message || 'Restore failed');
     }
-  } catch (err) {
+  } catch (err: unknown) {
     setRestoreError(err instanceof Error ? err.message : 'Restore failed');
   } finally {
     setRestoreLoading(false);
