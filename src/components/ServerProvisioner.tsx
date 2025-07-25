@@ -715,7 +715,16 @@ const ServerProvisioner: React.FC = () => {
     try {
       const response = await apiService.provisioning.getClusterBackups(clusterName);
       if (response.success && response.backups.length > 0) {
-        setRestoreModal({ clusterName, backups: response.backups, open: true });
+        setRestoreModal({
+          clusterName,
+          backups: response.backups.map(b => ({
+            path: b.backupPath,
+            name: b.backupName,
+            backupDate: b.created,
+            sizeFormatted: b.size ? `${(b.size / 1024 / 1024).toFixed(2)} MB` : undefined,
+          })),
+          open: true
+        });
         setStatusMessage(null);
       } else {
         setStatusMessage(`No backups found for cluster "${clusterName}".`);
