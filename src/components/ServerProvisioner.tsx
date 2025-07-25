@@ -823,16 +823,19 @@ const ServerProvisioner: React.FC = () => {
   };
 
   const generateServers = (): ServerConfig[] => {
+    // If wizardData.servers exists (from imported config), use it directly
+    if (Array.isArray(wizardData.servers) && wizardData.servers.length > 0) {
+      return wizardData.servers as ServerConfig[];
+    }
+    // Otherwise, generate from selectedMaps as before
     const servers: ServerConfig[] = [];
     let portCounter = wizardData.basePort || 7777;
-    
     wizardData.selectedMaps.forEach(mapConfig => {
       if (mapConfig.enabled) {
         for (let i = 0; i < mapConfig.count; i++) {
           const serverName = mapConfig.count === 1 
             ? `${wizardData.clusterName}-${mapConfig.displayName || mapConfig.map}`
             : `${wizardData.clusterName}-${mapConfig.displayName || mapConfig.map}-${i + 1}`;
-          
           const serverConfig: ServerConfig = {
             name: serverName,
             map: mapConfig.map,
