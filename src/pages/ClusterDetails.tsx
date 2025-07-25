@@ -3,7 +3,6 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { provisioningApi } from '../services/api';
 import GlobalModManager from '../components/GlobalModManager';
 import GlobalConfigManager from '../components/GlobalConfigManager';
-import { useToast } from '../components/ToastProvider';
 
 interface Cluster {
   name: string;
@@ -64,7 +63,7 @@ const ClusterDetails: React.FC = () => {
   const [backupOptions, setBackupOptions] = useState({ saves: true, configs: true, logs: true });
   const [restoreOptions, setRestoreOptions] = useState({ saves: true, configs: true, logs: true });
 
-  const toast = useToast();
+  const [downloadNotification, setDownloadNotification] = useState<string | null>(null);
 
   // Load cluster data
   useEffect(() => {
@@ -206,13 +205,12 @@ const ClusterDetails: React.FC = () => {
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      // Show toast notification
-      toast.success('Download started. Your browser may prompt you to choose a location.');
-      // Delay revocation to ensure the download starts
+      setDownloadNotification('Download started. Your browser may prompt you to choose a location.');
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
         a.remove();
       }, 1000);
+      setTimeout(() => setDownloadNotification(null), 4000);
     } catch (err) {
       alert('Failed to download backup');
     } finally {
@@ -943,6 +941,11 @@ const ClusterDetails: React.FC = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {downloadNotification && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 alert alert-info shadow-lg z-50 max-w-md">
+          <span>{downloadNotification}</span>
         </div>
       )}
     </div>
