@@ -70,6 +70,16 @@ export interface User {
   };
 }
 
+export interface ClusterBackup {
+  clusterName: string;
+  backupName: string;
+  created: string;
+  backupPath: string;
+  size: number;
+  type: string;
+  hasMetadata: boolean;
+}
+
 export interface LogFile {
   name: string;
   path: string;
@@ -2083,12 +2093,12 @@ export const provisioningApi = {
   /**
    * Get cluster backups
    */
-  getClusterBackups: async (clusterName: string): Promise<{ success: boolean; backups: any[]; count: number; message?: string }> => {
-    const response = await api.get<{ success: boolean; data: { backups: any[]; count: number }; message?: string }>(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}`);
+  getClusterBackups: async (clusterName: string): Promise<{ success: boolean; backups: ClusterBackup[]; count: number; message?: string }> => {
+    const response = await api.get<{ success: boolean; data: ClusterBackup[]; message?: string }>(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}`);
     if (!response.data.success) {
       throw new ApiError('Failed to get cluster backups', 500, response.data);
     }
-    return { success: true, backups: response.data.data.backups, count: response.data.data.count, message: response.data.message };
+    return { success: true, backups: response.data.data, count: response.data.data?.length || 0, message: response.data.message };
   },
 
   /**

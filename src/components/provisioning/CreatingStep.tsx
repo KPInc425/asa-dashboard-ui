@@ -11,9 +11,17 @@ const CreatingStep: React.FC<CreatingStepProps> = ({ jobId, jobProgress }) => {
     console.log('CreatingStep: jobProgress updated:', jobProgress);
     if (jobProgress) {
       console.log('CreatingStep: Setting progress to:', jobProgress.progress);
-      console.log('CreatingStep: Setting message to:', jobProgress.message);
+      // Defensive: ensure message is always a string
+      let msg = jobProgress.message;
+      if (typeof msg !== 'string') {
+        if (msg && typeof msg === 'object' && 'message' in msg && typeof msg.message === 'string') {
+          msg = msg.message;
+        } else {
+          msg = JSON.stringify(msg);
+        }
+      }
       setProgress(jobProgress.progress);
-      setMessage(jobProgress.message);
+      setMessage(msg);
       
       if (jobProgress.step) {
         setCurrentStep(jobProgress.step);
