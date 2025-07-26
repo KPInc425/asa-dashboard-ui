@@ -585,12 +585,21 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
                 </p>
               </div>
             </div>
-            <Link
-              to="/containers"
-              className="btn btn-outline btn-primary hover:shadow-lg hover:shadow-primary/25"
-            >
-              ← Back to Servers
-            </Link>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={debugLogFiles}
+                className="btn btn-warning hover:shadow-lg hover:shadow-warning/25"
+                title="Debug log file discovery"
+              >
+                🔍 Debug Logs
+              </button>
+              <Link
+                to="/containers"
+                className="btn btn-outline btn-primary hover:shadow-lg hover:shadow-primary/25"
+              >
+                ← Back to Servers
+              </Link>
+            </div>
           </div>
         </div>
 
