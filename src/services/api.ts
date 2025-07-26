@@ -996,9 +996,13 @@ export const logsApi = {
   /**
    * Get recent log content from a specific file
    */
-  getLogContent: async (serverName: string, fileName: string, lines: number = 100): Promise<LogContentResponse> => {
+  getLogContent: async (serverName: string, fileName: string, lines: number = 100, forceRefresh: boolean = false): Promise<LogContentResponse> => {
+    const params: Record<string, string | number> = { lines };
+    if (forceRefresh) {
+      params._t = Date.now(); // Cache-busting parameter
+    }
     const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/files/${encodeURIComponent(fileName)}`, {
-      params: { lines }
+      params
     });
     return response.data;
   },

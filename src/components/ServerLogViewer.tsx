@@ -135,12 +135,17 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
     }
   };
 
-  const loadStaticLogs = async () => {
+  const loadStaticLogs = async (forceRefresh = false) => {
     if (!serverName) return;
     
-    console.log('🔍 Loading static logs for server:', serverName);
+    console.log('🔍 Loading static logs for server:', serverName, forceRefresh ? '(force refresh)' : '');
     
     try {
+      // Clear existing logs if forcing refresh
+      if (forceRefresh) {
+        setLogs([]);
+      }
+      
       // Try to load recent logs from the API as a fallback
       // Use the first available log file if none is selected
       const logFileName = selectedLogFile === 'server' ? 'ShooterGame.log' : selectedLogFile;
@@ -165,7 +170,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
           
           console.log('📄 Getting content for selected file:', logFile.name);
           
-          const response = await logsApi.getLogContent(serverName, logFile.name, lineCount);
+          const response = await logsApi.getLogContent(serverName, logFile.name, lineCount, forceRefresh);
           console.log('📄 Content response:', response);
           
           if (response.success && response.content) {
@@ -205,7 +210,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
         }
       } else {
         console.log('📄 Getting content for selected file:', logFileName);
-        const response = await logsApi.getLogContent(serverName, logFileName, lineCount);
+        const response = await logsApi.getLogContent(serverName, logFileName, lineCount, forceRefresh);
         console.log('📄 Content response:', response);
         
         if (response.success && response.content) {
@@ -409,11 +414,11 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
               
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => loadStaticLogs()}
+                  onClick={() => loadStaticLogs(true)}
                   className="btn btn-sm btn-outline btn-primary"
                   disabled={isLoadingFiles}
                 >
-                  🔄 Load More
+                  🔄 Refresh Logs
                 </button>
                 <button
                   onClick={clearLogs}
@@ -581,11 +586,11 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
               
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => loadStaticLogs()}
+                  onClick={() => loadStaticLogs(true)}
                   className="btn btn-sm btn-outline btn-primary"
                   disabled={isLoadingFiles}
                 >
-                  🔄 Load More
+                  🔄 Refresh Logs
                 </button>
                 <button
                   onClick={clearLogs}
@@ -627,7 +632,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
                 </label>
                 <select
                   value={logLevel}
-                  onChange={(e) => setLogLevel(e.target.value as any)}
+                  onChange={(e) => setLogLevel(e.target.value as 'all' | 'info' | 'warn' | 'error' | 'debug')}
                   className="select select-bordered select-sm"
                 >
                   <option value="all">All Levels</option>
