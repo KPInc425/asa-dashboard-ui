@@ -650,6 +650,13 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
                   🔄 Refresh Logs
                 </button>
                 <button
+                  onClick={debugLogFiles}
+                  className="btn btn-sm btn-outline btn-warning"
+                  title="Debug log file discovery"
+                >
+                  🔍 Debug Logs
+                </button>
+                <button
                   onClick={clearLogs}
                   className="btn btn-sm btn-outline btn-error"
                 >
