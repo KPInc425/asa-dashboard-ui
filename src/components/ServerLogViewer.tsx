@@ -22,7 +22,6 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
   const [selectedLogFile, setSelectedLogFile] = useState<string>('');
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [lineCount, setLineCount] = useState<number>(500);
-  const [lastLoadedTime, setLastLoadedTime] = useState<string>('');
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,13 +31,13 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
     }
 
     // Add debug function to window for console access
-    (window as any).debugLogFiles = debugLogFiles;
+    (window as { debugLogFiles?: () => void }).debugLogFiles = debugLogFiles;
 
     return () => {
       socketService.offServerLog();
       socketService.disconnect().catch(console.error);
       // Clean up debug function
-      delete (window as any).debugLogFiles;
+      delete (window as { debugLogFiles?: () => void }).debugLogFiles;
     };
   }, [serverName]);
 
@@ -205,7 +204,6 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
             });
             
             setLogs(staticLogs);
-            setLastLoadedTime(new Date().toLocaleTimeString());
             // Don't set this as an error since it's normal fallback behavior
             console.log(`Using static log content from ${logFile.name} (real-time connection unavailable) - Loaded at ${new Date().toISOString()}`);
             return;
@@ -246,7 +244,6 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
           });
           
           setLogs(staticLogs);
-          setLastLoadedTime(new Date().toLocaleTimeString());
             // Don't set this as an error since it's normal fallback behavior
             console.log(`Using static log content from ${logFileName} (real-time connection unavailable) - Loaded at ${new Date().toISOString()}`);
           return;
