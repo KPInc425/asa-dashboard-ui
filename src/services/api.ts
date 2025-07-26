@@ -1008,6 +1008,14 @@ export const logsApi = {
   },
 
   /**
+   * Debug endpoint to get log file information
+   */
+  debugLogFiles: async (serverName: string): Promise<{ success: boolean; serverName: string; logFiles: any[]; timestamp: string }> => {
+    const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/debug`);
+    return response.data;
+  },
+
+  /**
    * List log files for a server
    */
   listServerLogFiles: async (serverName: string): Promise<{ success: boolean; logFiles: Array<{ name: string; path: string; size: number; modified: string }> }> => {

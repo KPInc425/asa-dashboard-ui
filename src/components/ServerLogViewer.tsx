@@ -22,6 +22,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
   const [selectedLogFile, setSelectedLogFile] = useState<string>('');
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [lineCount, setLineCount] = useState<number>(500);
+  const [lastLoadedTime, setLastLoadedTime] = useState<string>('');
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,9 +31,14 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
       connectToServerLogs();
     }
 
+    // Add debug function to window for console access
+    (window as any).debugLogFiles = debugLogFiles;
+
     return () => {
       socketService.offServerLog();
       socketService.disconnect().catch(console.error);
+      // Clean up debug function
+      delete (window as any).debugLogFiles;
     };
   }, [serverName]);
 
@@ -199,8 +205,9 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
             });
             
             setLogs(staticLogs);
+            setLastLoadedTime(new Date().toLocaleTimeString());
             // Don't set this as an error since it's normal fallback behavior
-            console.log(`Using static log content from ${logFile.name} (real-time connection unavailable)`);
+            console.log(`Using static log content from ${logFile.name} (real-time connection unavailable) - Loaded at ${new Date().toISOString()}`);
             return;
           } else {
             console.error('❌ Content response not successful:', response);
@@ -239,8 +246,9 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
           });
           
           setLogs(staticLogs);
+          setLastLoadedTime(new Date().toLocaleTimeString());
             // Don't set this as an error since it's normal fallback behavior
-            console.log(`Using static log content from ${logFileName} (real-time connection unavailable)`);
+            console.log(`Using static log content from ${logFileName} (real-time connection unavailable) - Loaded at ${new Date().toISOString()}`);
           return;
         } else {
           console.error('❌ Content response not successful:', response);
@@ -274,6 +282,27 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const debugLogFiles = async () => {
+    if (!serverName) return;
+    
+    try {
+      console.log('🔍 Debug: Checking log files for server:', serverName);
+      const response = await logsApi.debugLogFiles(serverName);
+      console.log('🔍 Debug: Log files response:', response);
+      
+      if (response.success) {
+        alert(`Debug Info for ${serverName}:\n\n${response.logFiles.map(file => 
+          `${file.name}:\n  Path: ${file.path}\n  Size: ${file.size} bytes\n  Last Modified: ${file.lastModified || 'N/A'}\n  Created: ${file.created || 'N/A'}`
+        ).join('\n\n')}`);
+      } else {
+        alert('Failed to get debug info');
+      }
+    } catch (error) {
+      console.error('🔍 Debug: Error getting log files:', error);
+      alert('Error getting debug info: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
   };
 
   const getLogLevelColor = (level: string) => {
