@@ -286,15 +286,32 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
     
     try {
       console.log('🔍 Debug: Checking log files for server:', serverName);
-      const response = await logsApi.debugLogFiles(serverName);
-      console.log('🔍 Debug: Log files response:', response);
       
-      if (response.success) {
-        alert(`Debug Info for ${serverName}:\n\n${response.logFiles.map(file => 
-          `${file.name}:\n  Path: ${file.path}\n  Size: ${file.size} bytes\n  Last Modified: ${file.lastModified || 'N/A'}\n  Created: ${file.created || 'N/A'}`
+      // First try the debug endpoint
+      try {
+        const response = await logsApi.debugLogFiles(serverName);
+        console.log('🔍 Debug: Log files response:', response);
+        
+        if (response.success) {
+          alert(`Debug Info for ${serverName}:\n\n${response.logFiles.map(file => 
+            `${file.name}:\n  Path: ${file.path}\n  Size: ${file.size} bytes\n  Last Modified: ${file.lastModified || 'N/A'}\n  Created: ${file.created || 'N/A'}`
+          ).join('\n\n')}`);
+          return;
+        }
+      } catch (debugError) {
+        console.log('🔍 Debug: Debug endpoint failed, trying fallback:', debugError);
+      }
+      
+      // Fallback: try the regular log files endpoint
+      const fallbackResponse = await logsApi.getLogFiles(serverName);
+      console.log('🔍 Debug: Fallback response:', fallbackResponse);
+      
+      if (fallbackResponse.success) {
+        alert(`Fallback Debug Info for ${serverName}:\n\n${fallbackResponse.logFiles.map(file => 
+          `${file.name}:\n  Path: ${file.path}\n  Size: ${file.size} bytes`
         ).join('\n\n')}`);
       } else {
-        alert('Failed to get debug info');
+        alert('Failed to get debug info from both endpoints');
       }
     } catch (error) {
       console.error('🔍 Debug: Error getting log files:', error);
