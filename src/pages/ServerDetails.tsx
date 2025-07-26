@@ -628,7 +628,7 @@ const ServerDetails: React.FC = () => {
             )}
 
             {activeTab === 'logs' && (
-              <ServerLogViewer compact={true} serverName={serverName} />
+              <ServerLogViewer serverName={serverName} />
             )}
 
             {activeTab === 'saves' && server && (
