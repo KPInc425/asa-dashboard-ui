@@ -75,9 +75,23 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
       const response = await logsApi.getLogFiles(serverName);
       setAvailableLogFiles(response.logFiles);
       
-      // Auto-select server logs by default
-      if (!selectedLogFile) {
-        setSelectedLogFile('server');
+      // Auto-select the most recent log file by default
+      if (!selectedLogFile && response.logFiles.length > 0) {
+        // Find the most recent log file (first in the sorted list)
+        const mostRecentLog = response.logFiles.find(file => 
+          file.name.toLowerCase().includes('shootergame') ||
+          file.name.toLowerCase().includes('servergame') ||
+          file.name.toLowerCase().includes('windowsserver.log') ||
+          (file.name.toLowerCase().endsWith('.log') && !file.name.toLowerCase().includes('manifest'))
+        );
+        
+        if (mostRecentLog) {
+          setSelectedLogFile(mostRecentLog.name);
+          console.log('📄 Auto-selected most recent log file:', mostRecentLog.name, 'Size:', mostRecentLog.size, 'bytes');
+        } else {
+          setSelectedLogFile('server');
+          console.log('📄 No recent log file found, using default ShooterGame.log');
+        }
       }
     } catch (err) {
       console.error('Failed to load log files:', err);
@@ -152,7 +166,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ compact = false, serv
       }
       
       // Try to load recent logs from the API as a fallback
-      // Use the first available log file if none is selected
+      // Use the selected log file or default to ShooterGame.log
       const logFileName = selectedLogFile === 'server' ? 'ShooterGame.log' : selectedLogFile;
       
       console.log('📁 Selected log file:', logFileName);
