@@ -402,10 +402,17 @@ export const containerApi = {
       await new Promise(resolve => setTimeout(resolve, 1000));
       return { success: true, message: `Native server ${name} stopped successfully` };
     } else {
-      const response = await api.post<{ success: boolean; message: string }>(
-        `/api/native-servers/${encodeURIComponent(name)}/stop`
-      );
-      return response.data;
+      console.log(`🛑 Making stop request for native server: ${name}`);
+      try {
+        const response = await api.post<{ success: boolean; message: string }>(
+          `/api/native-servers/${encodeURIComponent(name)}/stop`
+        );
+        console.log(`✅ Stop response:`, response.data);
+        return response.data;
+      } catch (error) {
+        console.error(`❌ Stop request failed:`, error);
+        throw error;
+      }
     }
   },
 
@@ -418,10 +425,17 @@ export const containerApi = {
       await new Promise(resolve => setTimeout(resolve, 1500));
       return { success: true, message: `Native server ${name} restarted successfully` };
     } else {
-      const response = await api.post<{ success: boolean; message: string }>(
-        `/api/native-servers/${encodeURIComponent(name)}/restart`
-      );
-      return response.data;
+      console.log(`🔄 Making restart request for native server: ${name}`);
+      try {
+        const response = await api.post<{ success: boolean; message: string }>(
+          `/api/native-servers/${encodeURIComponent(name)}/restart`
+        );
+        console.log(`✅ Restart response:`, response.data);
+        return response.data;
+      } catch (error) {
+        console.error(`❌ Restart request failed:`, error);
+        throw error;
+      }
     }
   },
 

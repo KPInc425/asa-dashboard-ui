@@ -163,10 +163,12 @@ const ServerDetails: React.FC = () => {
     setActionLoading(action);
     
     try {
+      console.log(`🔄 Attempting to ${action} server: ${server.name} (type: ${server.type})`);
       let response;
       
       if (server.type === 'container') {
         // Use container API methods
+        console.log(`📦 Using container API for ${action}`);
         switch (action) {
           case 'start':
             response = await containerApi.startContainer(server.name);
@@ -180,6 +182,7 @@ const ServerDetails: React.FC = () => {
         }
       } else {
         // Use native server API methods
+        console.log(`🖥️ Using native server API for ${action}`);
         switch (action) {
           case 'start':
             response = await containerApi.startNativeServer(server.name);
@@ -220,6 +223,101 @@ const ServerDetails: React.FC = () => {
             window.location.reload();
           }, 1000);
         }
+      } else {
+        setError(`Failed to ${action} server: ${response.message || 'Unknown error'}`);
+      }
+    } catch (err: unknown) {
+      console.error(`Failed to ${action} server:`, err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to ${action} server: ${errorMessage}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Confirmation handlers for destructive actions
+  const handleStopWithConfirmation = async () => {
+    if (!server) return;
+    if (confirm(`Are you sure you want to stop the server "${server.name}"? This will disconnect all players.`)) {
+      await handleServerActionWithSave('stop');
+    }
+  };
+
+  const handleRestartWithConfirmation = async () => {
+    if (!server) return;
+    if (confirm(`Are you sure you want to restart the server "${server.name}"? This will disconnect all players and restart the server.`)) {
+      await handleServerActionWithSave('restart');
+    }
+  };
+
+  // Handle server actions with automatic saveworld
+  const handleServerActionWithSave = async (action: 'stop' | 'restart') => {
+    if (!server) return;
+    
+    setActionLoading(action);
+    
+    try {
+      console.log(`🔄 Attempting to ${action} server: ${server.name} (type: ${server.type})`);
+      
+      // First, try to save the world via RCON
+      console.log(`💾 Attempting to save world before ${action}...`);
+      try {
+        const saveResponse = await containerApi.sendRconCommand(server.name, 'saveworld');
+        if (saveResponse.success) {
+          console.log(`✅ Save command sent: ${saveResponse.message}`);
+          
+          // Check if the response indicates the world was actually saved
+          const responseText = saveResponse.response || saveResponse.message || '';
+          if (responseText.toLowerCase().includes('world saved') || 
+              responseText.toLowerCase().includes('saved') ||
+              responseText.toLowerCase().includes('success')) {
+            console.log(`✅ World saved successfully: ${responseText}`);
+            // Wait a moment for the save to complete
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            console.warn(`⚠️ Save response unclear: ${responseText}`);
+            // Still wait a bit in case the save is in progress
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } else {
+          console.warn(`⚠️ Save world failed: ${saveResponse.message}`);
+        }
+      } catch (saveError) {
+        console.warn(`⚠️ Could not save world via RCON:`, saveError);
+        // Continue with the action even if save fails
+      }
+      
+      let response;
+      
+      if (server.type === 'container') {
+        // Use container API methods
+        console.log(`📦 Using container API for ${action}`);
+        switch (action) {
+          case 'stop':
+            response = await containerApi.stopContainer(server.name);
+            break;
+          case 'restart':
+            response = await containerApi.restartContainer(server.name);
+            break;
+        }
+      } else {
+        // Use native server API methods
+        console.log(`🖥️ Using native server API for ${action}`);
+        switch (action) {
+          case 'stop':
+            response = await containerApi.stopNativeServer(server.name);
+            break;
+          case 'restart':
+            response = await containerApi.restartNativeServer(server.name);
+            break;
+        }
+      }
+      
+      if (response.success) {
+        // Reload immediately for stop/restart actions
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         setError(`Failed to ${action} server: ${response.message || 'Unknown error'}`);
       }
@@ -399,7 +497,7 @@ const ServerDetails: React.FC = () => {
                   )}
                 </button>
                 <button
-                  onClick={() => handleServerAction('stop')}
+                  onClick={handleStopWithConfirmation}
                   disabled={actionLoading !== null || server.status === 'stopped'}
                   className="btn btn-sm btn-error"
                 >
@@ -410,7 +508,7 @@ const ServerDetails: React.FC = () => {
                   )}
                 </button>
                 <button
-                  onClick={() => handleServerAction('restart')}
+                  onClick={handleRestartWithConfirmation}
                   disabled={actionLoading !== null}
                   className="btn btn-sm btn-warning"
                 >
