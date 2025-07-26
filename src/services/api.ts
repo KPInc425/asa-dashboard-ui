@@ -154,8 +154,9 @@ export class ApiError extends Error {
 
 // Create Axios instance with base configuration
 const createApiInstance = (): AxiosInstance => {
-  // Use the working base URL configuration
-  const baseURL = import.meta.env.VITE_API_URL || '/';
+  // Use custom endpoint from localStorage or fallback to environment variable
+  const customEndpoint = localStorage.getItem('api_endpoint');
+  const baseURL = customEndpoint || import.meta.env.VITE_API_URL || '/';
   
   console.log('Creating API instance with baseURL:', baseURL);
   
@@ -2134,6 +2135,14 @@ export const provisioningApi = {
    */
   downloadServerBackup: async (serverName: string, backupName: string): Promise<Blob> => {
     const response = await api.get(`/api/provisioning/servers/${encodeURIComponent(serverName)}/download-backup?backup=${encodeURIComponent(backupName)}`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  /**
+   * Delete server backup
+   */
+  deleteServerBackup: async (serverName: string, backupName: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete(`/api/provisioning/servers/${encodeURIComponent(serverName)}/backups/${encodeURIComponent(backupName)}`);
     return response.data;
   },
 

@@ -494,6 +494,12 @@ const ClusterDetails: React.FC = () => {
                             {cluster.config?.servers?.filter((s: { status: string }) => s.status === 'stopped').length || 0}
                           </span>
                         </div>
+                        <div className="flex justify-between">
+                          <span className="text-base-content/70">Other:</span>
+                          <span className="text-warning">
+                            {cluster.config?.servers?.filter((s: { status: string }) => s.status !== 'running' && s.status !== 'stopped').length || 0}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>

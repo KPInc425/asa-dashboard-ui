@@ -12,8 +12,6 @@ import ServerLiveDetails from '../components/ServerLiveDetails';
 import SaveFileManager from '../components/SaveFileManager';
 import ServerDetailsRconConsole from '../components/ServerDetailsRconConsole';
 
-
-
 const ServerDetails: React.FC = () => {
   const { serverName } = useParams<{ serverName: string }>();
   const navigate = useNavigate();
@@ -26,9 +24,10 @@ const ServerDetails: React.FC = () => {
   const [showStartScript, setShowStartScript] = useState(false);
   const [showUpdateManager, setShowUpdateManager] = useState(false);
   const [showSettingsEditor, setShowSettingsEditor] = useState(false);
+  const [configSectionExpanded, setConfigSectionExpanded] = useState(false);
 
   // Backup/Restore state
-  const [serverBackups, setServerBackups] = useState<any[]>([]);
+  const [serverBackups, setServerBackups] = useState<Array<{ name: string; backupDate?: string; serverName: string }>>([]);
   const [serverBackupLoading, setServerBackupLoading] = useState(false);
   const [serverBackupError, setServerBackupError] = useState<string>('');
   const [downloadServerBackupLoading, setDownloadServerBackupLoading] = useState<string>('');
@@ -55,7 +54,7 @@ const ServerDetails: React.FC = () => {
           const containers = await containerApi.getContainers();
           const foundContainer = containers.find(c => c.name === serverName);
           if (foundContainer) {
-            serverData = foundContainer as any;
+            serverData = foundContainer as Server;
           }
         } catch (error) {
           console.log(`Error getting containers for ${serverName}:`, error);
@@ -66,7 +65,7 @@ const ServerDetails: React.FC = () => {
             const nativeServers = await containerApi.getNativeServers();
             const foundNativeServer = nativeServers.find(s => s.name === serverName);
             if (foundNativeServer) {
-              serverData = foundNativeServer as any;
+              serverData = foundNativeServer as Server;
             }
           } catch (error) {
             console.log(`Error getting native servers for ${serverName}:`, error);
@@ -157,8 +156,6 @@ const ServerDetails: React.FC = () => {
     }
   };
 
-
-
   // Server control actions
   const handleServerAction = async (action: 'start' | 'stop' | 'restart') => {
     if (!server) return;
@@ -244,13 +241,13 @@ const ServerDetails: React.FC = () => {
     try {
       const result = await provisioningApi.listServerBackups();
       if (result.success) {
-        const serverBackups = (result.data?.backups || []).filter((b: any) => b.serverName === serverName);
+        const serverBackups = (result.data?.backups || []).filter((b: { serverName: string }) => b.serverName === serverName);
         setServerBackups(serverBackups);
       } else {
         setServerBackupError(result.message || 'Failed to load backups');
       }
-    } catch (err: any) {
-      setServerBackupError(err.message || 'Failed to load backups');
+    } catch (err: unknown) {
+      setServerBackupError(err instanceof Error ? err.message : 'Failed to load backups');
     } finally {
       setServerBackupLoading(false);
     }
@@ -269,10 +266,30 @@ const ServerDetails: React.FC = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error('Failed to download server backup:', err);
       alert('Failed to download server backup');
     } finally {
       setDownloadServerBackupLoading('');
+    }
+  };
+
+  const handleDeleteServerBackup = async (backupName: string) => {
+    if (!serverName || !window.confirm(`Are you sure you want to delete backup "${backupName}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      const response = await provisioningApi.deleteServerBackup(serverName, backupName);
+      if (response.success) {
+        // Remove from local state
+        setServerBackups(prev => prev.filter(b => b.name !== backupName));
+      } else {
+        alert(`Failed to delete backup: ${response.message}`);
+      }
+    } catch (err: unknown) {
+      console.error('Failed to delete backup:', err);
+      alert('Failed to delete backup');
     }
   };
 
@@ -306,8 +323,8 @@ const ServerDetails: React.FC = () => {
       } else {
         setServerRestoreError(result.message || 'Failed to restore server');
       }
-    } catch (err: any) {
-      setServerRestoreError(err.message || 'Failed to restore server');
+    } catch (err: unknown) {
+      setServerRestoreError(err instanceof Error ? err.message : 'Failed to restore server');
     } finally {
       setServerRestoreLoading(false);
     }
@@ -358,14 +375,14 @@ const ServerDetails: React.FC = () => {
               <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
                 <span className="text-2xl">🦖</span>
               </div>
-              <div>
-                <h1 className="text-4xl font-bold text-primary mb-2">{server.name}</h1>
-                <p className="text-base-content/70">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl font-bold text-primary mb-1 truncate">{server.name}</h1>
+                <p className="text-sm text-base-content/70 truncate">
                   Server Management & Configuration
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-shrink-0">
               <span className={`badge ${getStatusColor(server.status)}`}>
                 {server.status.charAt(0).toUpperCase() + server.status.slice(1)}
               </span>
@@ -494,7 +511,18 @@ const ServerDetails: React.FC = () => {
         <div className="card bg-base-100 shadow-sm flex-1">
           <div className="card-body">
             {activeTab === 'details' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Live Server Information - Prioritized */}
+                {server.status === 'running' && (
+                  <div className="mb-6">
+                    <ServerLiveDetails 
+                      serverName={server.name} 
+                      serverType={server.type} 
+                    />
+                  </div>
+                )}
+
+                {/* Server Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="card bg-base-200">
                     <div className="card-body">
@@ -563,23 +591,26 @@ const ServerDetails: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Configuration Section - Collapsible */}
                 {server.config && (
                   <div className="card bg-base-200">
                     <div className="card-body">
-                      <h4 className="card-title">Configuration</h4>
-                      <pre className="text-xs bg-base-300 p-4 rounded overflow-auto max-h-64">
-                        {JSON.stringify(server.config, null, 2)}
-                      </pre>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="card-title">Configuration</h4>
+                        <button
+                          onClick={() => setConfigSectionExpanded(!configSectionExpanded)}
+                          className="btn btn-sm btn-outline"
+                        >
+                          {configSectionExpanded ? '🔽 Collapse' : '▶️ Expand'}
+                        </button>
+                      </div>
+                      {configSectionExpanded && (
+                        <pre className="text-xs bg-base-300 p-4 rounded overflow-auto max-h-64">
+                          {JSON.stringify(server.config, null, 2)}
+                        </pre>
+                      )}
                     </div>
                   </div>
-                )}
-
-                {/* Live Server Details */}
-                {server.status === 'running' && (
-                  <ServerLiveDetails 
-                    serverName={server.name} 
-                    serverType={server.type} 
-                  />
                 )}
               </div>
             )}
@@ -649,23 +680,32 @@ const ServerDetails: React.FC = () => {
               <div className="text-base-content/70">No backups found for this server.</div>
             ) : (
               <ul className="space-y-3">
-                {serverBackups.map((b: any) => (
+                {serverBackups.map((b: { name: string; backupDate?: string; serverName: string }) => (
                   <li key={b.name} className="flex items-center justify-between bg-base-200 rounded p-3">
                     <div>
                       <div className="font-mono text-sm">{b.name}</div>
                       <div className="text-xs text-base-content/70">{b.backupDate ? new Date(b.backupDate).toLocaleString() : ''}</div>
                     </div>
-                    <button
-                      className="btn btn-sm btn-primary"
-                      disabled={downloadServerBackupLoading === b.name}
-                      onClick={() => handleDownloadServerBackup(b.name)}
-                    >
-                      {downloadServerBackupLoading === b.name ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      ) : (
-                        '⬇️ Download ZIP'
-                      )}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        className="btn btn-sm btn-primary"
+                        disabled={downloadServerBackupLoading === b.name}
+                        onClick={() => handleDownloadServerBackup(b.name)}
+                      >
+                        {downloadServerBackupLoading === b.name ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        ) : (
+                          '⬇️ Download'
+                        )}
+                      </button>
+                      <button
+                        className="btn btn-sm btn-error"
+                        onClick={() => handleDeleteServerBackup(b.name)}
+                        title="Delete backup"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

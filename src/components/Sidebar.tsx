@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ApiEndpointSelector from './ApiEndpointSelector';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -166,8 +167,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
           {/* Footer */}
           <div className="p-4 border-t border-base-300">
-            <div className="text-xs text-base-content/50 text-center">
-              ASA Management Suite v1.0
+            <div className="flex flex-col space-y-2">
+              <div className="flex justify-center">
+                <ApiEndpointSelector />
+              </div>
+              <div className="text-xs text-base-content/50 text-center">
+                ASA Management Suite v1.0
+              </div>
             </div>
           </div>
         </div>

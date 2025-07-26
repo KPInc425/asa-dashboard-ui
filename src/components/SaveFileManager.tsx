@@ -22,6 +22,10 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSaveFiles();
@@ -166,6 +170,48 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
     }
   };
 
+  const handleRestoreFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setRestoreFile(file);
+      setRestoreError(null);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!restoreFile) {
+      setRestoreError('Please select a file to restore');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to restore from ${restoreFile.name}? This will overwrite the current save file.`)) {
+      return;
+    }
+
+    try {
+      setRestoring(true);
+      setRestoreError(null);
+      
+      const formData = new FormData();
+      formData.append('file', restoreFile);
+      
+      const response = await containerApi.uploadSaveFile(serverName, formData);
+      if (response.success) {
+        setSuccess(`Successfully restored from ${restoreFile.name}`);
+        setRestoreFile(null);
+        setShowRestoreModal(false);
+        loadSaveFiles(); // Reload the file list
+      } else {
+        setRestoreError(response.message || 'Failed to restore file');
+      }
+    } catch (err) {
+      setRestoreError('Failed to restore file');
+      console.error('Error restoring file:', err);
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -277,6 +323,12 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
             )}
           </button>
           <button
+            onClick={() => setShowRestoreModal(true)}
+            className="btn btn-warning btn-sm"
+          >
+            ♻️ Restore from File
+          </button>
+          <button
             onClick={loadSaveFiles}
             className="btn btn-outline btn-sm"
           >
@@ -348,6 +400,69 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
           )}
         </div>
       </div>
+
+      {/* Restore Modal */}
+      {showRestoreModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-4">Restore Save File</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="label">Select Save File</label>
+                <input
+                  type="file"
+                  accept=".ark,.ark.bak"
+                  className="file-input file-input-bordered w-full"
+                  onChange={handleRestoreFileSelect}
+                  disabled={restoring}
+                />
+              </div>
+              
+              {restoreError && (
+                <div className="alert alert-error">
+                  <span>{restoreError}</span>
+                </div>
+              )}
+              
+              {restoreFile && (
+                <div className="text-sm text-base-content/70">
+                  Selected: {restoreFile.name} ({formatFileSize(restoreFile.size)})
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-action">
+              <button 
+                type="button" 
+                className="btn" 
+                onClick={() => {
+                  setShowRestoreModal(false);
+                  setRestoreFile(null);
+                  setRestoreError(null);
+                }}
+                disabled={restoring}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-warning"
+                onClick={handleRestore}
+                disabled={!restoreFile || restoring}
+              >
+                {restoring ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs"></span>
+                    Restoring...
+                  </>
+                ) : (
+                  '♻️ Restore'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
