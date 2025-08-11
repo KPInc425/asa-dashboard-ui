@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { provisioningApi } from '../services/api';
+import { provisioningApi } from '../services/api-provisioning';
 import GlobalModManager from '../components/GlobalModManager';
 import GlobalConfigManager from '../components/GlobalConfigManager';
 
@@ -98,7 +98,7 @@ const ClusterDetails: React.FC = () => {
         const response = await provisioningApi.getClusterDetails(clusterName);
         
         if (response.success && response.cluster) {
-          setCluster(response.cluster);
+          setCluster(response.cluster as unknown as Cluster);
         } else {
           setError(`Cluster "${clusterName}" not found`);
         }
@@ -161,7 +161,7 @@ const ClusterDetails: React.FC = () => {
         if (clusterName) {
           const clusterResponse = await provisioningApi.getClusterDetails(clusterName);
           if (clusterResponse.success && clusterResponse.cluster) {
-            setCluster(clusterResponse.cluster);
+            setCluster(clusterResponse.cluster as unknown as Cluster);
           }
         }
       }

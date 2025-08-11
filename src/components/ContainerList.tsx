@@ -440,7 +440,7 @@ const ContainerList = () => {
                               {Array.isArray(container.ports) ? (
                                 container.ports.map((port, i) => (
                                   <span key={i} className="badge badge-outline badge-sm">
-                                    {renderPort(port)}
+                                    {renderPort(port as any)}
                                   </span>
                                 ))
                               ) : (
@@ -605,7 +605,7 @@ const ContainerList = () => {
                             {Array.isArray(container.ports) ? (
                               container.ports.map((port, i) => (
                                 <span key={i} className="badge badge-outline badge-xs">
-                                  {renderPort(port)}
+                                  {renderPort(port as any)}
                                 </span>
                               ))
                             ) : (
@@ -800,13 +800,13 @@ const ContainerList = () => {
                       <td>
                         {container.ports ? (
                           <div className="flex flex-wrap gap-1">
-                            {Array.isArray(container.ports) ? (
-                              container.ports.map((port, i) => (
-                                <span key={i} className="badge badge-outline badge-sm">
-                                  {renderPort(port)}
-                                </span>
-                              ))
-                            ) : (
+                                                    {Array.isArray(container.ports) ? (
+                          container.ports.map((port, i) => (
+                            <span key={i} className="badge badge-outline badge-sm">
+                              {renderPort(port as any)}
+                            </span>
+                          ))
+                        ) : (
                               <span className="badge badge-outline badge-sm">
                                 {container.ports}
                               </span>
@@ -863,7 +863,7 @@ const ContainerList = () => {
                         {Array.isArray(container.ports) ? (
                           container.ports.map((port, i) => (
                             <span key={i} className="badge badge-outline badge-xs">
-                              {renderPort(port)}
+                              {renderPort(port as any)}
                             </span>
                           ))
                         ) : (

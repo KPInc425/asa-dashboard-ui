@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getStartScript } from '../services/api';
+import { getStartScript } from '../services/api-provisioning';
 
 interface StartScriptViewerProps {
   serverName: string;

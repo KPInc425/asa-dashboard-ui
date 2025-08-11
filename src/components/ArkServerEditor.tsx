@@ -166,9 +166,9 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
 
     try {
       if (server) {
-        await environmentApi.updateArkServer(server.name, formData);
+        await environmentApi.updateArkServer(server.name, formData as unknown as Record<string, unknown>);
       } else {
-        await environmentApi.addArkServer(formData);
+        await environmentApi.addArkServer(formData as unknown as Record<string, unknown>);
       }
       onSave();
     } catch (err) {

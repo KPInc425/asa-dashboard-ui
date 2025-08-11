@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import Editor from '@monaco-editor/react';
-import { getArkConfigFile, updateArkConfigFile } from '../services/api';
+import { getArkConfigFile, updateArkConfigFile } from '../services/api-config';
 
 interface ErrorBoundaryProps {
   children: ReactNode;

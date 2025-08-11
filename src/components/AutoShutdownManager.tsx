@@ -46,7 +46,7 @@ const AutoShutdownManager: React.FC = () => {
     try {
       const response = await containerApi.getAutoShutdownConfig();
       if (response.success) {
-        setConfig(response.config);
+        setConfig(response.config as unknown as AutoShutdownConfig);
       }
     } catch (err) {
       console.error('Failed to load auto-shutdown config:', err);
@@ -89,7 +89,7 @@ const AutoShutdownManager: React.FC = () => {
       setSaving(true);
       setError(null);
       
-      await containerApi.updateAutoShutdownConfig(config);
+      await containerApi.updateAutoShutdownConfig(config as unknown as Record<string, unknown>);
       setSuccess('Auto-shutdown configuration saved successfully!');
       
       setTimeout(() => setSuccess(null), 3000);

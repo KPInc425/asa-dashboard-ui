@@ -46,7 +46,7 @@ const ServerBackupManager: React.FC<ServerBackupManagerProps> = ({ onClose, sele
       setLoading(true);
       const response = await apiService.provisioning.listServerBackups();
       if (response.success && response.data?.backups) {
-        setBackups(response.data.backups);
+        setBackups(response.data.backups as ServerBackup[]);
       }
     } catch (error: any) {
       console.error('Failed to load server backups:', error);

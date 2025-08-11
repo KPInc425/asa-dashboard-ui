@@ -339,7 +339,7 @@ const ServerDetails: React.FC = () => {
     try {
       const result = await provisioningApi.listServerBackups();
       if (result.success) {
-        const serverBackups = (result.data?.backups || []).filter((b: { serverName: string }) => b.serverName === serverName);
+        const serverBackups = (result.data?.backups as any[] || []).filter((b: any) => b.serverName === serverName);
         setServerBackups(serverBackups);
       } else {
         setServerBackupError(result.message || 'Failed to load backups');

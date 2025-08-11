@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { containerApi } from '../services/api';
+import { containerApi } from '../services/api-containers';
 
 interface SaveFile {
   name: string;
@@ -38,7 +38,10 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
       
       const response = await containerApi.getSaveFiles(serverName);
       if (response.success) {
-        setSaveFiles(response.files);
+        setSaveFiles(response.files.map(file => ({
+          ...file,
+          type: file.name.endsWith('.ark') ? 'ark' : file.name.endsWith('.ark.bak') ? 'backup' : 'other'
+        })));
       } else {
         setError('Failed to load save files');
       }
@@ -107,7 +110,7 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
       const response = await containerApi.downloadSaveFile(serverName, fileName);
       if (response.success) {
         // Create a download link
-        const blob = new Blob([response.data], { type: 'application/octet-stream' });
+        const blob = new Blob([response.data || new ArrayBuffer(0)], { type: 'application/octet-stream' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;

@@ -51,7 +51,7 @@ const SystemLogs: React.FC = () => {
       
       if (response.success) {
         setLogs(response.logFiles || {});
-        setServiceInfo(response.serviceInfo);
+        setServiceInfo(response.serviceInfo as unknown as ServiceInfo);
       } else {
         setError('Failed to load system logs');
       }

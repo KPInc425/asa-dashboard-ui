@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { socketService, type LogMessage } from '../services';
-import { logsApi, type LogFile } from '../services/api';
+import { logsApi } from '../services/api-logs';
+import type { LogFile } from '../services/api-core';
 
 interface ServerLogViewerProps {
   serverName?: string;
@@ -307,7 +308,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ serverName: propServe
         
         if (response.success) {
           alert(`Debug Info for ${serverName}:\n\n${response.logFiles.map(file => 
-            `${file.name}:\n  Path: ${file.path}\n  Size: ${file.size} bytes\n  Last Modified: ${file.lastModified || 'N/A'}\n  Created: ${file.created || 'N/A'}`
+            `${file.name}:\n  Path: ${file.path}\n  Size: ${file.size} bytes`
           ).join('\n\n')}`);
           return;
         }

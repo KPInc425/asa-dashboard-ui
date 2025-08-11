@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../services/api';
+import { provisioningApi } from '../services/api-provisioning';
 import { socketService, type JobProgress } from '../services/socket';
 import PasswordInput from './PasswordInput';
 import GlobalConfigManager from './GlobalConfigManager';
@@ -481,13 +481,13 @@ const ServerProvisioner: React.FC = () => {
     if (currentJobId) {
       const pollInterval = setInterval(async () => {
         try {
-          const response = await apiService.provisioning.getJobStatus(currentJobId);
+          const response = await provisioningApi.getJobStatus(currentJobId);
           if (response.success && response.job) {
             const job = response.job;
             console.log('Job status polled:', job);
             
             // Update job progress with the latest information
-            if (job.progress && job.progress.length > 0) {
+            if (job.progress && Array.isArray(job.progress) && job.progress.length > 0) {
               const latestProgress = job.progress[job.progress.length - 1];
               
               // Calculate progress based on the number of progress entries and job status
@@ -503,12 +503,12 @@ const ServerProvisioner: React.FC = () => {
                 progressPercent = Math.round((currentStep / totalSteps) * 100);
               }
               
-              const progressData = {
-                jobId: job.id,
-                status: job.status,
+              const progressData: JobProgress = {
+                jobId: job.id as string,
+                status: job.status as JobProgress['status'],
                 progress: progressPercent,
-                message: latestProgress.message,
-                error: job.error
+                message: latestProgress.message || '',
+                error: job.error as string | undefined
               };
               console.log('Main component: Setting jobProgress to:', progressData);
               setJobProgress(progressData);
@@ -548,10 +548,10 @@ const ServerProvisioner: React.FC = () => {
   const loadSystemInfo = async () => {
     try {
       console.log('Loading system info...');
-      const response = await apiService.provisioning.getSystemInfo();
+      const response = await provisioningApi.getSystemInfo();
       console.log('System info response:', response);
       if (response.success) {
-        setSystemInfo(response.status);
+        setSystemInfo(response.status as SystemInfo);
         setStatusMessage('✅ System status refreshed');
         setStatusType('success');
         
@@ -577,10 +577,10 @@ const ServerProvisioner: React.FC = () => {
   const loadClusters = async () => {
     try {
       console.log('Loading clusters...');
-      const response = await apiService.provisioning.listClusters();
+      const response = await provisioningApi.listClusters();
       console.log('Clusters response:', response);
       if (response.success) {
-        setClusters(response.clusters || []);
+        setClusters((response.clusters || []) as unknown as Cluster[]);
       } else {
         setClusters([]);
       }
@@ -595,7 +595,7 @@ const ServerProvisioner: React.FC = () => {
       setInstalling(true);
       setStatusMessage('Initializing system...');
       setStatusType('info');
-      const response = await apiService.provisioning.initialize();
+      const response = await provisioningApi.initialize();
       if (response.success) {
         // After initialization, refresh system info
         await loadSystemInfo();
@@ -619,7 +619,7 @@ const ServerProvisioner: React.FC = () => {
       setStatusMessage('Installing SteamCMD...');
       setStatusType('info');
       
-      const response = await apiService.provisioning.installSteamCmd();
+      const response = await provisioningApi.installSteamCmd();
       if (response.success) {
         setStatusMessage('✅ SteamCMD installed successfully! You can now create clusters.');
         setStatusType('success');
@@ -659,7 +659,7 @@ const ServerProvisioner: React.FC = () => {
       setLoading(true);
       setStatusMessage(`Deleting cluster "${clusterName}"...`);
       setStatusType('info');
-      const response = await apiService.provisioning.deleteCluster(clusterName, { 
+      const response = await provisioningApi.deleteCluster(clusterName, { 
         backupSaved: true, 
         deleteFiles: true 
       });
@@ -695,7 +695,7 @@ const ServerProvisioner: React.FC = () => {
       setStatusMessage(`Backing up cluster "${clusterName}"...`);
       setStatusType('info');
       
-      const response = await apiService.provisioning.backupCluster(clusterName);
+      const response = await provisioningApi.backupCluster(clusterName);
       if (response.success) {
         setStatusMessage(`✅ Cluster "${clusterName}" backed up successfully! Backup location: ${response.data?.backupPath || 'Unknown'}`);
         setStatusType('success');
@@ -713,11 +713,11 @@ const ServerProvisioner: React.FC = () => {
     setStatusMessage('Loading available backups...');
     setStatusType('info');
     try {
-      const response = await apiService.provisioning.getClusterBackups(clusterName);
+      const response = await provisioningApi.getClusterBackups(clusterName);
       if (response.success && response.backups.length > 0) {
         setRestoreModal({
           clusterName,
-          backups: response.backups.map(b => ({
+          backups: response.backups.map((b: { backupPath: string; backupName: string; created: string; size?: number }) => ({
             path: b.backupPath,
             name: b.backupName,
             backupDate: b.created,
@@ -743,7 +743,7 @@ const ServerProvisioner: React.FC = () => {
     try {
       setStatusMessage(`Restoring cluster "${restoreModal.clusterName}" from backup...`);
       setStatusType('info');
-      const response = await apiService.provisioning.restoreCluster(restoreModal.clusterName, { source: selectedBackup });
+      const response = await provisioningApi.restoreCluster(restoreModal.clusterName, { source: selectedBackup });
       if (response.success) {
         setStatusMessage(`✅ Cluster "${restoreModal.clusterName}" restored successfully!`);
         setStatusType('success');
@@ -885,7 +885,7 @@ const ServerProvisioner: React.FC = () => {
       };
       console.log('[createCluster] Sending payload:', payload);
 
-      const response = await apiService.provisioning.createCluster(payload);
+              const response = await provisioningApi.createCluster(payload);
       if (response.success) {
         setCurrentJobId(response.jobId || null);
         setStatusMessage('Cluster creation job started. Monitoring progress...');

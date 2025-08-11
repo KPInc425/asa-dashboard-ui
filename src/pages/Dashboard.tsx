@@ -117,7 +117,7 @@ const Dashboard: React.FC = () => {
       }
 
       if (clustersResponse.success) {
-        setClusters(clustersResponse.clusters);
+        setClusters(clustersResponse.clusters as Cluster[]);
       }
 
       if (nativeServersResponse.data.success) {
