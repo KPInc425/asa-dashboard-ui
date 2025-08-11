@@ -36,6 +36,7 @@ export interface RconResponse {
   success: boolean;
   message: string;
   response?: string;
+  cached?: boolean;
 }
 
 export interface ConfigFile {
@@ -1436,776 +1437,7 @@ services:
   }
 };
 
-// Provisioning API
-export const provisioningApi = {
-  /**
-   * Get system information for provisioning
-   */
-  getSystemInfo: async (): Promise<any> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-                  resolve({
-          success: true,
-          systemInfo: {
-            diskSpace: { total: 1000000000000, free: 500000000000, used: 500000000000, usagePercent: 50, drive: 'G' },
-            memory: { total: 16000000000, free: 8000000000, used: 8000000000 },
-            steamCmdInstalled: true,
-            steamCmdPath: 'C:\\SteamCMD\\steamcmd.exe',
-            asaBinariesInstalled: true,
-            basePath: 'G:\\ARK'
-          }
-        });
-        }, 500);
-      });
-    }
 
-    const response = await api.get('/api/provisioning/system-info');
-    const data = response.data;
-    
-    // Transform the response to match expected structure
-    if (data.success && data.status) {
-      return {
-        success: true,
-        status: {
-          diskSpace: { 
-            total: data.status.diskSpace?.total || 0,
-            free: data.status.diskSpace?.free || 0,
-            used: data.status.diskSpace?.used || 0,
-            usagePercent: data.status.diskSpace?.usagePercent || 0,
-            drive: data.status.diskSpace?.drive
-          },
-          memory: { 
-            total: data.status.memory?.total || 0,
-            free: data.status.memory?.free || 0,
-            used: data.status.memory?.used || 0,
-            usagePercent: data.status.memory?.usagePercent || 0
-          },
-          steamCmdInstalled: data.status.steamCmdInstalled || false,
-          steamCmdPath: data.status.steamCmdPath,
-          asaBinariesInstalled: data.status.asaBinariesInstalled || false,
-          basePath: data.status.basePath || 'C:\\ARK',
-          platform: data.status.platform,
-          arch: data.status.arch,
-          nodeVersion: data.status.nodeVersion,
-          cpuCores: data.status.cpuCores
-        }
-      };
-    }
-    return data;
-  },
-
-  /**
-   * Get system requirements (alias for getSystemInfo)
-   */
-  getRequirements: async (): Promise<any> => {
-    return provisioningApi.getSystemInfo();
-  },
-
-  /**
-   * Initialize provisioning system
-   */
-  initialize: async (): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'System initialized successfully (mock)'
-          });
-        }, 2000);
-      });
-    }
-
-    const response = await api.post('/api/provisioning/initialize');
-    return response.data;
-  },
-
-  /**
-   * Install SteamCMD
-   */
-  installSteamCmd: async (foreground: boolean = false): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'SteamCMD installed successfully (mock)'
-          });
-        }, 3000);
-      });
-    }
-
-    const response = await api.post('/api/provisioning/install-steamcmd', { foreground });
-    return response.data;
-  },
-
-  /**
-   * Find existing SteamCMD
-   */
-  findSteamCmd: async (): Promise<{ success: boolean; steamCmdPath?: string; found: boolean }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            steamCmdPath: 'C:\\SteamCMD\\steamcmd.exe',
-            found: true
-          });
-        }, 1000);
-      });
-    }
-
-    const response = await api.post('/api/provisioning/find-steamcmd');
-    return response.data;
-  },
-
-  /**
-   * Configure SteamCMD
-   */
-  configureSteamCmd: async (config: { customPath?: string; autoInstall?: boolean }): Promise<{ success: boolean; message: string; steamCmdPath: string; autoInstall: boolean }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'SteamCMD configured successfully (mock)',
-            steamCmdPath: config.customPath || 'C:\\SteamCMD\\steamcmd.exe',
-            autoInstall: config.autoInstall || false
-          });
-        }, 1000);
-      });
-    }
-
-    const response = await api.post('/api/provisioning/configure-steamcmd', config);
-    return response.data;
-  },
-
-  /**
-   * Install ASA binaries
-   */
-  installASABinaries: async (foreground: boolean = false): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'ASA binaries installed successfully (mock)'
-          });
-        }, 5000);
-      });
-    }
-
-    const response = await api.post('/api/provisioning/install-asa-binaries', { foreground });
-    return response.data;
-  },
-
-  /**
-   * Get shared mods configuration
-   */
-  getSharedMods: async (): Promise<{ success: boolean; sharedMods: number[] }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            sharedMods: [928102085, 1404697612]
-          });
-        }, 500);
-      });
-    }
-
-    const response = await api.get('/api/provisioning/shared-mods');
-    return response.data;
-  },
-
-  /**
-   * Update shared mods configuration
-   */
-  updateSharedMods: async (modList: number[]): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'Shared mods updated successfully (mock)'
-          });
-        }, 1000);
-      });
-    }
-
-    const response = await api.put('/api/provisioning/shared-mods', { modList });
-    return response.data;
-  },
-
-  /**
-   * Get server-specific mods configuration
-   */
-  getServerMods: async (serverName: string): Promise<{ success: boolean; serverConfig: { additionalMods: number[]; excludeSharedMods: boolean } }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            serverConfig: {
-              additionalMods: [1609138312, 215527665],
-              excludeSharedMods: false
-            }
-          });
-        }, 500);
-      });
-    }
-
-    const response = await api.get(`/api/provisioning/server-mods/${serverName}`);
-    return response.data;
-  },
-
-  /**
-   * Update server-specific mods configuration
-   */
-  updateServerMods: async (serverName: string, config: { additionalMods: number[]; excludeSharedMods: boolean }): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: `Server mods for ${serverName} updated successfully (mock)`
-          });
-        }, 1000);
-      });
-    }
-
-    const response = await api.put(`/api/provisioning/server-mods/${serverName}`, config);
-    return response.data;
-  },
-
-  /**
-   * Get global config files
-   */
-  getGlobalConfigs: async (): Promise<{ success: boolean; gameIni: string; gameUserSettingsIni: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            gameIni: '[ServerSettings]\nMaxPlayers=70\n\n[GameRules]\nAllowCaveBuildingPvE=true',
-            gameUserSettingsIni: '[/script/shootergame.shootergamemode]\nMatingIntervalMultiplier=1.0\nEggHatchSpeedMultiplier=1.0'
-          });
-        }, 500);
-      });
-    }
-
-    const response = await api.get('/api/provisioning/global-configs');
-    return response.data;
-  },
-
-  /**
-   * Update global config files
-   */
-  updateGlobalConfigs: async (configs: { gameIni?: string; gameUserSettingsIni?: string }): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'Global configs updated successfully (mock)'
-          });
-        }, 1000);
-      });
-    }
-
-    const response = await api.put('/api/provisioning/global-configs', configs);
-    return response.data;
-  },
-
-  /**
-   * Get config exclusions
-   */
-  getConfigExclusions: async (): Promise<{ success: boolean; excludedServers: string[] }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            excludedServers: ['Club ARK Server', 'Test Server']
-          });
-        }, 500);
-      });
-    }
-
-    const response = await api.get('/api/provisioning/config-exclusions');
-    return response.data;
-  },
-
-  /**
-   * Update config exclusions
-   */
-  updateConfigExclusions: async (excludedServers: string[]): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'Config exclusions updated successfully (mock)'
-          });
-        }, 1000);
-      });
-    }
-
-    const response = await api.put('/api/provisioning/config-exclusions', { excludedServers });
-    return response.data;
-  },
-
-  /**
-   * Get mods overview
-   */
-  getModsOverview: async (): Promise<{ success: boolean; overview: { sharedMods: number[]; serverMods: Record<string, any>; totalServers: number } }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            overview: {
-              sharedMods: [928102085, 1404697612, 1565015734],
-              serverMods: {
-                'MyServer1': { additionalMods: [1609138312], excludeSharedMods: false },
-                'MyServer2': { additionalMods: [215527665], excludeSharedMods: true }
-              },
-              totalServers: 2
-            }
-          });
-        }, 500);
-      });
-    }
-
-    const response = await api.get('/api/provisioning/mods-overview');
-    return response.data;
-  },
-
-  /**
-   * Get system logs
-   */
-  getSystemLogs: async (type: string = 'all', lines: number = 100): Promise<{ 
-    success: boolean; 
-    logFiles: any; 
-    serviceInfo: any;
-    type: string; 
-    lines: number;
-    totalLogFiles: number;
-  }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            logFiles: {
-              combined: {
-                content: 'Log file: combined.log\nPath: /logs/combined.log\nSize: 45.23 KB\nModified: 2024-01-15T10:30:00.000Z\nLines: 1000 total, showing last 100\n────────────────────────────────────────────────────────────────────────────────\n[INFO] Server started\n[INFO] Request received',
-                path: '/logs/combined.log',
-                exists: true
-              },
-              error: {
-                content: 'Log file: error.log\nPath: /logs/error.log\nSize: 2.15 KB\nModified: 2024-01-15T10:30:00.000Z\nLines: 50 total, showing last 100\n────────────────────────────────────────────────────────────────────────────────\n[ERROR] Connection failed\n[ERROR] Invalid request',
-                path: '/logs/error.log',
-                exists: true
-              }
-            },
-            serviceInfo: {
-              mode: 'native',
-              isWindowsService: false,
-              serviceInstallPath: null,
-              logBasePath: '/app',
-              currentWorkingDirectory: '/app',
-              processId: 1234,
-              parentProcessId: 1
-            },
-            type,
-            lines,
-            totalLogFiles: 2
-          });
-        }, 500);
-      });
-    }
-
-    const response = await api.get(`/api/provisioning/system-logs?type=${type}&lines=${lines}`);
-    return response.data;
-  },
-
-  /**
-   * List clusters
-   */
-  listClusters: async (): Promise<{ success: boolean; clusters: any[] }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            clusters: [
-              {
-                name: 'TestCluster',
-                description: 'A test cluster',
-                basePort: 7777,
-                serverCount: 2,
-                created: new Date().toISOString(),
-                servers: [
-                  { name: 'TestCluster-Server1', gamePort: 7777 },
-                  { name: 'TestCluster-Server2', gamePort: 7778 }
-                ]
-              }
-            ]
-          });
-        }, 500);
-      });
-    }
-
-    console.log('Making API call to /api/provisioning/clusters');
-    const response = await api.get('/api/provisioning/clusters');
-    console.log('API response:', response);
-    console.log('API response.data:', response.data);
-    console.log('API response.data.clusters:', response.data.clusters);
-    console.log('API response.data.clusters[0]:', response.data.clusters?.[0]);
-    return response.data;
-  },
-
-  /**
-   * Get cluster details
-   */
-  getClusterDetails: async (clusterName: string): Promise<{ success: boolean; cluster: any }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            cluster: {
-              name: clusterName,
-              description: 'A test cluster',
-              basePort: 7777,
-              serverCount: 2,
-              created: new Date().toISOString(),
-              servers: [
-                { name: `${clusterName}-Server1`, gamePort: 7777, status: 'running' },
-                { name: `${clusterName}-Server2`, gamePort: 7778, status: 'stopped' }
-              ]
-            }
-          });
-        }, 500);
-      });
-    }
-
-    console.log(`Making API call to /api/provisioning/clusters/${clusterName}`);
-    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}`);
-    console.log('API response:', response);
-    return response.data;
-  },
-
-  /**
-   * Start cluster
-   */
-  startCluster: async (clusterName: string): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: `Cluster ${clusterName} started successfully (mock)`
-          });
-        }, 2000);
-      });
-    }
-
-    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/start`);
-    return response.data;
-  },
-
-  /**
-   * Stop cluster
-   */
-  stopCluster: async (clusterName: string): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: `Cluster ${clusterName} stopped successfully (mock)`
-          });
-        }, 2000);
-      });
-    }
-
-    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/stop`);
-    return response.data;
-  },
-
-  /**
-   * Restart cluster
-   */
-  restartCluster: async (clusterName: string): Promise<{ success: boolean; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: `Cluster ${clusterName} restarted successfully (mock)`
-          });
-        }, 3000);
-      });
-    }
-
-    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/restart`);
-    return response.data;
-  },
-
-  /**
-   * Create cluster
-   */
-  createCluster: async (clusterConfig: any): Promise<{ success: boolean; cluster?: any; message: string; jobId?: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            cluster: clusterConfig,
-            message: 'Cluster created successfully (mock)',
-            jobId: 'mock-job-id'
-          });
-        }, 1000);
-      });
-    }
-
-    const response = await api.post('/api/provisioning/clusters', clusterConfig);
-    return response.data;
-  },
-
-  /**
-   * Get job status
-   */
-  getJobStatus: async (jobId: string): Promise<{ success: boolean; job?: any; message: string }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            job: {
-              id: jobId,
-              status: 'completed',
-              progress: 100,
-              message: 'Job completed successfully (mock)'
-            },
-            message: 'Job status retrieved successfully (mock)'
-          });
-        }, 500);
-      });
-    }
-
-    const response = await api.get(`/api/provisioning/jobs/${jobId}`);
-    return response.data;
-  },
-
-  /**
-   * Delete cluster
-   */
-  deleteCluster: async (name: string, options?: { backupSaved?: boolean; deleteFiles?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: `Cluster ${name} deleted successfully (mock)`,
-            data: { backupPath: '/mock/backup/path' }
-          });
-        }, 1000);
-      });
-    }
-
-    const params = new URLSearchParams();
-    if (options?.backupSaved !== undefined) params.append('backupSaved', options.backupSaved.toString());
-    if (options?.deleteFiles !== undefined) params.append('deleteFiles', options.deleteFiles.toString());
-    
-    const url = `/api/provisioning/clusters/${encodeURIComponent(name)}${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await api.delete(url);
-    return response.data;
-  },
-
-  /**
-   * Backup cluster
-   */
-  backupCluster: async (clusterName: string, options?: { destination?: string; saves?: boolean; configs?: boolean; logs?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
-    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/backup`, options || {});
-    return response.data;
-  },
-
-  /**
-   * Restore cluster
-   */
-  restoreCluster: async (clusterName: string, options?: { source?: string; saves?: boolean; configs?: boolean; logs?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
-    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/restore`, options || {});
-    return response.data;
-  },
-
-  /**
-   * Backup individual server
-   */
-  backupServer: async (name: string, options?: { destination?: string; includeConfigs?: boolean; includeScripts?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: `Server ${name} backed up successfully (mock)`,
-            data: { backupPath: '/mock/server/backup/path' }
-          });
-        }, 2000);
-      });
-    }
-
-    const response = await api.post(`/api/provisioning/servers/${encodeURIComponent(name)}/backup`, options || {});
-    return response.data;
-  },
-
-  /**
-   * Restore individual server
-   */
-  restoreServer: async (name: string, source: string, options?: { targetClusterName?: string; overwrite?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: `Server ${name} restored successfully (mock)`,
-            data: { sourcePath: source, targetCluster: options?.targetClusterName || 'original' }
-          });
-        }, 3000);
-      });
-    }
-
-    const response = await api.post(`/api/provisioning/servers/${encodeURIComponent(name)}/restore`, {
-      source,
-      ...options
-    });
-    return response.data;
-  },
-
-  /**
-   * List server backups
-   */
-  listServerBackups: async (): Promise<{ success: boolean; message: string; data?: any }> => {
-    if (FRONTEND_ONLY_MODE) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            message: 'Server backups retrieved successfully (mock)',
-            data: {
-              backups: [
-                {
-                  name: 'TestServer-2024-01-15T10-30-45-123Z',
-                  path: '/mock/backup/path',
-                  serverName: 'TestServer',
-                  originalCluster: 'TestCluster',
-                  backupDate: new Date().toISOString(),
-                  size: 1024000,
-                  sizeFormatted: '1.0 MB'
-                }
-              ],
-              count: 1
-            }
-          });
-        }, 500);
-      });
-    }
-
-    const response = await api.get('/api/provisioning/server-backups');
-    return response.data;
-  },
-
-  /**
-   * Get cluster backups
-   */
-  getClusterBackups: async (clusterName: string): Promise<{ success: boolean; backups: ClusterBackup[]; count: number; message?: string }> => {
-    const response = await api.get<{ success: boolean; data: ClusterBackup[]; message?: string }>(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}`);
-    if (!response.data.success) {
-      throw new ApiError('Failed to get cluster backups', 500, response.data);
-    }
-    return { success: true, backups: response.data.data, count: response.data.data?.length || 0, message: response.data.message };
-  },
-
-  /**
-   * Export cluster config (download as JSON)
-   */
-  exportClusterConfig: async (clusterName: string): Promise<Blob> => {
-    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/export`, { responseType: 'blob' });
-    return response.data;
-  },
-
-  /**
-   * Import cluster config (upload JSON)
-   */
-  importClusterConfig: async (file: File): Promise<{ success: boolean; message?: string }> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await api.post('/api/provisioning/clusters/import', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
-  },
-
-  /**
-   * Download cluster backup (as ZIP)
-   */
-  downloadClusterBackup: async (clusterName: string, backupName: string): Promise<Blob> => {
-    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/download-backup?backup=${encodeURIComponent(backupName)}`, { responseType: 'blob' });
-    return response.data;
-  },
-
-  /**
-   * Download server backup (as ZIP)
-   */
-  downloadServerBackup: async (serverName: string, backupName: string): Promise<Blob> => {
-    const response = await api.get(`/api/provisioning/servers/${encodeURIComponent(serverName)}/download-backup?backup=${encodeURIComponent(backupName)}`, { responseType: 'blob' });
-    return response.data;
-  },
-
-  /**
-   * Delete server backup
-   */
-  deleteServerBackup: async (serverName: string, backupName: string): Promise<{ success: boolean; message: string }> => {
-    const response = await api.delete(`/api/provisioning/servers/${encodeURIComponent(serverName)}/backups/${encodeURIComponent(backupName)}`);
-    return response.data;
-  },
-
-  /**
-   * Restore cluster backup (alias for restoreCluster)
-   */
-  restoreClusterBackup: async (file: File, clusterName: string): Promise<{ success: boolean; message?: string }> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('clusterName', clusterName);
-    const response = await api.post(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}/restore`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
-  },
-
-  /**
-   * Restore server backup (alias for restoreServer)
-   */
-  restoreServerBackup: async (file: File, serverName: string): Promise<{ success: boolean; message?: string }> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('serverName', serverName);
-    const response = await api.post(`/api/provisioning/server-backups/${encodeURIComponent(serverName)}/restore`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
-  },
-
-  /**
-   * List cluster backups (alias for getClusterBackups)
-   */
-  listClusterBackups: async (clusterName: string) => {
-    return provisioningApi.getClusterBackups(clusterName);
-  },
-};
 
 // Provisioning API
 export const initializeSystem = async (): Promise<{ success: boolean; message: string }> => {
@@ -2492,6 +1724,331 @@ export const getStartScript = async (serverName: string): Promise<{
 // Provisioning API object for system logs and other provisioning functions
 export const provisioningApi = {
   /**
+   * Get system information for provisioning
+   */
+  getSystemInfo: async (): Promise<any> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            systemInfo: {
+              diskSpace: { total: 1000000000000, free: 500000000000, used: 500000000000, usagePercent: 50, drive: 'G' },
+              memory: { total: 16000000000, free: 8000000000, used: 8000000000 },
+              steamCmdInstalled: true,
+              steamCmdPath: 'C:\\SteamCMD\\steamcmd.exe',
+              asaBinariesInstalled: true,
+              basePath: 'G:\\ARK'
+            }
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/system-info');
+    const data = response.data;
+    
+    // Transform the response to match expected structure
+    if (data.success && data.status) {
+      return {
+        success: true,
+        status: {
+          diskSpace: { 
+            total: data.status.diskSpace?.total || 0,
+            free: data.status.diskSpace?.free || 0,
+            used: data.status.diskSpace?.used || 0,
+            usagePercent: data.status.diskSpace?.usagePercent || 0,
+            drive: data.status.diskSpace?.drive
+          },
+          memory: { 
+            total: data.status.memory?.total || 0,
+            free: data.status.memory?.free || 0,
+            used: data.status.memory?.used || 0,
+            usagePercent: data.status.memory?.usagePercent || 0
+          },
+          steamCmdInstalled: data.status.steamCmdInstalled || false,
+          steamCmdPath: data.status.steamCmdPath,
+          asaBinariesInstalled: data.status.asaBinariesInstalled || false,
+          basePath: data.status.basePath || 'C:\\ARK',
+          platform: data.status.platform,
+          arch: data.status.arch,
+          nodeVersion: data.status.nodeVersion,
+          cpuCores: data.status.cpuCores
+        }
+      };
+    }
+    return data;
+  },
+
+  /**
+   * Get system requirements (alias for getSystemInfo)
+   */
+  getRequirements: async (): Promise<any> => {
+    return provisioningApi.getSystemInfo();
+  },
+
+  /**
+   * Initialize provisioning system
+   */
+  initialize: async (): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'System initialized successfully (mock)'
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/initialize');
+    return response.data;
+  },
+
+  /**
+   * Find existing SteamCMD
+   */
+  findSteamCmd: async (): Promise<{ success: boolean; steamCmdPath?: string; found: boolean }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            steamCmdPath: 'C:\\SteamCMD\\steamcmd.exe',
+            found: true
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/find-steamcmd');
+    return response.data;
+  },
+
+  /**
+   * Configure SteamCMD
+   */
+  configureSteamCmd: async (config: { customPath?: string; autoInstall?: boolean }): Promise<{ success: boolean; message: string; steamCmdPath: string; autoInstall: boolean }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'SteamCMD configured successfully (mock)',
+            steamCmdPath: config.customPath || 'C:\\SteamCMD\\steamcmd.exe',
+            autoInstall: config.autoInstall || false
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/configure-steamcmd', config);
+    return response.data;
+  },
+
+  /**
+   * Install ASA binaries
+   */
+  installASABinaries: async (foreground: boolean = false): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'ASA binaries installed successfully (mock)'
+          });
+        }, 5000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/install-asa-binaries', { foreground });
+    return response.data;
+  },
+
+  /**
+   * Get shared mods configuration
+   */
+  getSharedMods: async (): Promise<{ success: boolean; sharedMods: number[] }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            sharedMods: [928102085, 1404697612]
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/shared-mods');
+    return response.data;
+  },
+
+  /**
+   * Update shared mods configuration
+   */
+  updateSharedMods: async (modList: number[]): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Shared mods updated successfully (mock)'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put('/api/provisioning/shared-mods', { modList });
+    return response.data;
+  },
+
+  /**
+   * Get server-specific mods configuration
+   */
+  getServerMods: async (serverName: string): Promise<{ success: boolean; serverConfig: { additionalMods: number[]; excludeSharedMods: boolean } }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            serverConfig: {
+              additionalMods: [1609138312, 215527665],
+              excludeSharedMods: false
+            }
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get(`/api/provisioning/server-mods/${serverName}`);
+    return response.data;
+  },
+
+  /**
+   * Update server-specific mods configuration
+   */
+  updateServerMods: async (serverName: string, config: { additionalMods: number[]; excludeSharedMods: boolean }): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Server mods for ${serverName} updated successfully (mock)`
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put(`/api/provisioning/server-mods/${serverName}`, config);
+    return response.data;
+  },
+
+  /**
+   * Get global config files
+   */
+  getGlobalConfigs: async (): Promise<{ success: boolean; gameIni: string; gameUserSettingsIni: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            gameIni: '[ServerSettings]\nMaxPlayers=70\n\n[GameRules]\nAllowCaveBuildingPvE=true',
+            gameUserSettingsIni: '[/script/shootergame.shootergamemode]\nMatingIntervalMultiplier=1.0\nEggHatchSpeedMultiplier=1.0'
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/global-configs');
+    return response.data;
+  },
+
+  /**
+   * Update global config files
+   */
+  updateGlobalConfigs: async (configs: { gameIni?: string; gameUserSettingsIni?: string }): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Global configs updated successfully (mock)'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put('/api/provisioning/global-configs', configs);
+    return response.data;
+  },
+
+  /**
+   * Get config exclusions
+   */
+  getConfigExclusions: async (): Promise<{ success: boolean; excludedServers: string[] }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            excludedServers: ['Club ARK Server', 'Test Server']
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/config-exclusions');
+    return response.data;
+  },
+
+  /**
+   * Update config exclusions
+   */
+  updateConfigExclusions: async (excludedServers: string[]): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: 'Config exclusions updated successfully (mock)'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.put('/api/provisioning/config-exclusions', { excludedServers });
+    return response.data;
+  },
+
+  /**
+   * Get mods overview
+   */
+  getModsOverview: async (): Promise<{ success: boolean; overview: { sharedMods: number[]; serverMods: Record<string, any>; totalServers: number } }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            overview: {
+              sharedMods: [928102085, 1404697612, 1565015734],
+              serverMods: {
+                'MyServer1': { additionalMods: [1609138312], excludeSharedMods: false },
+                'MyServer2': { additionalMods: [215527665], excludeSharedMods: true }
+              },
+              totalServers: 2
+            }
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get('/api/provisioning/mods-overview');
+    return response.data;
+  },
+
+  /**
    * Get system logs
    */
   getSystemLogs: async (type: string = 'all', lines: number = 100): Promise<{
@@ -2506,15 +2063,15 @@ export const provisioningApi = {
     if (FRONTEND_ONLY_MODE) {
       return {
         success: true,
-        serviceInfo: {
-          mode: 'native',
-          isWindowsService: false,
-          serviceInstallPath: null,
-          logBasePath: process.cwd(),
-          currentWorkingDirectory: process.cwd(),
-          processId: 12345,
-          parentProcessId: 1234
-        },
+                  serviceInfo: {
+            mode: 'native',
+            isWindowsService: false,
+            serviceInstallPath: null,
+            logBasePath: '/app',
+            currentWorkingDirectory: '/app',
+            processId: 12345,
+            parentProcessId: 1234
+          },
         logFiles: {
           combined: {
             content: `[${new Date().toISOString()}] INFO: Frontend-only mode - no real logs available\n[${new Date().toISOString()}] INFO: This is a mock log file for testing\n[${new Date().toISOString()}] WARN: System logs endpoint not available in frontend-only mode`,
@@ -2551,39 +2108,304 @@ export const provisioningApi = {
     return response.data;
   },
 
+
+
   /**
-   * Get system info
+   * List clusters
    */
-  getSystemInfo: async (): Promise<{
-    success: boolean;
-    status?: any;
-    message?: string;
-  }> => {
+  listClusters: async (): Promise<{ success: boolean; clusters: any[] }> => {
     if (FRONTEND_ONLY_MODE) {
-      return {
-        success: true,
-        status: {
-          systemInfo: {
-            platform: 'win32',
-            arch: 'x64',
-            nodeVersion: '18.0.0',
-            memory: { total: 16000000000, free: 8000000000 },
-            disk: { total: 1000000000000, free: 500000000000 }
-          },
-          serviceInfo: {
-            mode: 'native',
-            isWindowsService: false,
-            serviceInstallPath: null,
-            logBasePath: process.cwd(),
-            currentWorkingDirectory: process.cwd(),
-            processId: 12345,
-            parentProcessId: 1234
-          }
-        }
-      };
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            clusters: [
+              {
+                name: 'TestCluster',
+                description: 'A test cluster',
+                basePort: 7777,
+                serverCount: 2,
+                created: new Date().toISOString(),
+                servers: [
+                  { name: 'TestCluster-Server1', gamePort: 7777 },
+                  { name: 'TestCluster-Server2', gamePort: 7778 }
+                ]
+              }
+            ]
+          });
+        }, 500);
+      });
     }
+
+    console.log('Making API call to /api/provisioning/clusters');
+    const response = await api.get('/api/provisioning/clusters');
+    console.log('API response:', response);
+    console.log('API response.data:', response.data);
+    console.log('API response.data.clusters:', response.data.clusters);
+    console.log('API response.data.clusters[0]:', response.data.clusters?.[0]);
+    return response.data;
+  },
+
+  /**
+   * Get cluster details
+   */
+  getClusterDetails: async (clusterName: string): Promise<{ success: boolean; cluster: any }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            cluster: {
+              name: clusterName,
+              description: 'A test cluster',
+              basePort: 7777,
+              serverCount: 2,
+              created: new Date().toISOString(),
+              servers: [
+                { name: `${clusterName}-Server1`, gamePort: 7777, status: 'running' },
+                { name: `${clusterName}-Server2`, gamePort: 7778, status: 'stopped' }
+              ]
+            }
+          });
+        }, 500);
+      });
+    }
+
+    console.log(`Making API call to /api/provisioning/clusters/${clusterName}`);
+    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}`);
+    console.log('API response:', response);
+    return response.data;
+  },
+
+  /**
+   * Start cluster
+   */
+  startCluster: async (clusterName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${clusterName} started successfully (mock)`
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/start`);
+    return response.data;
+  },
+
+  /**
+   * Stop cluster
+   */
+  stopCluster: async (clusterName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${clusterName} stopped successfully (mock)`
+          });
+        }, 2000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/stop`);
+    return response.data;
+  },
+
+  /**
+   * Restart cluster
+   */
+  restartCluster: async (clusterName: string): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${clusterName} restarted successfully (mock)`
+          });
+        }, 3000);
+      });
+    }
+
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/restart`);
+    return response.data;
+  },
+
+  /**
+   * Create cluster
+   */
+  createCluster: async (clusterConfig: any): Promise<{ success: boolean; cluster?: any; message: string; jobId?: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            cluster: clusterConfig,
+            message: 'Cluster created successfully (mock)',
+            jobId: 'mock-job-id'
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.post('/api/provisioning/clusters', clusterConfig);
+    return response.data;
+  },
+
+  /**
+   * Get job status
+   */
+  getJobStatus: async (jobId: string): Promise<{ success: boolean; job?: any; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            job: {
+              id: jobId,
+              status: 'completed',
+              progress: 100,
+              message: 'Job completed successfully (mock)'
+            },
+            message: 'Job status retrieved successfully (mock)'
+          });
+        }, 500);
+      });
+    }
+
+    const response = await api.get(`/api/provisioning/jobs/${jobId}`);
+    return response.data;
+  },
+
+  /**
+   * Delete cluster
+   */
+  deleteCluster: async (name: string, options?: { backupSaved?: boolean; deleteFiles?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Cluster ${name} deleted successfully (mock)`,
+            data: { backupPath: '/mock/backup/path' }
+          });
+        }, 1000);
+      });
+    }
+
+    const params = new URLSearchParams();
+    if (options?.backupSaved !== undefined) params.append('backupSaved', options.backupSaved.toString());
+    if (options?.deleteFiles !== undefined) params.append('deleteFiles', options.deleteFiles.toString());
     
-    const response = await api.get('/api/provisioning/system-info');
+    const url = `/api/provisioning/clusters/${encodeURIComponent(name)}${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await api.delete(url);
+    return response.data;
+  },
+
+  /**
+   * Export cluster config (download as JSON)
+   */
+  exportClusterConfig: async (clusterName: string): Promise<Blob> => {
+    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/export`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  /**
+   * Import cluster config (upload JSON)
+   */
+  importClusterConfig: async (file: File): Promise<{ success: boolean; message?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/provisioning/clusters/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  /**
+   * Download cluster backup (as ZIP)
+   */
+  downloadClusterBackup: async (clusterName: string, backupName: string): Promise<Blob> => {
+    const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/download-backup?backup=${encodeURIComponent(backupName)}`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  /**
+   * Download server backup (as ZIP)
+   */
+  downloadServerBackup: async (serverName: string, backupName: string): Promise<Blob> => {
+    const response = await api.get(`/api/provisioning/servers/${encodeURIComponent(serverName)}/download-backup?backup=${encodeURIComponent(backupName)}`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  /**
+   * Delete server backup
+   */
+  deleteServerBackup: async (serverName: string, backupName: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete(`/api/provisioning/servers/${encodeURIComponent(serverName)}/backups/${encodeURIComponent(backupName)}`);
+    return response.data;
+  },
+
+  /**
+   * Restore cluster backup (alias for restoreCluster)
+   */
+  restoreClusterBackup: async (file: File, clusterName: string): Promise<{ success: boolean; message?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('clusterName', clusterName);
+    const response = await api.post(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}/restore`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  /**
+   * Restore server backup (alias for restoreServer)
+   */
+  restoreServerBackup: async (file: File, serverName: string): Promise<{ success: boolean; message?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('serverName', serverName);
+    const response = await api.post(`/api/provisioning/server-backups/${encodeURIComponent(serverName)}/restore`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  /**
+   * Get cluster backups
+   */
+  getClusterBackups: async (clusterName: string): Promise<{ success: boolean; backups: ClusterBackup[]; count: number; message?: string }> => {
+    const response = await api.get<{ success: boolean; data: ClusterBackup[]; message?: string }>(`/api/provisioning/cluster-backups/${encodeURIComponent(clusterName)}`);
+    if (!response.data.success) {
+      throw new ApiError('Failed to get cluster backups', 500, response.data);
+    }
+    return { success: true, backups: response.data.data, count: response.data.data?.length || 0, message: response.data.message };
+  },
+
+  /**
+   * List cluster backups (alias for getClusterBackups)
+   */
+  listClusterBackups: async (clusterName: string) => {
+    return provisioningApi.getClusterBackups(clusterName);
+  },
+
+  /**
+   * Backup cluster with options
+   */
+  backupCluster: async (clusterName: string, options?: { destination?: string; saves?: boolean; configs?: boolean; logs?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/backup`, options || {});
+    return response.data;
+  },
+
+  /**
+   * Restore cluster with options
+   */
+  restoreCluster: async (clusterName: string, options?: { source?: string; saves?: boolean; configs?: boolean; logs?: boolean }): Promise<{ success: boolean; message: string; data?: any }> => {
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/restore`, options || {});
     return response.data;
   },
 
@@ -2591,13 +2413,9 @@ export const provisioningApi = {
   initializeSystem,
   installSteamCmd,
   createServer,
-  createCluster,
   getServers,
   getClusters,
   deleteServer,
-  deleteCluster,
-  backupCluster,
-  restoreCluster,
   backupServer,
   restoreServer,
   listServerBackups,
