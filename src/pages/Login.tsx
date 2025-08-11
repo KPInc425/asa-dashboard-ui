@@ -6,6 +6,7 @@ import PasswordInput from '../components/PasswordInput';
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
@@ -17,7 +18,7 @@ const Login = () => {
     setError('');
 
     try {
-      await login(username, password);
+      await login(username, password, rememberMe);
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -76,6 +77,18 @@ const Login = () => {
                 className="hover:scale-105 transition-transform duration-200"
                 required
               />
+            </div>
+
+            <div className="form-control">
+              <label className="label cursor-pointer justify-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="checkbox checkbox-primary checkbox-sm"
+                />
+                <span className="label-text">Remember me for 30 days</span>
+              </label>
             </div>
 
             <button

@@ -901,7 +901,7 @@ export const authApi = {
   /**
    * Login with username and password
    */
-  login: async (username: string, password: string): Promise<AuthResponse> => {
+  login: async (username: string, password: string, rememberMe: boolean = false): Promise<AuthResponse> => {
     if (FRONTEND_ONLY_MODE) {
       // Frontend-only authentication
       if (username === 'admin' && password === 'admin123') {
@@ -917,9 +917,10 @@ export const authApi = {
       }
     } else {
       // Real backend authentication
-      const response = await api.post<{ success: boolean; token: string; user: any }>('/api/auth/login', {
+      const response = await api.post<{ success: boolean; token: string; user: any; rememberMe: boolean }>('/api/auth/login', {
         username,
         password,
+        rememberMe,
       });
       
       // Handle backend response format

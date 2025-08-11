@@ -50,14 +50,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, rememberMe: boolean = false) => {
     try {
-      const response = await authApi.login(username, password);
+      const response = await authApi.login(username, password, rememberMe);
       setUser(response.user);
       
-              // Check if this is the default admin user that needs first-time setup
-        const isDefaultAdmin = response.user?.username === 'admin' && 
-                              (response.user?.profile?.firstName === 'Admin' || !response.user?.profile?.firstName);
+      // Check if this is the default admin user that needs first-time setup
+      const isDefaultAdmin = response.user?.username === 'admin' && 
+                            (response.user?.profile?.firstName === 'Admin' || !response.user?.profile?.firstName);
       setNeedsFirstTimeSetup(isDefaultAdmin);
     } catch (error) {
       throw error;

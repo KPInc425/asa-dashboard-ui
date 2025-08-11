@@ -101,11 +101,33 @@ const RconConsole = () => {
     }
   }, [history, containerName]);
 
+  // Enhanced auto-scroll functionality
   useEffect(() => {
+    const scrollToBottom = (element: HTMLElement) => {
+      // Use requestAnimationFrame for smooth scrolling
+      requestAnimationFrame(() => {
+        element.scrollTop = element.scrollHeight;
+      });
+    };
+
     if (consoleRef.current) {
-      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+      scrollToBottom(consoleRef.current);
     }
   }, [history]);
+
+  // Additional scroll trigger for new messages
+  useEffect(() => {
+    const scrollToBottom = (element: HTMLElement) => {
+      requestAnimationFrame(() => {
+        element.scrollTop = element.scrollHeight;
+      });
+    };
+
+    // Auto-scroll when new messages are added
+    if (consoleRef.current && history.length > 0) {
+      scrollToBottom(consoleRef.current);
+    }
+  }, [history.length]);
 
   useEffect(() => {
     if (inputRef.current) {

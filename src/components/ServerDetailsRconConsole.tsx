@@ -148,14 +148,39 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
     }
   }, [history, serverName]);
 
+  // Enhanced auto-scroll functionality
   useEffect(() => {
+    const scrollToBottom = (element: HTMLElement) => {
+      // Use requestAnimationFrame for smooth scrolling
+      requestAnimationFrame(() => {
+        element.scrollTop = element.scrollHeight;
+      });
+    };
+
     if (consoleRef.current && activeView === 'console') {
-      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+      scrollToBottom(consoleRef.current);
     }
     if (chatRef.current && activeView === 'chat') {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      scrollToBottom(chatRef.current);
     }
   }, [history, chatMessages, activeView]);
+
+  // Additional scroll trigger for new messages
+  useEffect(() => {
+    const scrollToBottom = (element: HTMLElement) => {
+      requestAnimationFrame(() => {
+        element.scrollTop = element.scrollHeight;
+      });
+    };
+
+    // Auto-scroll when new messages are added
+    if (activeView === 'console' && consoleRef.current && history.length > 0) {
+      scrollToBottom(consoleRef.current);
+    }
+    if (activeView === 'chat' && chatRef.current && chatMessages.length > 0) {
+      scrollToBottom(chatRef.current);
+    }
+  }, [history.length, chatMessages.length, activeView]);
 
   const executeCommand = async (cmd: string): Promise<RconResponse> => {
     try {
