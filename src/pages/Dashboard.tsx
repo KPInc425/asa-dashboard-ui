@@ -238,9 +238,17 @@ const Dashboard: React.FC = () => {
     // Handle both old and new cluster formats
     const servers = cluster.config?.servers || cluster.servers || [];
     if (servers.length > 0) {
+      // Count servers with different statuses
       const running = servers.filter((s: any) => s.status === 'running').length;
       const stopped = servers.filter((s: any) => s.status === 'stopped').length;
+      const unknown = servers.filter((s: any) => !s.status || s.status === 'unknown').length;
       const total = servers.length;
+      
+      // If we have unknown status servers, try to get real-time status
+      if (unknown > 0) {
+        return `${total} servers (${running} running, ${stopped} stopped, ${unknown} unknown)`;
+      }
+      
       return `${total} servers (${running} running, ${stopped} stopped)`;
     }
     return 'No servers';

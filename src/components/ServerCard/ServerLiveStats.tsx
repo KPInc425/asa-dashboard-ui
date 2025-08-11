@@ -8,21 +8,24 @@ interface LiveServerStats {
   serverUptime: string;
   version?: string;
   map?: string;
-}
-
-interface Server {
-  name: string;
-  status: string;
-  type: 'container' | 'native' | 'cluster' | 'cluster-server' | 'individual';
+  cached?: boolean;
+  error?: string;
+  lastUpdated?: string;
 }
 
 interface ServerLiveStatsProps {
-  server: Server;
+  server: {
+    name: string;
+    status: string;
+    type: string;
+  };
 }
 
 const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
   const [liveStats, setLiveStats] = useState<LiveServerStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const [errorCount, setErrorCount] = useState<number>(0);
 
   // Fetch live server stats when server is running
   useEffect(() => {
@@ -33,6 +36,13 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
 
   const fetchLiveStats = async () => {
     if (server.status !== 'running') return;
+    
+    // Prevent too frequent requests (minimum 5 seconds between requests)
+    const now = Date.now();
+    if (now - lastFetchTime < 5000) {
+      return;
+    }
+    
     setStatsLoading(true);
     let usedFallback = false;
     
@@ -43,6 +53,7 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
           const response = await api.get(`/api/native-servers/${encodeURIComponent(server.name)}/live-details`);
           if (response.data.success && response.data.details && Object.keys(response.data.details).length > 0) {
             const details = response.data.details;
+            
             // --- Version parsing logic ---
             let version = undefined;
             if (details.version && typeof details.version === 'string') {
@@ -57,19 +68,25 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
                 version = build;
               }
             }
+            
             // --- Map parsing logic ---
             let map = details.map;
             if (!map && details.raw && details.raw.attributes) {
               map = details.raw.attributes.MAPNAME_s || details.raw.attributes.FRIENDLYMAPNAME_s;
             }
+            
             setLiveStats({
               players: details.players || 0,
               currentDay: details.day || 1,
               currentTime: details.gameTime || 'Unknown',
               serverUptime: 'Active',
               version,
-              map
+              map,
+              lastUpdated: details.lastUpdated || new Date().toISOString()
             });
+            
+            setErrorCount(0); // Reset error count on success
+            setLastFetchTime(now);
             setStatsLoading(false);
             return;
           } else {
@@ -90,6 +107,7 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
         const commands = ['listplayers', 'getday', 'gettime'];
         const responses = [];
         let rconErrors: string[] = [];
+        let cachedDataUsed = false;
         
         for (const command of commands) {
           try {
@@ -99,9 +117,16 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
             } else {
               response = await containerApi.sendRconCommand(server.name, command);
             }
+            
             if (response.success) {
               responses.push(response);
               console.log(`RCON ${command} success for ${server.name}:`, response.response);
+              
+              // Check if cached data was used
+              if (response.cached) {
+                cachedDataUsed = true;
+                console.log(`RCON ${command} used cached data for ${server.name}`);
+              }
             } else {
               const errorMsg = response.message || 'Unknown RCON error';
               rconErrors.push(`${command}: ${errorMsg}`);
@@ -116,7 +141,7 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
           }
         }
         
-        // Parse responses with error handling
+        // Parse responses with improved error handling
         const playersResponse = responses[0];
         const dayResponse = responses[1];
         const timeResponse = responses[2];
@@ -126,29 +151,73 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
           try {
             // Improved regex for ARK listplayers output (matches e.g. '0. Willow, 0002214a4a6742d9a347bd449b2dc143')
             const lines = playersResponse.response.split('\n');
-            const playerLines = lines.filter(line => /^\d+\.\s+[^,]+,\s*[0-9a-fA-F]+$/.test(line.trim()));
+            const playerLines = lines.filter(line => {
+              const trimmed = line.trim();
+              // Multiple patterns for different ARK ASA formats
+              return /^\d+\.\s+[^,]+,\s*[0-9a-fA-F]+$/.test(trimmed) || // "0. PlayerName, steamid"
+                     /^Player\s+\d+:\s+.+$/.test(trimmed) || // "Player 1: PlayerName"
+                     (/^[^0-9]*$/.test(trimmed) && trimmed.length > 0 && !trimmed.includes('Player')); // Just player name
+            });
             playerCount = playerLines.length;
+            console.log(`Parsed ${playerCount} players from ${playerLines.length} valid lines`);
           } catch (parseError) {
             console.warn('Error parsing player count:', parseError);
             playerCount = 0;
           }
         }
         
-        // Set stats with fallback values and error context
-        setLiveStats({
-          players: playerCount,
-          currentDay: dayResponse && dayResponse.success && dayResponse.response ? 
-            parseInt(dayResponse.response.match(/\d+/)?.[0] || '1', 10) : 1,
-          currentTime: timeResponse && timeResponse.success && timeResponse.response ? 
-            timeResponse.response.trim() : 'Unknown',
-          serverUptime: rconErrors.length === 0 ? 'Active' : `Active (${rconErrors.length} RCON errors)`
-        });
-        
-        // Log summary of errors for debugging
-        if (rconErrors.length > 0) {
-          console.warn(`RCON errors for ${server.name}:`, rconErrors);
+        // Parse day number with better error handling
+        let dayNumber = 1;
+        if (dayResponse && dayResponse.success && dayResponse.response) {
+          try {
+            const dayMatch = dayResponse.response.match(/\d+/);
+            if (dayMatch) {
+              dayNumber = parseInt(dayMatch[0], 10);
+            }
+          } catch (parseError) {
+            console.warn('Error parsing day number:', parseError);
+            dayNumber = 1;
+          }
         }
         
+        // Parse time with better error handling
+        let gameTime = 'Unknown';
+        if (timeResponse && timeResponse.success && timeResponse.response) {
+          try {
+            const timeStr = timeResponse.response.trim();
+            if (timeStr && timeStr !== '') {
+              gameTime = timeStr;
+            }
+          } catch (parseError) {
+            console.warn('Error parsing game time:', parseError);
+            gameTime = 'Unknown';
+          }
+        }
+        
+        // Set stats with enhanced information
+        const uptimeStatus = rconErrors.length === 0 ? 'Active' : 
+                           cachedDataUsed ? 'Active (Cached)' : 
+                           `Active (${rconErrors.length} RCON errors)`;
+        
+        setLiveStats({
+          players: playerCount,
+          currentDay: dayNumber,
+          currentTime: gameTime,
+          serverUptime: uptimeStatus,
+          cached: cachedDataUsed,
+          error: rconErrors.length > 0 ? rconErrors.join('; ') : undefined,
+          lastUpdated: new Date().toISOString()
+        });
+        
+        // Update error count
+        if (rconErrors.length > 0) {
+          setErrorCount(prev => prev + 1);
+          console.warn(`RCON errors for ${server.name}:`, rconErrors);
+        } else {
+          setErrorCount(0);
+        }
+        
+        setLastFetchTime(now);
         setStatsLoading(false);
         return;
       }
@@ -156,12 +225,17 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error(`Failed to fetch live stats for ${server.name}:`, err);
       
+      // Increment error count
+      setErrorCount(prev => prev + 1);
+      
       // Set error state with context
       setLiveStats({
         players: 0,
         currentDay: 1,
         currentTime: 'Unknown',
-        serverUptime: `Error: ${errorMessage}`
+        serverUptime: `Error: ${errorMessage}`,
+        error: errorMessage,
+        lastUpdated: new Date().toISOString()
       });
     } finally {
       setStatsLoading(false);
@@ -194,6 +268,29 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
             <div className="flex justify-between items-center">
               <span className="text-base-content/70">Version:</span>
               <span className="text-base-content/70 font-semibold text-xs md:text-sm">{liveStats.version}</span>
+            </div>
+          )}
+          {/* Show status indicators */}
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-base-content/70">Status:</span>
+            <span className={`font-semibold ${
+              liveStats.error ? 'text-error' : 
+              liveStats.cached ? 'text-warning' : 
+              'text-success'
+            }`}>
+              {liveStats.serverUptime}
+            </span>
+          </div>
+          {/* Show error count if there are persistent errors */}
+          {errorCount > 0 && (
+            <div className="text-xs text-error">
+              {errorCount} error{errorCount > 1 ? 's' : ''} in recent attempts
+            </div>
+          )}
+          {/* Show when data is cached */}
+          {liveStats.cached && (
+            <div className="text-xs text-warning">
+              Using cached data
             </div>
           )}
         </>

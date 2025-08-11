@@ -2489,6 +2489,123 @@ export const getStartScript = async (serverName: string): Promise<{
   return response.data;
 };
 
+// Provisioning API object for system logs and other provisioning functions
+export const provisioningApi = {
+  /**
+   * Get system logs
+   */
+  getSystemLogs: async (type: string = 'all', lines: number = 100): Promise<{
+    success: boolean;
+    serviceInfo?: any;
+    logFiles?: any;
+    type?: string;
+    lines?: number;
+    totalLogFiles?: number;
+    message?: string;
+  }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return {
+        success: true,
+        serviceInfo: {
+          mode: 'native',
+          isWindowsService: false,
+          serviceInstallPath: null,
+          logBasePath: process.cwd(),
+          currentWorkingDirectory: process.cwd(),
+          processId: 12345,
+          parentProcessId: 1234
+        },
+        logFiles: {
+          combined: {
+            content: `[${new Date().toISOString()}] INFO: Frontend-only mode - no real logs available\n[${new Date().toISOString()}] INFO: This is a mock log file for testing\n[${new Date().toISOString()}] WARN: System logs endpoint not available in frontend-only mode`,
+            path: '/mock/combined.log',
+            exists: true
+          },
+          error: {
+            content: `[${new Date().toISOString()}] ERROR: Mock error log for testing\n[${new Date().toISOString()}] WARN: This is not a real error log`,
+            path: '/mock/error.log',
+            exists: true
+          },
+          nodeOut: {
+            content: `[${new Date().toISOString()}] INFO: Mock node stdout log\n[${new Date().toISOString()}] INFO: Node.js process started`,
+            path: '/mock/node-out.log',
+            exists: true
+          },
+          nodeErr: {
+            content: `[${new Date().toISOString()}] ERROR: Mock node stderr log\n[${new Date().toISOString()}] WARN: Mock warning message`,
+            path: '/mock/node-err.log',
+            exists: true
+          }
+        },
+        type,
+        lines,
+        totalLogFiles: 4
+      };
+    }
+    
+    const params = new URLSearchParams();
+    if (type) params.append('type', type);
+    if (lines) params.append('lines', lines.toString());
+    
+    const response = await api.get(`/api/provisioning/system-logs?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * Get system info
+   */
+  getSystemInfo: async (): Promise<{
+    success: boolean;
+    status?: any;
+    message?: string;
+  }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return {
+        success: true,
+        status: {
+          systemInfo: {
+            platform: 'win32',
+            arch: 'x64',
+            nodeVersion: '18.0.0',
+            memory: { total: 16000000000, free: 8000000000 },
+            disk: { total: 1000000000000, free: 500000000000 }
+          },
+          serviceInfo: {
+            mode: 'native',
+            isWindowsService: false,
+            serviceInstallPath: null,
+            logBasePath: process.cwd(),
+            currentWorkingDirectory: process.cwd(),
+            processId: 12345,
+            parentProcessId: 1234
+          }
+        }
+      };
+    }
+    
+    const response = await api.get('/api/provisioning/system-info');
+    return response.data;
+  },
+
+  // Re-export existing provisioning functions for convenience
+  initializeSystem,
+  installSteamCmd,
+  createServer,
+  createCluster,
+  getServers,
+  getClusters,
+  deleteServer,
+  deleteCluster,
+  backupCluster,
+  restoreCluster,
+  backupServer,
+  restoreServer,
+  listServerBackups,
+  updateAllServers,
+  regenerateStartScripts,
+  getStartScript
+};
+
 // Export all APIs as a single object for convenience
 export const apiService = {
   containers: containerApi,

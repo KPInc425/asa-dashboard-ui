@@ -78,7 +78,7 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
     <div className="bg-base-300 rounded-lg p-3 md:p-4 hover:shadow-lg transition-all duration-200 flex flex-col h-full min-h-[320px] md:min-h-[350px]">
       <ServerStatusIndicator server={server} actionStatus={actionStatus} />
       
-      <div className="space-y-1 md:space-y-2 text-xs md:text-sm flex-grow">
+      <div className="space-y-1 md:space-y-2 text-xs md:text-sm flex-grow flex flex-col">
         {/* Live Player Count - Show when server is running */}
         <ServerLiveStats server={server} />
         
@@ -142,13 +142,15 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
         )}
       </div>
       
-      {/* Action Buttons */}
-      <ServerActionButtons
-        server={server}
-        actionLoading={actionLoading}
-        onAction={onAction}
-        onViewDetails={onViewDetails}
-      />
+      {/* Action Buttons - This will stick to the bottom */}
+      <div className="mt-auto pt-4">
+        <ServerActionButtons
+          server={server}
+          actionLoading={actionLoading}
+          onAction={onAction}
+          onViewDetails={onViewDetails}
+        />
+      </div>
     </div>
   );
 }, (prevProps, nextProps) => {

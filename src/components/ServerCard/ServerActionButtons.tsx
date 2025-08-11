@@ -28,7 +28,7 @@ const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
   return (
-    <div className="mt-auto pt-4 space-y-2">
+    <div className="space-y-2">
       {/* Control buttons in a row */}
       <div className="flex gap-2 flex-wrap justify-center md:justify-start">
         <button
