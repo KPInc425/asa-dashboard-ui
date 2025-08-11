@@ -6,7 +6,7 @@ export { default as apiService } from './api';
 export * from './socket';
 export { default as socketService } from './socket';
 
-// Re-export commonly used types
+// Re-export commonly used types from core
 export type {
   Container,
   RconResponse,
@@ -14,6 +14,16 @@ export type {
   LockStatus,
   AuthResponse,
   User,
-} from './api';
+  ClusterBackup,
+  LogFile,
+  LogFilesResponse,
+  LogContentResponse,
+  EnvironmentFile,
+  DockerComposeFile,
+  ArkServer,
+  ArkServerConfigs,
+  Mod,
+  ModsResponse,
+} from './api-core';
 
 export type { LogMessage } from './socket'; 

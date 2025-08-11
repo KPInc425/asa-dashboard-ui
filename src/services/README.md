@@ -1,160 +1,222 @@
-# Services Layer Documentation
+# ASA Dashboard API Services
 
-This directory contains the modular API service layer for the ASA Dashboard frontend.
+This directory contains the modular API services for the ASA Dashboard frontend. The services have been refactored into smaller, focused modules for better maintainability and organization.
 
-## Files
+## 📁 File Structure
 
-- `api.ts` - Main API service with Axios configuration and all backend endpoints
-- `socket.ts` - Socket.IO service for real-time log streaming
-- `index.ts` - Barrel export file for convenient importing
+```
+services/
+├── api-core.ts          # Core types, API setup, and shared utilities
+├── api-containers.ts    # Container and server management
+├── api-config.ts        # Configuration management
+├── api-auth.ts          # Authentication and user management
+├── api-logs.ts          # Logs and file management
+├── api-environment.ts   # Environment and system management
+├── api-provisioning.ts  # Server provisioning and cluster management
+├── api-lock.ts          # Lock status and system status
+├── api.ts               # Main entry point (exports all modules)
+├── socket.ts            # Socket.IO services
+├── discord.ts           # Discord integration services
+├── index.ts             # Services index (exports everything)
+└── README.md            # This file
+```
 
-## Usage Examples
+## 🔧 API Modules
 
-### Basic API Usage
+### `api-core.ts`
+- **Purpose**: Core types, API setup, and shared utilities
+- **Exports**: 
+  - All TypeScript interfaces and types
+  - `ApiError` class for error handling
+  - `FRONTEND_ONLY_MODE` flag
+  - `api` Axios instance with interceptors
+  - `healthCheck` function
+
+### `api-containers.ts`
+- **Purpose**: Container and server management
+- **Exports**: `containerApi` object
+- **Features**:
+  - Docker container operations (start, stop, restart)
+  - Native server management
+  - RCON command execution
+  - Server configuration files
+  - Save file management
+  - Auto-shutdown configuration
+
+### `api-config.ts`
+- **Purpose**: Configuration management
+- **Exports**: `configApi` object and ARK config functions
+- **Features**:
+  - Server configuration listing and management
+  - Config file operations
+  - ARK-specific configuration handling
+
+### `api-auth.ts`
+- **Purpose**: Authentication and user management
+- **Exports**: `authApi` object
+- **Features**:
+  - User login/logout
+  - Authentication status checking
+  - User information retrieval
+  - Frontend-only mode support
+
+### `api-logs.ts`
+- **Purpose**: Logs and file management
+- **Exports**: `logsApi` object
+- **Features**:
+  - Log file listing and retrieval
+  - Save file operations (upload, download, backup)
+  - WebSocket URL generation for real-time logs
+
+### `api-environment.ts`
+- **Purpose**: Environment and system management
+- **Exports**: `environmentApi` object
+- **Features**:
+  - Environment file management
+  - Docker Compose configuration
+  - ARK server configurations
+  - Mod management
+
+### `api-provisioning.ts`
+- **Purpose**: Server provisioning and cluster management
+- **Exports**: `provisioningApi` object and individual functions
+- **Features**:
+  - System initialization and setup
+  - SteamCMD management
+  - Cluster creation and management
+  - Server provisioning
+  - Backup and restore operations
+  - Update management
+
+### `api-lock.ts`
+- **Purpose**: Lock status and system status
+- **Exports**: `lockApi` object
+- **Features**:
+  - Update lock status checking
+  - System status monitoring
+
+## 🚀 Usage
+
+### Importing the API Service
 
 ```typescript
-import { apiService, containerApi, authApi } from '../services';
+// Import the main API service object
+import { apiService } from '@/services';
 
-// Using the main service object
+// Use specific API modules
 const containers = await apiService.containers.getContainers();
+const user = await apiService.auth.getCurrentUser();
+const logs = await apiService.logs.getLogFiles('server-name');
+```
 
-// Using individual API modules
+### Direct Module Imports
+
+```typescript
+// Import specific modules directly
+import { containerApi, authApi, logsApi } from '@/services';
+
+// Use individual APIs
 const containers = await containerApi.getContainers();
 const user = await authApi.getCurrentUser();
+const logs = await logsApi.getLogFiles('server-name');
 ```
 
-### Authentication
+### Individual Function Imports
 
 ```typescript
-import { authApi } from '../services';
+// Import specific functions
+import { 
+  createCluster, 
+  backupServer, 
+  getSystemInfo 
+} from '@/services';
 
-// Login
-try {
-  const authResponse = await authApi.login('username', 'password');
-  console.log('Logged in as:', authResponse.user.username);
-} catch (error) {
-  console.error('Login failed:', error.message);
-}
-
-// Check authentication status
-if (authApi.isAuthenticated()) {
-  // User is logged in
-}
-
-// Logout
-authApi.logout();
+// Use individual functions
+const cluster = await createCluster(clusterConfig);
+const backup = await backupServer('server-name');
+const systemInfo = await getSystemInfo();
 ```
 
-### Container Management
+## 🔄 Frontend-Only Mode
+
+The API services support a frontend-only mode for testing and development:
 
 ```typescript
-import { containerApi } from '../services';
+// Set in .env file
+VITE_FRONTEND_ONLY=true
 
-// Get all containers
-const containers = await containerApi.getContainers();
-
-// Start a container
-await containerApi.startContainer('asa-server-1');
-
-// Send RCON command
-const response = await containerApi.sendRconCommand('asa-server-1', 'listplayers');
-console.log(response.response);
+// Test credentials
+username: 'admin'
+password: 'admin123'
 ```
 
-### Configuration Management
+When frontend-only mode is enabled:
+- All API calls return mock data
+- No actual backend communication occurs
+- Simulated delays provide realistic testing experience
+- Mock data includes realistic server states and responses
+
+## 🛠️ Error Handling
+
+All API functions use the `ApiError` class for consistent error handling:
 
 ```typescript
-import { configApi } from '../services';
-
-// Load config file
-const config = await configApi.loadConfig('TheIsland');
-
-// Save config file
-await configApi.saveConfig('TheIsland', '# Server configuration\nMaxPlayers=70');
-```
-
-### Real-time Log Streaming
-
-```typescript
-import { socketService } from '../services';
-
-// Connect to container logs
-await socketService.connect('asa-server-1');
-
-// Subscribe to log events
-socketService.onLog((logMessage) => {
-  console.log(`[${logMessage.timestamp}] ${logMessage.message}`);
-});
-
-// Subscribe to connection events
-socketService.onConnect(() => {
-  console.log('Connected to log stream');
-});
-
-socketService.onDisconnect((reason) => {
-  console.log('Disconnected from log stream:', reason);
-});
-
-// Disconnect when done
-socketService.disconnect();
-```
-
-### Error Handling
-
-```typescript
-import { apiService, ApiError } from '../services';
+import { ApiError } from '@/services';
 
 try {
-  const containers = await apiService.containers.getContainers();
+  const result = await apiService.containers.startContainer('server-name');
 } catch (error) {
   if (error instanceof ApiError) {
-    console.error(`API Error ${error.status}:`, error.message);
-    
-    if (error.status === 401) {
-      // Handle unauthorized
-      authApi.logout();
-    }
-  } else {
-    console.error('Unexpected error:', error);
+    console.error(`API Error ${error.status}: ${error.message}`);
   }
 }
 ```
 
-## Environment Variables
+## 📝 TypeScript Support
 
-Make sure to set the following environment variable in your `.env` file:
-
-```env
-VITE_API_URL=http://localhost:3000
-```
-
-## TypeScript Types
-
-All API responses are properly typed. Import the types you need:
+All API functions are fully typed with TypeScript interfaces:
 
 ```typescript
-import type { Container, RconResponse, ConfigFile, User } from '../services';
+import type { Container, User, RconResponse } from '@/services';
+
+const containers: Container[] = await apiService.containers.getContainers();
+const user: User = await apiService.auth.getCurrentUser();
+const rconResponse: RconResponse = await apiService.containers.sendRconCommand('server', 'listplayers');
 ```
 
-## Best Practices
+## 🔧 Configuration
 
-1. **Error Handling**: Always wrap API calls in try-catch blocks
-2. **Authentication**: Check authentication status before making protected API calls
-3. **Socket Management**: Always disconnect from sockets when components unmount
-4. **URL Encoding**: Container names are automatically URL-encoded in the service layer
-5. **Reconnection**: Socket.IO automatically handles reconnection with exponential backoff
-6. **Token Management**: JWT tokens are automatically managed in localStorage
+The API services are configured through environment variables:
 
-## API Endpoints Covered
+```env
+# API Configuration
+VITE_API_URL=http://localhost:4000
+VITE_FRONTEND_ONLY=false
 
-- ✅ `GET /api/containers` - List containers
-- ✅ `POST /api/containers/:name/start` - Start container
-- ✅ `POST /api/containers/:name/stop` - Stop container
-- ✅ `POST /api/containers/:name/restart` - Restart container
-- ✅ `POST /api/containers/:name/rcon` - Send RCON command
-- ✅ `GET /api/configs/:map` - Load config file
-- ✅ `PUT /api/configs/:map` - Save config file
-- ✅ `GET /api/lock-status` - Get update lock status
-- ✅ `GET /api/logs/:container` - WebSocket log stream
-- ✅ `POST /api/auth/login` - Login
-- ✅ `GET /api/auth/me` - Get current user info 
+# Custom endpoint (optional, stored in localStorage)
+# Can be set via localStorage.setItem('api_endpoint', 'http://custom-api-url')
+```
+
+## 📚 Migration from Old API
+
+The refactored API maintains full backward compatibility. Existing code should continue to work without changes:
+
+```typescript
+// Old way (still works)
+import { containerApi } from '@/services/api';
+
+// New way (recommended)
+import { containerApi } from '@/services';
+// or
+import { apiService } from '@/services';
+const containers = await apiService.containers.getContainers();
+```
+
+## 🎯 Benefits of Modular Structure
+
+1. **Maintainability**: Each module has a single responsibility
+2. **Testability**: Individual modules can be tested in isolation
+3. **Code Organization**: Related functionality is grouped together
+4. **Tree Shaking**: Unused modules can be excluded from builds
+5. **Developer Experience**: Easier to find and modify specific functionality
+6. **Type Safety**: Better TypeScript support with focused interfaces 
