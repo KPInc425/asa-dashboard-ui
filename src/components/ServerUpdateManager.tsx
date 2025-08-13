@@ -73,7 +73,7 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
         setBackgroundUpdates(prev => {
           const newSet = new Set(prev);
           response.data.data.forEach((server: ServerUpdateInfo) => {
-            if (server.config.lastUpdate) {
+            if (server.config && server.config.lastUpdate) {
               const lastUpdate = new Date(server.config.lastUpdate);
               if (now.getTime() - lastUpdate.getTime() < recentThreshold) {
                 newSet.delete(server.serverName);
@@ -186,6 +186,10 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
 
 
   const openConfigModal = (server: ServerUpdateInfo) => {
+    if (!server.config) {
+      setError('Server configuration not available. Please try refreshing the update status.');
+      return;
+    }
     setConfigModalData(server.config);
     setSelectedServer(server.serverName);
     setShowConfigModal(true);
