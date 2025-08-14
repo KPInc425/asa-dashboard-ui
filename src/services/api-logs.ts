@@ -16,7 +16,8 @@ export const logsApi = {
    * Get available log files for a server
    */
   getLogFiles: async (serverName: string): Promise<LogFilesResponse> => {
-    const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/files`);
+    // Temporary: use /api/logfiles/* to bypass proxy rules on /api/logs/*
+    const response = await api.get(`/api/logfiles/${encodeURIComponent(serverName)}/files`);
     return response.data;
   },
 
@@ -28,7 +29,8 @@ export const logsApi = {
     if (forceRefresh) {
       params._t = Date.now(); // Cache-busting parameter
     }
-    const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/files/${encodeURIComponent(fileName)}`, {
+    // Temporary: use /api/logfiles/* to bypass proxy rules on /api/logs/*
+    const response = await api.get(`/api/logfiles/${encodeURIComponent(serverName)}/files/${encodeURIComponent(fileName)}`, {
       params
     });
     return response.data;
@@ -38,7 +40,8 @@ export const logsApi = {
    * Debug endpoint to get log file information
    */
   debugLogFiles: async (serverName: string): Promise<{ success: boolean; serverName: string; logFiles: Array<{ name: string; path: string; size: number }>; timestamp: string }> => {
-    const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/debug`);
+    // Temporary: point to list endpoint for debugging
+    const response = await api.get(`/api/logfiles/${encodeURIComponent(serverName)}/files`);
     return response.data;
   },
 
