@@ -89,6 +89,50 @@ const SystemLogs: React.FC = () => {
   // Get available tabs based on existing log files or new backend keys
   const getAvailableTabs = () => {
     const tabs = [];
+    
+    // Check for the new backend structure first (logFiles object)
+    if (logs.logFiles && typeof logs.logFiles === 'object') {
+      Object.keys(logs.logFiles).forEach(key => {
+        const logFile = logs.logFiles[key];
+        if (logFile && logFile.exists) {
+          let label = key;
+          let icon = '📄';
+          
+          // Map keys to friendly names and icons
+          if (key.includes('combined')) {
+            label = 'Combined Logs';
+            icon = '📋';
+          } else if (key.includes('error')) {
+            label = 'Error Logs';
+            icon = '❌';
+          } else if (key.includes('asa-api-service')) {
+            label = 'API Service';
+            icon = '🔧';
+          } else if (key.includes('node-out')) {
+            label = 'Node Stdout';
+            icon = '📤';
+          } else if (key.includes('node-err')) {
+            label = 'Node Stderr';
+            icon = '📥';
+          } else if (key.includes('nssm-out')) {
+            label = 'Service Stdout';
+            icon = '⚙️';
+          } else if (key.includes('nssm-err')) {
+            label = 'Service Stderr';
+            icon = '⚠️';
+          } else {
+            // Convert key to title case for unknown files
+            label = key.split('-').map(word => 
+              word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+          }
+          
+          tabs.push({ key, label, icon });
+        }
+      });
+    }
+    
+    // Fallback to old structure for backward compatibility
     if (logs.api && logs.api.content) tabs.push({ key: 'api', label: 'API Logs', icon: '📝' });
     if (logs.server && logs.server.content) tabs.push({ key: 'server', label: 'Server Logs', icon: '🖥️' });
     if (logs.docker && logs.docker.content) tabs.push({ key: 'docker', label: 'Docker Logs', icon: '🐳' });
@@ -99,6 +143,7 @@ const SystemLogs: React.FC = () => {
     if (logs.nodeErr?.exists) tabs.push({ key: 'nodeErr', label: 'Node Stderr', icon: '📥' });
     if (logs.serviceOut?.exists) tabs.push({ key: 'serviceOut', label: 'Service Stdout', icon: '⚙️' });
     if (logs.serviceErr?.exists) tabs.push({ key: 'serviceErr', label: 'Service Stderr', icon: '⚠️' });
+    
     return tabs;
   };
 
@@ -227,8 +272,8 @@ const SystemLogs: React.FC = () => {
   };
 
   // Support new backend log object structure
-  const currentLog = logs[activeTab as keyof SystemLogs] as any;
-  const currentLogContent = currentLog?.content || currentLog?.content || '';
+  const currentLog = logs.logFiles?.[activeTab] || logs[activeTab as keyof SystemLogs] as any;
+  const currentLogContent = currentLog?.content || '';
 
   if (loading && Object.keys(logs).length === 0) {
     return (
