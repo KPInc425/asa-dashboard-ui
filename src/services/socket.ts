@@ -552,6 +552,15 @@ class SocketManager {
       this.socket.off('system-log-data');
     }
   }
+
+  /**
+   * Emit a custom event to the server
+   */
+  emit(event: string, ...args: any[]): void {
+    if (this.socket) {
+      this.socket.emit(event, ...args);
+    }
+  }
 }
 
 // Create singleton instance
@@ -589,6 +598,8 @@ export const socketService = {
     const sock = (socketManager as any).socket;
     if (sock) sock.off(event, callback);
   },
+  // Emit custom events to the server
+  emit: (event: string, ...args: any[]) => socketManager.emit(event, ...args),
 };
 
 export default socketService; 
