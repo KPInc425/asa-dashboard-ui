@@ -177,6 +177,10 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ serverName: propServe
         // If no log file is selected, try to get the first available one
         const filesResponse = await logsApi.getLogFiles(serverName);
         console.log('📋 Files response:', filesResponse);
+        // Keep the dropdown in sync with what we just fetched
+        if (filesResponse?.logFiles) {
+          setAvailableLogFiles(filesResponse.logFiles);
+        }
         
         if (filesResponse.success && filesResponse.logFiles.length > 0) {
           // Prioritize actual log files over manifest files
@@ -617,7 +621,7 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ serverName: propServe
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto font-mono text-sm bg-base-200 rounded-lg p-4">
+            <div className="flex-1 overflow-y-auto max-h-[60vh] font-mono text-sm bg-base-200 rounded-lg p-4">
               {filteredLogs.length === 0 ? (
                 <div className="text-center py-12 text-base-content/50">
                   <div className="text-4xl mb-4">📋</div>
