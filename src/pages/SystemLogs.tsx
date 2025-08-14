@@ -43,6 +43,8 @@ const SystemLogs: React.FC = () => {
   const [lines, setLines] = useState<number>(100);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
+  const [debugData, setDebugData] = useState<any>(null);
 
   const loadLogs = async () => {
     try {
@@ -205,13 +207,22 @@ const SystemLogs: React.FC = () => {
         };
         
         console.log('🔍 Debug: System logs debug info:', debugInfo);
-        alert(`System Logs Debug Info:\n\n${JSON.stringify(debugInfo, null, 2)}`);
+        setDebugData(debugInfo);
+        setShowDebugModal(true);
       } else {
-        alert('Failed to get system logs debug info');
+        setDebugData({ error: 'Failed to get system logs debug info' });
+        setShowDebugModal(true);
       }
     } catch (error) {
       console.error('🔍 Debug: Error getting system logs:', error);
-      alert('Error getting debug info: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      setDebugData({ error: 'Error getting debug info: ' + (error instanceof Error ? error.message : 'Unknown error') });
+      setShowDebugModal(true);
+    }
+  };
+
+  const copyDebugData = () => {
+    if (debugData) {
+      navigator.clipboard.writeText(JSON.stringify(debugData, null, 2));
     }
   };
 
@@ -423,6 +434,37 @@ const SystemLogs: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Debug Modal */}
+        {showDebugModal && (
+          <div className="modal modal-open">
+            <div className="modal-box max-w-4xl max-h-[80vh]">
+              <h3 className="font-bold text-lg mb-4">🔍 System Logs Debug Information</h3>
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={copyDebugData}
+                  className="btn btn-sm btn-outline btn-primary"
+                >
+                  📋 Copy to Clipboard
+                </button>
+              </div>
+              <div className="bg-base-300 p-4 rounded-lg max-h-[60vh] overflow-y-auto">
+                <pre className="text-xs whitespace-pre-wrap break-words">
+                  {JSON.stringify(debugData, null, 2)}
+                </pre>
+              </div>
+              <div className="modal-action">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowDebugModal(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="modal-backdrop" onClick={() => setShowDebugModal(false)}></div>
           </div>
         )}
       </div>
