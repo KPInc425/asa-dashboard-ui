@@ -75,22 +75,32 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ serverName: propServe
       const response = await logsApi.getLogFiles(serverName);
       setAvailableLogFiles(response.logFiles);
       
-      // Auto-select the most recent log file by default
+      // Auto-select ShooterGame.log by default, fallback to most recent log file
       if (!selectedLogFile && response.logFiles.length > 0) {
-        // Find the most recent log file (first in the sorted list)
-        const mostRecentLog = response.logFiles.find(file => 
-          file.name.toLowerCase().includes('shootergame') ||
-          file.name.toLowerCase().includes('servergame') ||
-          file.name.toLowerCase().includes('windowsserver.log') ||
-          (file.name.toLowerCase().endsWith('.log') && !file.name.toLowerCase().includes('manifest'))
+        // First try to find ShooterGame.log specifically
+        const shooterGameLog = response.logFiles.find(file => 
+          file.name.toLowerCase() === 'shootergame.log'
         );
         
-        if (mostRecentLog) {
-          setSelectedLogFile(mostRecentLog.name);
-          console.log('📄 Auto-selected most recent log file:', mostRecentLog.name, 'Size:', mostRecentLog.size, 'bytes');
+        if (shooterGameLog) {
+          setSelectedLogFile(shooterGameLog.name);
+          console.log('📄 Auto-selected ShooterGame.log:', shooterGameLog.name, 'Size:', shooterGameLog.size, 'bytes');
         } else {
-          setSelectedLogFile('server');
-          console.log('📄 No recent log file found, using default ShooterGame.log');
+          // Fallback to most recent log file
+          const mostRecentLog = response.logFiles.find(file => 
+            file.name.toLowerCase().includes('shootergame') ||
+            file.name.toLowerCase().includes('servergame') ||
+            file.name.toLowerCase().includes('windowsserver.log') ||
+            (file.name.toLowerCase().endsWith('.log') && !file.name.toLowerCase().includes('manifest'))
+          );
+          
+          if (mostRecentLog) {
+            setSelectedLogFile(mostRecentLog.name);
+            console.log('📄 Auto-selected most recent log file:', mostRecentLog.name, 'Size:', mostRecentLog.size, 'bytes');
+          } else {
+            setSelectedLogFile('server');
+            console.log('📄 No recent log file found, using default ShooterGame.log');
+          }
         }
       }
     } catch (err) {

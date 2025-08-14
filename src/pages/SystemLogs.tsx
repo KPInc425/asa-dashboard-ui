@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { provisioningApi } from '../services/api';
+import { useDeveloper } from '../contexts/DeveloperContext';
 
 interface LogFile {
   content: string;
@@ -33,6 +34,7 @@ interface ServiceInfo {
 
 const SystemLogs: React.FC = () => {
   const navigate = useNavigate();
+  const { isDeveloperMode } = useDeveloper();
   const [logs, setLogs] = useState<SystemLogs>({});
   const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -184,6 +186,35 @@ const SystemLogs: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const debugSystemLogs = async () => {
+    try {
+      console.log('🔍 Debug: Checking system logs...');
+      
+      // Try to get system logs with debug info
+      const response = await provisioningApi.getSystemLogs('all', lines);
+      console.log('🔍 Debug: System logs response:', response);
+      
+      if (response.success) {
+        const debugInfo = {
+          serviceInfo: response.serviceInfo,
+          logFiles: response.logFiles,
+          availableTabs: getAvailableTabs(),
+          currentActiveTab: activeTab,
+          logsObjectKeys: Object.keys(logs),
+          currentLogContent: currentLogContent ? `${currentLogContent.length} characters` : 'No content'
+        };
+        
+        console.log('🔍 Debug: System logs debug info:', debugInfo);
+        alert(`System Logs Debug Info:\n\n${JSON.stringify(debugInfo, null, 2)}`);
+      } else {
+        alert('Failed to get system logs debug info');
+      }
+    } catch (error) {
+      console.error('🔍 Debug: Error getting system logs:', error);
+      alert('Error getting debug info: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
   // Support new backend log object structure
   const currentLog = logs[activeTab as keyof SystemLogs] as any;
   const currentLogContent = currentLog?.content || currentLog?.content || '';
@@ -224,6 +255,15 @@ const SystemLogs: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              {isDeveloperMode && (
+                <button
+                  onClick={debugSystemLogs}
+                  className="btn btn-warning hover:shadow-lg hover:shadow-warning/25"
+                  title="Debug system logs discovery"
+                >
+                  🔍 Debug Logs
+                </button>
+              )}
               <button
                 onClick={() => navigate('/')}
                 className="btn btn-outline btn-primary hover:shadow-lg hover:shadow-primary/25"
