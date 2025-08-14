@@ -96,6 +96,10 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
     if (activeView !== 'chat') return;
     console.log('[ChatView] useEffect: subscribing to chat:update for', serverName);
     console.log('[ChatView] Socket connected:', socketService.isConnected());
+    
+    // Subscribe to chat polling for this server
+    socketService.emit('subscribe-to-chat', serverName);
+    
     const handleChatUpdate = (data: { serverName: string; messages: any[] }) => {
       console.log('[ChatView] Received chat:update event for', data.serverName, data);
       if (data.serverName === serverName) {
@@ -118,6 +122,8 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
     return () => {
       console.log('[ChatView] Unsubscribing from chat:update for', serverName);
       socketService.offCustomEvent('chat:update', handleChatUpdate);
+      // Unsubscribe from chat polling for this server
+      socketService.emit('unsubscribe-from-chat', serverName);
     };
   }, [activeView, serverName]);
 
