@@ -20,6 +20,7 @@ interface SystemLogs {
   api?: { content: string };
   server?: { content: string };
   docker?: { content: string };
+  logFiles?: Record<string, LogFile>;
 }
 
 interface ServiceInfo {
@@ -93,7 +94,7 @@ const SystemLogs: React.FC = () => {
     // Check for the new backend structure first (logFiles object)
     if (logs.logFiles && typeof logs.logFiles === 'object') {
       Object.keys(logs.logFiles).forEach(key => {
-        const logFile = logs.logFiles[key];
+        const logFile = logs.logFiles![key];
         if (logFile && logFile.exists) {
           let label = key;
           let icon = '📄';
