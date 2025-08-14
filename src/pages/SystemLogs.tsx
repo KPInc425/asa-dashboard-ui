@@ -55,7 +55,7 @@ const SystemLogs: React.FC = () => {
       const response = await provisioningApi.getSystemLogs('all', lines);
       
       if (response.success) {
-        setLogs(response);
+        setLogs(response as unknown as SystemLogs);
         setServiceInfo(response.serviceInfo as unknown as ServiceInfo);
       } else {
         setError('Failed to load system logs');
