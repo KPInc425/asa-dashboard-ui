@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 interface ServerBackup {
   name: string;
@@ -40,6 +41,8 @@ const ServerBackupManager: React.FC<ServerBackupManagerProps> = ({ onClose, sele
   useEffect(() => {
     loadBackups();
   }, []);
+
+  const { showConfirm } = useConfirm();
 
   const loadBackups = async () => {
     try {
@@ -129,9 +132,8 @@ const ServerBackupManager: React.FC<ServerBackupManagerProps> = ({ onClose, sele
   };
 
   const deleteBackup = async (backup: ServerBackup) => {
-    if (!confirm(`Are you sure you want to delete backup "${backup.name}"? This action cannot be undone.`)) {
-      return;
-    }
+    const proceed = await showConfirm(`Are you sure you want to delete backup "${backup.name}"? This action cannot be undone.`);
+    if (!proceed) return;
 
     try {
       setLoading(true);

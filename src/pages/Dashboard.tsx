@@ -5,6 +5,7 @@ import { apiService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import GlobalModManager from '../components/GlobalModManager';
 import { useDeveloper } from '../contexts/DeveloperContext';
+import { useToast } from '../contexts/ToastContext';
 import { provisioningApi } from '../services/api';
 
 interface SystemInfo {
@@ -76,6 +77,7 @@ interface DebugInfo {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { isDeveloperMode } = useDeveloper();
+  const { showToast } = useToast();
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [nativeServers, setNativeServers] = useState<NativeServer[]>([]);
@@ -155,7 +157,7 @@ const Dashboard: React.FC = () => {
       setShowDebugModal(true);
     } catch (error) {
       console.error('Failed to get debug info:', error);
-      alert('Failed to get debug info. Check console for details.');
+      showToast('Failed to get debug info. Check console for details.', 'error');
     } finally {
       setDebugLoading(false);
     }

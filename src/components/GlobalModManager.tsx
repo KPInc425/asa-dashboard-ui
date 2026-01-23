@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api-core';
 import { regenerateStartScripts } from '../services/api-provisioning';
+import { useToast } from '../contexts/ToastContext';
 
 interface GlobalModManagerProps {
   onClose: () => void;
@@ -30,6 +31,7 @@ const GlobalModManager: React.FC<GlobalModManagerProps> = ({ onClose }) => {
   useEffect(() => {
     loadMods();
   }, []);
+  const { showToast } = useToast();
 
   const loadMods = async () => {
     try {
@@ -84,7 +86,7 @@ const GlobalModManager: React.FC<GlobalModManagerProps> = ({ onClose }) => {
         const message = result.details 
           ? `✅ ${result.message}\n\nSuccessfully updated: ${result.details.successful.length} servers\nTotal processed: ${result.details.totalProcessed}`
           : result.message;
-        alert(message);
+        showToast(message, 'success');
       } else {
         // Show detailed error message
         let errorMessage = result.message;

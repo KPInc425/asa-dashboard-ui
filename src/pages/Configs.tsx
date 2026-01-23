@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { environmentApi } from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 interface EnvironmentFile {
   success: boolean;
@@ -46,6 +47,8 @@ const Configs: React.FC = () => {
 
   // System config state
   const [editingSystemConfig, setEditingSystemConfig] = useState<Record<string, string>>({});
+
+  const { showToast } = useToast();
 
 
 
@@ -156,7 +159,7 @@ const Configs: React.FC = () => {
         .join('\n');
 
       await environmentApi.updateEnvironmentFile(newContent);
-      alert('Environment variables saved successfully!');
+      showToast('Environment variables saved successfully!', 'success');
       
       // Reload the environment file to get the updated content
       const updatedEnvData = await environmentApi.getEnvironmentFile();
@@ -174,7 +177,7 @@ const Configs: React.FC = () => {
 
     try {
       await environmentApi.updateDockerComposeFile(dockerContent);
-      alert('Docker Compose file saved successfully!');
+      showToast('Docker Compose file saved successfully!', 'success');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save Docker Compose file');
     } finally {
@@ -195,7 +198,7 @@ const Configs: React.FC = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('System configuration saved successfully!');
+        showToast('System configuration saved successfully!', 'success');
         // setSystemConfig(editingSystemConfig);
       } else {
         setError(data.message || 'Failed to save system configuration');

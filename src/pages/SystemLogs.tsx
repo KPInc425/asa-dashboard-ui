@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { provisioningApi } from '../services/api';
 import { useDeveloper } from '../contexts/DeveloperContext';
@@ -88,9 +88,9 @@ const SystemLogs: React.FC = () => {
   }, [autoRefresh]);
 
   // Get available tabs based on existing log files or new backend keys
-  const getAvailableTabs = () => {
-    const tabs = [];
-    
+  const availableTabs = useMemo(() => {
+    const tabs: Array<{ key: string; label: string; icon: string }> = [];
+
     // Check for the new backend structure first (logFiles object)
     if (logs.logFiles && typeof logs.logFiles === 'object') {
       Object.keys(logs.logFiles).forEach(key => {
@@ -98,7 +98,7 @@ const SystemLogs: React.FC = () => {
         if (logFile && logFile.exists) {
           let label = key;
           let icon = '📄';
-          
+
           // Map keys to friendly names and icons
           if (key.includes('combined')) {
             label = 'Combined Logs';
@@ -127,12 +127,12 @@ const SystemLogs: React.FC = () => {
               word.charAt(0).toUpperCase() + word.slice(1)
             ).join(' ');
           }
-          
+
           tabs.push({ key, label, icon });
         }
       });
     }
-    
+
     // Fallback to old structure for backward compatibility
     if (logs.api && logs.api.content) tabs.push({ key: 'api', label: 'API Logs', icon: '📝' });
     if (logs.server && logs.server.content) tabs.push({ key: 'server', label: 'Server Logs', icon: '🖥️' });
@@ -144,17 +144,16 @@ const SystemLogs: React.FC = () => {
     if (logs.nodeErr?.exists) tabs.push({ key: 'nodeErr', label: 'Node Stderr', icon: '📥' });
     if (logs.serviceOut?.exists) tabs.push({ key: 'serviceOut', label: 'Service Stdout', icon: '⚙️' });
     if (logs.serviceErr?.exists) tabs.push({ key: 'serviceErr', label: 'Service Stderr', icon: '⚠️' });
-    
+
     return tabs;
-  };
+  }, [logs]);
 
   // Set initial active tab to first available
   useEffect(() => {
-    const availableTabs = getAvailableTabs();
     if (availableTabs.length > 0 && !availableTabs.find(tab => tab.key === activeTab)) {
       setActiveTab(availableTabs[0].key);
     }
-  }, [logs]);
+  }, [availableTabs]);
 
   const formatLogContent = (content: string) => {
     if (!content) return 'No logs available';
@@ -211,12 +210,15 @@ const SystemLogs: React.FC = () => {
       else className += ' text-base-content'; // neutral and default
       
       return (
-        <div key={index} className={className}>
+        <div key={`${index}-${line?.slice(0,30)}`} className={className}>
           {line || '\u00A0'}
         </div>
       );
     });
   };
+
+  // Memoize the rendered log content to avoid reprocessing on unrelated renders
+  const formattedLog = useMemo(() => formatLogContent(currentLogContent), [currentLogContent]);
 
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content);
@@ -246,7 +248,7 @@ const SystemLogs: React.FC = () => {
         const debugInfo = {
           serviceInfo: response.serviceInfo,
           logFiles: response.logFiles,
-          availableTabs: getAvailableTabs(),
+          availableTabs: availableTabs,
           currentActiveTab: activeTab,
           logsObjectKeys: Object.keys(logs),
           currentLogContent: currentLogContent ? `${currentLogContent.length} characters` : 'No content'
@@ -399,7 +401,7 @@ const SystemLogs: React.FC = () => {
             <div className="card-body p-0">
               {/* Tabs */}
               <div className="tabs tabs-boxed bg-base-200 p-2 m-4">
-                {getAvailableTabs().map((tab) => (
+                {availableTabs.map((tab) => (
                   <button
                     key={tab.key}
                     className={`tab ${activeTab === tab.key ? 'tab-active' : ''}`}
@@ -445,7 +447,7 @@ const SystemLogs: React.FC = () => {
 
                     {/* Log Content */}
                     <div className="bg-base-300 p-4 rounded-lg max-h-96 overflow-y-auto">
-                      {formatLogContent(currentLogContent)}
+                      {formattedLog}
                     </div>
                   </div>
                 ) : (

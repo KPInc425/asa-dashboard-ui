@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DeveloperProvider } from './contexts/DeveloperContext';
+import { ToastProvider } from './contexts/ToastContext';
+import { ConfirmProvider } from './contexts/ConfirmContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Servers from './pages/Servers';
@@ -186,12 +188,19 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  // Note: app-wide refresh events were used during migration. Targeted refreshes
+  // are preferred; the centralized listener was removed to avoid global reloads.
+
   return (
     <AuthProvider>
       <DeveloperProvider>
-        <Router>
-          <AppContent />
-        </Router>
+        <ConfirmProvider>
+          <ToastProvider>
+            <Router>
+              <AppContent />
+            </Router>
+          </ToastProvider>
+        </ConfirmProvider>
       </DeveloperProvider>
     </AuthProvider>
   );

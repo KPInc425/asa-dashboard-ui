@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { provisioningApi } from '../services/api-provisioning';
+import { useToast } from '../contexts/ToastContext';
 import GlobalModManager from '../components/GlobalModManager';
 import GlobalConfigManager from '../components/GlobalConfigManager';
 
@@ -84,6 +85,7 @@ const ClusterDetails: React.FC = () => {
   const [restoreOptions, setRestoreOptions] = useState({ saves: true, configs: true, logs: true });
 
   const [downloadNotification, setDownloadNotification] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Load cluster data
   useEffect(() => {
@@ -234,7 +236,7 @@ const ClusterDetails: React.FC = () => {
       }, 1000);
       setTimeout(() => setDownloadNotification(null), 4000);
     } catch {
-      alert('Failed to download backup');
+      showToast('Failed to download backup', 'error');
     } finally {
       setDownloadBackupLoading('');
     }
@@ -309,7 +311,7 @@ const ClusterDetails: React.FC = () => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert('Failed to download server backup');
+      showToast('Failed to download server backup', 'error');
     } finally {
       setDownloadServerBackupLoading(prev => ({ ...prev, [backupName]: false }));
     }

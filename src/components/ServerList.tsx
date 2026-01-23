@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { useToast } from '../contexts/ToastContext';
 import { api } from '../services/api';
 
 interface Server {
@@ -30,13 +31,27 @@ interface ServerListProps {
   onConfigClick?: (server: Server) => void;
 }
 
-const ServerList: React.FC<ServerListProps> = ({
+const ServerList: React.FC<ServerListProps> = React.memo(({
   servers,
   actionLoading,
   onAction,
   onViewDetails,
   onConfigClick
 }) => {
+  const { showToast } = useToast();
+
+  const handleFixRcon = useCallback(async (serverName: string) => {
+    try {
+      const response = await api.post(`/api/native-servers/${serverName}/fix-rcon`);
+      if (response.data.success) {
+        showToast(`${response.data.message} — restart server to apply changes`, 'success');
+      } else {
+        showToast(`Failed to fix RCON: ${response.data.message}`, 'error');
+      }
+    } catch (error) {
+      showToast(`Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
+  }, [showToast]);
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'running': return 'badge-success';
@@ -244,18 +259,7 @@ const ServerList: React.FC<ServerListProps> = ({
                   )}
                   <button
                     title="Fix RCON authentication issues"
-                    onClick={async () => {
-                      try {
-                        const response = await api.post(`/api/native-servers/${server.name}/fix-rcon`);
-                        if (response.data.success) {
-                          alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
-                        } else {
-                          alert(`❌ Failed to fix RCON: ${response.data.message}`);
-                        }
-                      } catch (error) {
-                        alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                      }
-                    }}
+                    onClick={() => handleFixRcon(server.name)}
                     className="btn btn-xs btn-warning"
                   >
                     🔧
@@ -267,7 +271,8 @@ const ServerList: React.FC<ServerListProps> = ({
         </tbody>
       </table>
     </div>
-  );
-};
+});
 
-export default ServerList; 
+ServerList.displayName = 'ServerList';
+
+export default ServerList;

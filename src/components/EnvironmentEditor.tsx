@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { environmentApi } from '../services';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 const EnvironmentEditor = () => {
   const [activeTab, setActiveTab] = useState<'env' | 'docker-compose'>('env');
@@ -18,6 +19,8 @@ const EnvironmentEditor = () => {
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  const { showConfirm } = useConfirm();
 
   const loadData = async () => {
     setIsLoading(true);
@@ -41,9 +44,10 @@ const EnvironmentEditor = () => {
     }
   };
 
-  const handleTabChange = (tab: 'env' | 'docker-compose') => {
+  const handleTabChange = async (tab: 'env' | 'docker-compose') => {
     if (hasChanges) {
-      if (window.confirm('You have unsaved changes. Are you sure you want to switch tabs?')) {
+      const proceed = await showConfirm('You have unsaved changes. Are you sure you want to switch tabs?');
+      if (proceed) {
         setActiveTab(tab);
         setHasChanges(false);
         loadData();
@@ -79,9 +83,8 @@ const EnvironmentEditor = () => {
   };
 
   const handleReloadDockerCompose = async () => {
-    if (!window.confirm('This will restart all Docker containers. Are you sure?')) {
-      return;
-    }
+    const proceed = await showConfirm('This will restart all Docker containers. Are you sure?');
+    if (!proceed) return;
     
     setIsSaving(true);
     setError('');

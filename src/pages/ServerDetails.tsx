@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Server } from '../utils/serverUtils';
 import { containerApi, provisioningApi } from '../services';
@@ -38,54 +40,56 @@ const ServerDetails: React.FC = () => {
   const [serverRestoreError, setServerRestoreError] = useState<string>('');
   const [serverRestoreSuccess, setServerRestoreSuccess] = useState<string>('');
 
-  // Load server data
-  useEffect(() => {
-    const loadServer = async () => {
-      if (!serverName) return;
-      
-      setLoading(true);
-      setError(null);
-      
+  const { showToast } = useToast();
+  const { showConfirm } = useConfirm();
+
+  const loadServer = React.useCallback(async () => {
+    if (!serverName) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Try to get server from both containers and native servers
+      let serverData: Server | null = null;
+
       try {
-        // Try to get server from both containers and native servers
-        let serverData: Server | null = null;
-        
+        const containers = await containerApi.getContainers();
+        const foundContainer = containers.find(c => c.name === serverName);
+        if (foundContainer) {
+          serverData = foundContainer as Server;
+        }
+      } catch (error) {
+        console.log(`Error getting containers for ${serverName}:`, error);
+      }
+
+      if (!serverData) {
         try {
-          const containers = await containerApi.getContainers();
-          const foundContainer = containers.find(c => c.name === serverName);
-          if (foundContainer) {
-            serverData = foundContainer as Server;
+          const nativeServers = await containerApi.getNativeServers();
+          const foundNativeServer = nativeServers.find(s => s.name === serverName);
+          if (foundNativeServer) {
+            serverData = foundNativeServer as Server;
           }
         } catch (error) {
-          console.log(`Error getting containers for ${serverName}:`, error);
+          console.log(`Error getting native servers for ${serverName}:`, error);
         }
-        
-        if (!serverData) {
-          try {
-            const nativeServers = await containerApi.getNativeServers();
-            const foundNativeServer = nativeServers.find(s => s.name === serverName);
-            if (foundNativeServer) {
-              serverData = foundNativeServer as Server;
-            }
-          } catch (error) {
-            console.log(`Error getting native servers for ${serverName}:`, error);
-          }
-        }
-        
-        if (serverData) {
-          setServer(serverData);
-        } else {
-          setError(`Server "${serverName}" not found`);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load server data');
-      } finally {
-        setLoading(false);
       }
-    };
-    
-    loadServer();
+
+      if (serverData) {
+        setServer(serverData);
+      } else {
+        setError(`Server "${serverName}" not found`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load server data');
+    } finally {
+      setLoading(false);
+    }
   }, [serverName]);
+
+  // Load server data
+  useEffect(() => {
+    loadServer();
+  }, [loadServer]);
 
   // Handle tab from URL params
   useEffect(() => {
@@ -202,25 +206,25 @@ const ServerDetails: React.FC = () => {
           // Show immediate success message
           console.log(response.message);
           
-          // Check server status after a delay
-          setTimeout(async () => {
-            try {
-              const isRunning = await containerApi.isNativeServerRunning(server.name);
-              if (isRunning) {
-                console.log(`Server ${server.name} is now running`);
-              } else {
-                console.log(`Server ${server.name} may still be starting up`);
-              }
-              // Reload server data to update status
-              window.location.reload();
-            } catch (error) {
-              console.error('Error checking server status:', error);
-            }
-          }, 5000); // Check after 5 seconds
+              // Check server status after a delay
+              setTimeout(async () => {
+                try {
+                  const isRunning = await containerApi.isNativeServerRunning(server.name);
+                  if (isRunning) {
+                    console.log(`Server ${server.name} is now running`);
+                  } else {
+                    console.log(`Server ${server.name} may still be starting up`);
+                  }
+                  // Reload server data to update status
+                  await loadServer();
+                } catch (error) {
+                  console.error('Error checking server status:', error);
+                }
+              }, 5000); // Check after 5 seconds
         } else {
           // For other actions, reload immediately
           setTimeout(() => {
-            window.location.reload();
+            loadServer();
           }, 1000);
         }
       } else {
@@ -238,16 +242,14 @@ const ServerDetails: React.FC = () => {
   // Confirmation handlers for destructive actions
   const handleStopWithConfirmation = async () => {
     if (!server) return;
-    if (confirm(`Are you sure you want to stop the server "${server.name}"? This will disconnect all players.`)) {
-      await handleServerActionWithSave('stop');
-    }
+    const proceed = await showConfirm(`Are you sure you want to stop the server "${server.name}"? This will disconnect all players.`);
+    if (proceed) await handleServerActionWithSave('stop');
   };
 
   const handleRestartWithConfirmation = async () => {
     if (!server) return;
-    if (confirm(`Are you sure you want to restart the server "${server.name}"? This will disconnect all players and restart the server.`)) {
-      await handleServerActionWithSave('restart');
-    }
+    const proceed = await showConfirm(`Are you sure you want to restart the server "${server.name}"? This will disconnect all players and restart the server.`);
+    if (proceed) await handleServerActionWithSave('restart');
   };
 
   // Handle server actions with automatic saveworld
@@ -316,7 +318,7 @@ const ServerDetails: React.FC = () => {
       if (response.success) {
         // Reload immediately for stop/restart actions
         setTimeout(() => {
-          window.location.reload();
+          loadServer();
         }, 1000);
       } else {
         setError(`Failed to ${action} server: ${response.message || 'Unknown error'}`);
@@ -366,28 +368,28 @@ const ServerDetails: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (err: unknown) {
       console.error('Failed to download server backup:', err);
-      alert('Failed to download server backup');
+      try { showToast('Failed to download server backup', 'error'); } catch { /* noop */ }
     } finally {
       setDownloadServerBackupLoading('');
     }
   };
 
   const handleDeleteServerBackup = async (backupName: string) => {
-    if (!serverName || !window.confirm(`Are you sure you want to delete backup "${backupName}"? This action cannot be undone.`)) {
-      return;
-    }
-    
+    if (!serverName) return;
+    const proceed = await showConfirm(`Are you sure you want to delete backup "${backupName}"? This action cannot be undone.`);
+    if (!proceed) return;
+
     try {
       const response = await provisioningApi.deleteServerBackup(serverName, backupName);
       if (response.success) {
         // Remove from local state
         setServerBackups(prev => prev.filter(b => b.name !== backupName));
       } else {
-        alert(`Failed to delete backup: ${response.message}`);
+        try { showToast(`Failed to delete backup: ${response.message}`, 'error'); } catch {}
       }
     } catch (err: unknown) {
       console.error('Failed to delete backup:', err);
-      alert('Failed to delete backup');
+      try { showToast('Failed to delete backup', 'error'); } catch {}
     }
   };
 
@@ -756,9 +758,9 @@ const ServerDetails: React.FC = () => {
         <ServerSettingsEditor
           server={server}
           onClose={() => setShowSettingsEditor(false)}
-          onSave={() => {
-            // Reload server data to reflect changes
-            window.location.reload();
+            onSave={() => {
+            // Refresh server data to reflect changes
+            loadServer();
           }}
         />
       )}

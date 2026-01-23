@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 interface ConfigEditorProps {
   onClose: () => void;
@@ -26,6 +27,7 @@ const ConfigEditor: React.FC<ConfigEditorProps> = ({ onClose }) => {
   const [showFullConfig, setShowFullConfig] = useState(false);
   const [restartAfterSave, setRestartAfterSave] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadConfig();
@@ -74,7 +76,7 @@ const ConfigEditor: React.FC<ConfigEditorProps> = ({ onClose }) => {
       });
 
       if (response.data?.success) {
-        alert(response.data.message || 'Configuration saved successfully');
+        showToast(response.data.message || 'Configuration saved successfully', 'success');
         onClose();
       } else {
         setError(response.data?.message || 'Failed to save configuration');
@@ -95,7 +97,7 @@ const ConfigEditor: React.FC<ConfigEditorProps> = ({ onClose }) => {
       const response = await api.post('/api/restart');
 
       if (response.data?.success) {
-        alert('API restart initiated successfully');
+        showToast('API restart initiated successfully', 'success');
       } else {
         setError(response.data?.message || 'Failed to restart API');
       }

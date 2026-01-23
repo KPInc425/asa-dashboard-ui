@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../../services/api';
 import { useDeveloper } from '../../contexts/DeveloperContext';
+import { useToast } from '../../contexts/ToastContext';
 import RconDebugModal from '../RconDebugModal';
 
 interface Server {
@@ -24,6 +25,7 @@ const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
   onViewDetails
 }) => {
   const { isDeveloperMode } = useDeveloper();
+  const { showToast } = useToast();
   const [debugModalOpen, setDebugModalOpen] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
@@ -87,12 +89,12 @@ const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
               try {
                 const response = await api.post(`/api/native-servers/${encodeURIComponent(server.name)}/fix-rcon`);
                 if (response.data.success) {
-                  alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
+                  showToast(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`, 'success');
                 } else {
-                  alert(`❌ Failed to fix RCON: ${response.data.message}`);
+                  showToast(`❌ Failed to fix RCON: ${response.data.message}`, 'error');
                 }
               } catch (error) {
-                alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                showToast(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
               }
             }}
             className="btn btn-warning btn-xs md:btn-sm flex-1 text-xs"
@@ -108,11 +110,11 @@ const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
                   setDebugInfo(response.data.debug);
                   setDebugModalOpen(true);
                 } else {
-                  alert(`❌ Debug failed: ${response.data.message || 'Unknown error'}`);
+                  showToast(`❌ Debug failed: ${response.data.message || 'Unknown error'}`, 'error');
                 }
               } catch (error) {
                 const errorMessage = (error as any).response?.data?.message || (error as Error).message || 'Unknown error';
-                alert(`❌ Debug error: ${errorMessage}`);
+                showToast(`❌ Debug error: ${errorMessage}`, 'error');
               }
             }}
             className="btn btn-info btn-xs md:btn-sm min-w-[2.5rem]"

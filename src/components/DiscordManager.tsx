@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { discordService, type DiscordWebhook, type DiscordBotConfig } from '../services/discord';
+import { useConfirm } from '../contexts/ConfirmContext';
+import { useToast } from '../contexts/ToastContext';
 
 const DiscordManager: React.FC = () => {
   const [webhooks, setWebhooks] = useState<DiscordWebhook[]>([]);
@@ -8,6 +10,8 @@ const DiscordManager: React.FC = () => {
   const [error, setError] = useState('');
   const [showAddWebhook, setShowAddWebhook] = useState(false);
   const [showBotConfig, setShowBotConfig] = useState(false);
+  const { showConfirm } = useConfirm();
+  const { showToast } = useToast();
   
   // Form states
   const [newWebhook, setNewWebhook] = useState({
@@ -68,15 +72,15 @@ const DiscordManager: React.FC = () => {
   };
 
   const handleDeleteWebhook = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this webhook?')) {
-      try {
-        const success = await discordService.deleteWebhook(id);
-        if (success) {
-          setWebhooks(discordService.getWebhooks());
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to delete webhook');
+    const proceed = await showConfirm('Are you sure you want to delete this webhook?');
+    if (!proceed) return;
+    try {
+      const success = await discordService.deleteWebhook(id);
+      if (success) {
+        setWebhooks(discordService.getWebhooks());
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete webhook');
     }
   };
 
@@ -105,12 +109,12 @@ const DiscordManager: React.FC = () => {
       });
       
       if (success) {
-        alert('Test notification sent successfully!');
+        showToast('Test notification sent successfully!', 'success');
       } else {
-        alert('Failed to send test notification');
+        showToast('Failed to send test notification', 'error');
       }
     } catch (err) {
-      alert('Error sending test notification: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      showToast('Error sending test notification: ' + (err instanceof Error ? err.message : 'Unknown error'), 'error');
     }
   };
 

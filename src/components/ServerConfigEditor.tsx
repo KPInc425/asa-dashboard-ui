@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import Editor from '@monaco-editor/react';
+import { useConfirm } from '../contexts/ConfirmContext';
+import { useToast } from '../contexts/ToastContext';
 import { getArkConfigFile, updateArkConfigFile } from '../services/api-config';
 
 interface ErrorBoundaryProps {
@@ -54,7 +56,9 @@ const ServerConfigEditor: React.FC<ServerConfigEditorProps> = ({ serverName, onC
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [useTextarea, setUseTextarea] = useState(false);
+  const { showConfirm } = useConfirm();
 
   // Load config file content
   const loadConfigFile = useCallback(async (fileName: 'Game.ini' | 'GameUserSettings.ini') => {
@@ -95,7 +99,7 @@ const ServerConfigEditor: React.FC<ServerConfigEditorProps> = ({ serverName, onC
     
     try {
       await updateArkConfigFile(serverName, fileName, configContent[fileName]);
-      alert(`${fileName} saved successfully!`);
+      showToast(`${fileName} saved successfully!`, 'success');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to save config file');
       console.error(`Failed to save ${fileName}:`, error);
@@ -293,7 +297,7 @@ const ServerConfigEditor: React.FC<ServerConfigEditorProps> = ({ serverName, onC
               onClick={() => {
                 const content = configContent[selectedConfigFile] || '';
                 navigator.clipboard.writeText(content);
-                alert('Configuration copied to clipboard!');
+                showToast('Configuration copied to clipboard!', 'success');
               }}
               className="btn btn-sm btn-outline"
             >
@@ -315,10 +319,9 @@ const ServerConfigEditor: React.FC<ServerConfigEditorProps> = ({ serverName, onC
               💾 Download File
             </button>
             <button
-              onClick={() => {
-                if (confirm('Are you sure you want to reload the configuration file? Any unsaved changes will be lost.')) {
-                  loadConfigFile(selectedConfigFile);
-                }
+              onClick={async () => {
+                const proceed = await showConfirm('Are you sure you want to reload the configuration file? Any unsaved changes will be lost.');
+                if (proceed) loadConfigFile(selectedConfigFile);
               }}
               className="btn btn-sm btn-outline btn-warning"
             >

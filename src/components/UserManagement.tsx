@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 // import { useAuth } from '../contexts/AuthContext';
 import { api as apiClient } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
+import { useConfirm } from '../contexts/ConfirmContext';
 import PasswordInput from './PasswordInput';
 
 interface User {
@@ -65,6 +66,8 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     loadUsers();
   }, []);
+
+  const { showConfirm } = useConfirm();
 
   const loadUsers = async () => {
     try {
@@ -176,9 +179,8 @@ const UserManagement: React.FC = () => {
   };
 
   const handleDeleteUser = async (username: string) => {
-    if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
-      return;
-    }
+    const proceed = await showConfirm(`Are you sure you want to delete user "${username}"?`);
+    if (!proceed) return;
 
     try {
       const response = await apiClient.delete(`/api/auth/users/${username}`);

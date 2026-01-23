@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -111,20 +111,176 @@ const Servers: React.FC = () => {
       clearInterval(statusCheckInterval);
     };
   }, []); // Remove servers dependency to prevent infinite loop
+  // Stable helpers and handlers
+  const getEffectiveStatus = useCallback((server: Server) => {
+    if (pendingStop[server.name] && server.status === 'running') {
+      return 'stopping';
+    }
+    if (pendingStart[server.name] && server.status === 'stopped') {
+      return 'starting';
+    }
+    if (pendingRestart[server.name] && server.status === 'stopped') {
+      return 'restarting';
+    }
+    return server.status;
+  }, [pendingStop, pendingStart, pendingRestart]);
 
-  // Add a more frequent refresh for better UI updates
-  useEffect(() => {
-    const refreshInterval = setInterval(() => {
-      // Always refresh, even during actions, to get real-time updates
-      loadAllServers(false);
-    }, 10000); // Refresh every 10 seconds (reduced from 15)
-    
-    return () => {
-      clearInterval(refreshInterval);
-    };
-  }, []); // Remove dependencies to prevent infinite loop
+  // Memoize servers with effective status so memoized children receive stable objects
+  const memoizedServers = useMemo(() => {
+    return servers.map(s => ({ ...s, status: getEffectiveStatus(s) }));
+  }, [servers, getEffectiveStatus]);
 
-  const handleAction = async (action: 'start' | 'stop' | 'restart', server: Server) => {
+  const handleViewDetails = useCallback((server: Server) => {
+    navigate(`/servers/${encodeURIComponent(server.name)}`);
+  }, [navigate]);
+
+  const handleConfigClick = useCallback((server: Server) => {
+    navigate(`/servers/${encodeURIComponent(server.name)}?tab=config`);
+  }, [navigate]);
+
+  const loadAllServers = useCallback(async (showLoading = true) => {
+    try {
+      if (showLoading) setLoading(true);
+      setError(null);
+
+      // Load both containers and native servers
+      const [containersResponse, nativeServersResponse] = await Promise.all([
+        api.get('/api/containers').catch(() => ({ data: { containers: [] } })),
+        api.get('/api/native-servers').catch(() => ({ data: { servers: [] } }))
+      ]);
+
+      const containers = containersResponse.data?.containers || [];
+      const nativeServers = nativeServersResponse.data?.servers || [];
+
+      // Combine and prioritize native servers (they're more important for this use case)
+      const allServers = [...nativeServers];
+      
+      // Only add containers that don't have a matching native server
+      for (const container of containers) {
+        const existingNative = nativeServers.find((ns: Server) => ns.name === container.name);
+        if (!existingNative) {
+          allServers.push(container);
+        } else {
+          console.log(`Skipping container ${container.name} because native server exists`);
+        }
+      }
+
+      setServers(allServers);
+      
+      // Update the ref with current running servers
+      runningServersRef.current = allServers.filter(s => s.status === 'running');
+    } catch (err) {
+      console.error('Failed to load servers:', err);
+      setError('Failed to load servers. Please try again.');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, []);
+
+  const checkSimpleStatus = useCallback(async (serverName: string, serverType: string): Promise<string> => {
+    try {
+      const encodedName = encodeURIComponent(serverName);
+      let response;
+      
+      if (serverType === 'container') {
+        response = await api.get(`/api/containers/${encodedName}/running`);
+      } else {
+        // Use the new running endpoint for native servers
+        response = await api.get(`/api/native-servers/${encodedName}/running`);
+      }
+      
+      if (response.data.success) {
+        return response.data.running ? 'running' : 'stopped';
+      }
+      
+      return 'unknown';
+    } catch (error) {
+      console.error(`Error checking simple status for ${serverName}:`, error);
+      return 'unknown';
+    }
+  }, []);
+
+  const startStatusPolling = useCallback((serverName: string, action: string, serverType: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        // Use simple status check for faster response
+        const simpleStatus = await checkSimpleStatus(serverName, serverType);
+        console.log(`Polling status for ${serverName}: ${simpleStatus} (action: ${action})`);
+        
+        // Check if action completed
+        let isCompleted = false;
+        if (action === 'start' && simpleStatus === 'running') {
+          isCompleted = true;
+        } else if (action === 'stop' && simpleStatus === 'stopped') {
+          isCompleted = true;
+        } else if (action === 'restart' && simpleStatus === 'running') {
+          isCompleted = true;
+        }
+        
+        if (isCompleted) {
+          clearInterval(pollInterval);
+          setActionStatus(prev => {
+            const newStatus = { ...prev };
+            delete newStatus[serverName];
+            return newStatus;
+          });
+          
+          // Clear pending states when action completes
+          if (action === 'stop') {
+            setPendingStop(prev => {
+              const newPending = { ...prev };
+              delete newPending[serverName];
+              return newPending;
+            });
+          } else if (action === 'start') {
+            setPendingStart(prev => {
+              const newPending = { ...prev };
+              delete newPending[serverName];
+              return newPending;
+            });
+          } else if (action === 'restart') {
+            setPendingRestart(prev => {
+              const newPending = { ...prev };
+              delete newPending[serverName];
+              return newPending;
+            });
+          }
+          
+          // Reload servers to get updated status immediately
+          loadAllServers(false);
+        } else {
+          // Update status message to show progress
+          if (action === 'start' && serverType !== 'container') {
+            setActionStatus(prev => ({ 
+              ...prev, 
+              [serverName]: `Starting... (checking in ${Math.floor((Date.now() - Date.now()) / 1000)}s)` 
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Status polling error:', error);
+        clearInterval(pollInterval);
+        setActionStatus(prev => ({ ...prev, [serverName]: 'Error' }));
+      }
+    }, 2000); // Poll every 2 seconds for faster response
+
+    // Stop polling after 60 seconds to prevent infinite polling
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      setActionStatus(prev => {
+        const newStatus = { ...prev };
+        delete newStatus[serverName];
+        return newStatus;
+      });
+      
+      // For start actions, show a message that the server may still be starting
+      if (action === 'start') {
+        console.log(`Server ${serverName} may still be starting up. Check server status manually.`);
+      }
+    }, 60000); // Increased timeout to 60 seconds for server startup
+  }, [checkSimpleStatus, loadAllServers]);
+
+  const handleAction = useCallback(async (action: 'start' | 'stop' | 'restart', server: Server) => {
     try {
       setActionLoading(server.name);
       
@@ -329,27 +485,7 @@ const Servers: React.FC = () => {
     }
   };
 
-  // When rendering ServerCard, pass a computed status:
-  const getEffectiveStatus = (server: Server) => {
-    if (pendingStop[server.name] && server.status === 'running') {
-      return 'stopping';
-    }
-    if (pendingStart[server.name] && server.status === 'stopped') {
-      return 'starting';
-    }
-    if (pendingRestart[server.name] && server.status === 'stopped') {
-      return 'restarting';
-    }
-    return server.status;
-  };
-
-  const handleViewDetails = (server: Server) => {
-    navigate(`/servers/${encodeURIComponent(server.name)}`);
-  };
-
-  const handleConfigClick = (server: Server) => {
-    navigate(`/servers/${encodeURIComponent(server.name)}?tab=config`);
-  };
+  // (Handlers and helpers are memoized above)
 
   if (loading) {
     return <LoadingSpinner />;
@@ -470,10 +606,10 @@ const Servers: React.FC = () => {
           ) : layoutMode === 'cards' ? (
             // Card Layout
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-              {servers.map((server, index) => (
+              {memoizedServers.map((server, index) => (
                 <ServerCard
                   key={server.name || `server-${index}`}
-                  server={{ ...server, status: getEffectiveStatus(server) }}
+                  server={server}
                   actionLoading={actionLoading}
                   actionStatus={actionStatus}
                   onAction={handleAction}
@@ -484,7 +620,7 @@ const Servers: React.FC = () => {
           ) : (
             // List Layout
             <ServerList
-              servers={servers}
+              servers={memoizedServers}
               actionLoading={actionLoading}
               onAction={handleAction}
               onViewDetails={handleViewDetails}

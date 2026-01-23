@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { containerApi } from '../services/api';
+import { useConfirm } from '../contexts/ConfirmContext';
+import { useToast } from '../contexts/ToastContext';
 
 interface NativeServerConfig {
   serverPath: string;
@@ -62,6 +64,8 @@ const NativeServerManager: React.FC = () => {
   useEffect(() => {
     loadServers();
   }, []);
+  const { showConfirm } = useConfirm();
+  const { showToast } = useToast();
 
   const loadServers = async () => {
     try {
@@ -83,7 +87,7 @@ const NativeServerManager: React.FC = () => {
     e.preventDefault();
     
     if (!formData.serverPath) {
-      alert('Server path is required');
+      showToast('Server path is required', 'error');
       return;
     }
 
@@ -115,7 +119,7 @@ const NativeServerManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to save server configuration:', error);
-      alert('Failed to save server configuration');
+      showToast('Failed to save server configuration', 'error');
     }
   };
 
@@ -127,7 +131,7 @@ const NativeServerManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to start server:', error);
-      alert('Failed to start server');
+      showToast('Failed to start server', 'error');
     }
   };
 
@@ -139,7 +143,7 @@ const NativeServerManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to stop server:', error);
-      alert('Failed to stop server');
+      showToast('Failed to stop server', 'error');
     }
   };
 
@@ -151,14 +155,13 @@ const NativeServerManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to restart server:', error);
-      alert('Failed to restart server');
+      showToast('Failed to restart server', 'error');
     }
   };
 
   const handleDelete = async (serverName: string) => {
-    if (!confirm(`Are you sure you want to delete server "${serverName}"?`)) {
-      return;
-    }
+    const proceed = await showConfirm(`Are you sure you want to delete server "${serverName}"?`);
+    if (!proceed) return;
 
     try {
       const response = await api.delete(`/api/native-servers/${serverName}`);
@@ -167,23 +170,23 @@ const NativeServerManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to delete server:', error);
-      alert('Failed to delete server');
+      showToast('Failed to delete server', 'error');
     }
   };
 
   const handleEdit = (server: NativeServer) => {
     if (server.type === 'cluster') {
-      alert('Clusters cannot be edited through this interface. Use the Server Provisioner to manage clusters.');
+      showToast('Clusters cannot be edited through this interface. Use the Server Provisioner to manage clusters.', 'warning');
       return;
     }
     
     if (server.type === 'cluster-server') {
-      alert('Cluster servers cannot be edited through this interface. Use the Server Provisioner to manage cluster servers.');
+      showToast('Cluster servers cannot be edited through this interface. Use the Server Provisioner to manage cluster servers.', 'warning');
       return;
     }
     
     if (!server.config) {
-      alert('Server configuration not available for editing.');
+      showToast('Server configuration not available for editing.', 'warning');
       return;
     }
     
@@ -194,7 +197,7 @@ const NativeServerManager: React.FC = () => {
 
   const handleViewStartBat = async (server: NativeServer) => {
     if (server.type !== 'cluster-server') {
-      alert('Start.bat files are only available for cluster servers.');
+      showToast('Start.bat files are only available for cluster servers.', 'info');
       return;
     }
 
@@ -207,7 +210,7 @@ const NativeServerManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to get start.bat:', error);
-      alert('Failed to get start.bat file');
+      showToast('Failed to get start.bat file', 'error');
     }
   };
 
@@ -219,12 +222,12 @@ const NativeServerManager: React.FC = () => {
         content: startBatContent
       });
       if (response.data.success) {
-        alert('Start.bat updated successfully!');
+        showToast('Start.bat updated successfully!', 'success');
         setShowStartBatModal(false);
       }
     } catch (error) {
       console.error('Failed to update start.bat:', error);
-      alert('Failed to update start.bat file');
+      showToast('Failed to update start.bat file', 'error');
     }
   };
 
@@ -232,15 +235,15 @@ const NativeServerManager: React.FC = () => {
     try {
       const response = await containerApi.regenerateNativeServerStartBat(serverName);
       if (response.success) {
-        alert(response.message);
+        showToast(response.message, 'success');
         // Optionally refresh the server list to show updated status
         loadServers();
       } else {
-        alert('Failed to regenerate start.bat: ' + response.message);
+        showToast('Failed to regenerate start.bat: ' + response.message, 'error');
       }
     } catch (error) {
       console.error('Failed to regenerate start.bat:', error);
-      alert('Failed to regenerate start.bat file');
+      showToast('Failed to regenerate start.bat file', 'error');
     }
   };
 
@@ -488,12 +491,12 @@ const NativeServerManager: React.FC = () => {
                             try {
                               const response = await api.post(`/api/native-servers/${server.name}/fix-rcon`);
                               if (response.data.success) {
-                                alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
+                                showToast(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`, 'success');
                               } else {
-                                alert(`❌ Failed to fix RCON: ${response.data.message}`);
+                                showToast(`❌ Failed to fix RCON: ${response.data.message}`, 'error');
                               }
                             } catch (error) {
-                              alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                              showToast(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
                             }
                           }}
                           className="btn btn-warning btn-xs flex-1"

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { discordService, type DiscordWebhook, type DiscordBotConfig } from '../services/discord';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 const DiscordSetup: React.FC = () => {
   const [webhooks, setWebhooks] = useState<DiscordWebhook[]>([]);
@@ -9,6 +10,7 @@ const DiscordSetup: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [showAddWebhook, setShowAddWebhook] = useState(false);
   const [showBotConfig, setShowBotConfig] = useState(false);
+  const { showConfirm } = useConfirm();
   
   // Form states
   const [newWebhook, setNewWebhook] = useState({
@@ -71,16 +73,16 @@ const DiscordSetup: React.FC = () => {
   };
 
   const handleDeleteWebhook = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this webhook?')) {
-      try {
-        const success = await discordService.deleteWebhook(id);
-        if (success) {
-          setWebhooks(discordService.getWebhooks());
-          setSuccess('Webhook deleted successfully!');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to delete webhook');
+    const proceed = await showConfirm('Are you sure you want to delete this webhook?');
+    if (!proceed) return;
+    try {
+      const success = await discordService.deleteWebhook(id);
+      if (success) {
+        setWebhooks(discordService.getWebhooks());
+        setSuccess('Webhook deleted successfully!');
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete webhook');
     }
   };
 

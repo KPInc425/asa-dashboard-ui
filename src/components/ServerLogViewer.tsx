@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useToast } from '../contexts/ToastContext';
 import { useParams, Link } from 'react-router-dom';
 import { socketService, type LogMessage } from '../services';
 import { logsApi } from '../services/api-logs';
@@ -321,9 +322,16 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ serverName: propServe
         console.log('🔍 Debug: Log files response:', response);
         
         if (response.success) {
-          alert(`Debug Info for ${serverName}:\n\n${response.logFiles.map(file => 
+          const debugText = `Debug Info for ${serverName}:\n\n${response.logFiles.map(file => 
             `${file.name}:\n  Path: ${file.path}\n  Size: ${file.size} bytes`
-          ).join('\n\n')}`);
+          ).join('\n\n')}`;
+          try {
+            await navigator.clipboard.writeText(debugText);
+            showToast('Debug info copied to clipboard', 'success');
+          } catch {
+            console.log(debugText);
+            showToast('Debug info logged to console', 'info');
+          }
           return;
         }
       } catch (debugError) {
@@ -335,15 +343,22 @@ const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ serverName: propServe
       console.log('🔍 Debug: Fallback response:', fallbackResponse);
       
       if (fallbackResponse.success) {
-        alert(`Fallback Debug Info for ${serverName}:\n\n${fallbackResponse.logFiles.map(file => 
+        const debugText = `Fallback Debug Info for ${serverName}:\n\n${fallbackResponse.logFiles.map(file => 
           `${file.name}:\n  Path: ${file.path}\n  Size: ${file.size} bytes`
-        ).join('\n\n')}`);
+        ).join('\n\n')}`;
+        try {
+          await navigator.clipboard.writeText(debugText);
+          showToast('Debug info copied to clipboard (fallback)', 'success');
+        } catch {
+          console.log(debugText);
+          showToast('Fallback debug info logged to console', 'info');
+        }
       } else {
-        alert('Failed to get debug info from both endpoints');
+        showToast('Failed to get debug info from both endpoints', 'error');
       }
     } catch (error) {
       console.error('🔍 Debug: Error getting log files:', error);
-      alert('Error getting debug info: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      showToast('Error getting debug info: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     }
   };
 

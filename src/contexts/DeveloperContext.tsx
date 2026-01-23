@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 interface DeveloperContextType {
@@ -24,23 +24,23 @@ export const DeveloperProvider: React.FC<DeveloperProviderProps> = ({ children }
     }
   }, []);
 
-  const setDeveloperMode = (enabled: boolean) => {
+  const setDeveloperMode = useCallback((enabled: boolean) => {
     setIsDeveloperMode(enabled);
     localStorage.setItem('developer_mode', enabled.toString());
-  };
+  }, []);
 
-  const toggleDeveloperMode = () => {
-    setDeveloperMode(!isDeveloperMode);
-  };
+  const toggleDeveloperMode = useCallback(() => {
+    setIsDeveloperMode(prev => {
+      const next = !prev;
+      try { localStorage.setItem('developer_mode', next.toString()); } catch {}
+      return next;
+    });
+  }, []);
+
+  const value = useMemo(() => ({ isDeveloperMode, toggleDeveloperMode, setDeveloperMode }), [isDeveloperMode, toggleDeveloperMode, setDeveloperMode]);
 
   return (
-    <DeveloperContext.Provider
-      value={{
-        isDeveloperMode,
-        toggleDeveloperMode,
-        setDeveloperMode,
-      }}
-    >
+    <DeveloperContext.Provider value={value}>
       {children}
     </DeveloperContext.Provider>
   );

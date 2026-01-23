@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { authApi } from '../services/api';
 import type { User } from '../services/api';
@@ -50,11 +50,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (username: string, password: string, rememberMe: boolean = false) => {
+  const login = useCallback(async (username: string, password: string, rememberMe: boolean = false) => {
     try {
       const response = await authApi.login(username, password, rememberMe);
       setUser(response.user);
-      
+
       // Check if this is the default admin user that needs first-time setup
       const isDefaultAdmin = response.user?.username === 'admin' && 
                             (response.user?.profile?.firstName === 'Admin' || !response.user?.profile?.firstName);
@@ -62,15 +62,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       throw error;
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     authApi.logout();
     setUser(null);
     setNeedsFirstTimeSetup(false);
-  };
+  }, []);
 
-  const completeFirstTimeSetup = () => {
+  const completeFirstTimeSetup = useCallback(() => {
     setNeedsFirstTimeSetup(false);
     // Refresh user data to get updated profile
     if (user) {
@@ -78,9 +78,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(updatedUser);
       }).catch(console.error);
     }
-  };
+  }, [user]);
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     isLoading,
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     completeFirstTimeSetup,
-  };
+  }), [user, isLoading, needsFirstTimeSetup, login, logout, completeFirstTimeSetup]);
 
   return (
     <AuthContext.Provider value={value}>

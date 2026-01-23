@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Server } from '../utils/serverUtils';
 import { api } from '../services/api';
+import { useToast } from '../contexts/ToastContext';
 
 interface ServerDetailsModalProps {
   server: Server | null;
@@ -11,6 +12,7 @@ interface ServerDetailsModalProps {
 
 const ServerDetailsModal: React.FC<ServerDetailsModalProps> = ({ server, isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const getMapDisplayName = (mapCode: string): string => {
     const mapNames: Record<string, string> = {
@@ -204,12 +206,12 @@ const ServerDetailsModal: React.FC<ServerDetailsModalProps> = ({ server, isOpen,
                       try {
                         const response = await api.post(`/api/native-servers/${encodeURIComponent(server.name)}/fix-rcon`);
                         if (response.data.success) {
-                          alert(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`);
+                          showToast(`✅ ${response.data.message}\n\nPlease restart the server to apply the changes.`, 'success');
                         } else {
-                          alert(`❌ Failed to fix RCON: ${response.data.message}`);
+                          showToast(`❌ Failed to fix RCON: ${response.data.message}`, 'error');
                         }
                       } catch (error) {
-                        alert(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                        showToast(`❌ Error fixing RCON: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
                       }
                     }
                   }}

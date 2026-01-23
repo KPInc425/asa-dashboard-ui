@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { containerApi } from '../services/api-containers';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 interface SaveFile {
   name: string;
@@ -30,6 +31,8 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
   useEffect(() => {
     loadSaveFiles();
   }, [serverName]);
+
+  const { showConfirm } = useConfirm();
 
   const loadSaveFiles = async () => {
     try {
@@ -153,9 +156,8 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
   };
 
   const handleDelete = async (fileName: string) => {
-    if (!window.confirm(`Are you sure you want to delete ${fileName}? This action cannot be undone.`)) {
-      return;
-    }
+    const proceed = await showConfirm(`Are you sure you want to delete ${fileName}? This action cannot be undone.`);
+    if (!proceed) return;
 
     try {
       setError(null);
@@ -187,9 +189,8 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to restore from ${restoreFile.name}? This will overwrite the current save file.`)) {
-      return;
-    }
+    const proceed = await showConfirm(`Are you sure you want to restore from ${restoreFile.name}? This will overwrite the current save file.`);
+    if (!proceed) return;
 
     try {
       setRestoring(true);

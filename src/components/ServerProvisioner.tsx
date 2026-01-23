@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { provisioningApi } from '../services/api-provisioning';
 import { socketService, type JobProgress } from '../services/socket';
+import { useConfirm } from '../contexts/ConfirmContext';
+import { useToast } from '../contexts/ToastContext';
 import PasswordInput from './PasswordInput';
 import GlobalConfigManager from './GlobalConfigManager';
 import GlobalModManager from './GlobalModManager';
@@ -423,6 +425,8 @@ const ServerProvisioner: React.FC = () => {
   type Backup = { path: string; name: string; backupDate?: string; sizeFormatted?: string };
   const [restoreModal, setRestoreModal] = useState<{ clusterName: string; backups: Backup[]; open: boolean } | null>(null);
   const [selectedBackup, setSelectedBackup] = useState<string | null>(null);
+  const { showConfirm } = useConfirm();
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadSystemInfo();
@@ -651,9 +655,8 @@ const ServerProvisioner: React.FC = () => {
       ? `Are you sure you want to FORCE DELETE cluster "${clusterName}"? This will remove the cluster directory completely, even if it's corrupted or incomplete.`
       : `Are you sure you want to delete cluster "${clusterName}"? This will remove all server data.`;
       
-    if (!confirm(message)) {
-      return;
-    }
+    const proceed = await showConfirm(message);
+    if (!proceed) return;
 
     try {
       setLoading(true);
@@ -676,11 +679,10 @@ const ServerProvisioner: React.FC = () => {
       setTimeout(() => setStatusMessage(null), 10000);
       // If normal delete fails, offer force delete
       if (!force) {
-        const shouldForceDelete = confirm(
+        const shouldForceDelete = await showConfirm(
           `Failed to delete cluster "${clusterName}" normally. This might be due to a corrupted or incomplete cluster.\n\n` +
           `Would you like to try force deleting it? This will remove the cluster directory completely.`
         );
-        
         if (shouldForceDelete) {
           await deleteCluster(clusterName, true);
         }
@@ -940,14 +942,14 @@ const ServerProvisioner: React.FC = () => {
         if (wizardData.clusterName.trim()) {
           setCurrentStep('map-selection');
         } else {
-          alert('Please enter a cluster name');
+          showToast('Please enter a cluster name', 'warning');
         }
         break;
       case 'map-selection':
         if (wizardData.selectedMaps.length > 0) {
           setCurrentStep('server-config');
         } else {
-          alert('Please select at least one map');
+          showToast('Please select at least one map', 'warning');
         }
         break;
       case 'server-config':
