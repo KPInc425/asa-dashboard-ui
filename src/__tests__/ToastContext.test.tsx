@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { JSDOM } from 'jsdom';
 
 if (typeof document === 'undefined') {

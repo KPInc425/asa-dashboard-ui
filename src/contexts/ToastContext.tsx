@@ -55,7 +55,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         {toasts.map(t => (
           <div
             key={t.id}
-            ref={el => (toastRefs.current[t.id] = el)}
+            ref={el => { toastRefs.current[t.id] = el; }}
             role={t.type === 'error' ? 'alert' : 'status'}
             aria-atomic="true"
             tabIndex={0}

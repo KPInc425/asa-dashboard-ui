@@ -12,6 +12,7 @@ interface ServerLogViewerProps {
 const ServerLogViewer: React.FC<ServerLogViewerProps> = ({ serverName: propServerName }) => {
   const params = useParams<{ serverName: string }>();
   const serverName = propServerName || params.serverName;
+  const { showToast } = useToast();
   const [logs, setLogs] = useState<LogMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
