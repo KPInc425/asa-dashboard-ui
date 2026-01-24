@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm ci
+# Use legacy peer deps in the builder to avoid strict peer dependency failures
+RUN npm ci --legacy-peer-deps
 
 # Copy source code and config files
 COPY . .
