@@ -6,6 +6,10 @@ export { default as apiService } from './api';
 export * from './socket';
 export { default as socketService } from './socket';
 
+// Export auto-update API service
+export * from './api-auto-update';
+export { default as autoUpdateApi } from './api-auto-update';
+
 // Re-export commonly used types from core
 export type {
   Container,
