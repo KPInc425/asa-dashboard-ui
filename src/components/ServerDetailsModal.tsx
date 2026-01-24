@@ -83,7 +83,7 @@ const ServerDetailsModal: React.FC<ServerDetailsModalProps> = ({ server, isOpen,
       <div className="modal-box w-11/12 max-w-2xl">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg">{server.name} - Quick Overview</h3>
-          <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost">✕</button>
+          <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost" aria-label={`Close ${server.name} details`}>✕</button>
         </div>
 
         <div className="space-y-4">

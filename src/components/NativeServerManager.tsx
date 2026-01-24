@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { containerApi } from '../services/api';
-import { useConfirm } from '../contexts/ConfirmContext';
+import { useConfirm } from '../contexts/ConfirmContext2';
 import { useToast } from '../contexts/ToastContext';
 
 interface NativeServerConfig {
@@ -547,6 +547,7 @@ const NativeServerManager: React.FC = () => {
                         title="Delete this server"
                         onClick={() => handleDelete(server.name)}
                         className="btn btn-error btn-xs flex-1"
+                        aria-label={`Delete ${server.name}`}
                       >
                         🗑️
                       </button>

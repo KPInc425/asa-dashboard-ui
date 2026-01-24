@@ -218,6 +218,10 @@ const SystemLogs: React.FC = () => {
   };
 
   // Memoize the rendered log content to avoid reprocessing on unrelated renders
+  // Support new backend log object structure
+  const currentLog = logs.logFiles?.[activeTab] || (logs[activeTab as keyof SystemLogs] as any);
+  const currentLogContent = currentLog?.content || '';
+
   const formattedLog = useMemo(() => formatLogContent(currentLogContent), [currentLogContent]);
 
   const copyToClipboard = (content: string) => {
@@ -274,9 +278,7 @@ const SystemLogs: React.FC = () => {
     }
   };
 
-  // Support new backend log object structure
-  const currentLog = logs.logFiles?.[activeTab] || logs[activeTab as keyof SystemLogs] as any;
-  const currentLogContent = currentLog?.content || '';
+  
 
   if (loading && Object.keys(logs).length === 0) {
     return (
@@ -396,7 +398,7 @@ const SystemLogs: React.FC = () => {
         )}
 
         {/* Logs Display */}
-        {getAvailableTabs().length > 0 ? (
+        {availableTabs.length > 0 ? (
           <div className="card bg-base-100 shadow-lg">
             <div className="card-body p-0">
               {/* Tabs */}
@@ -421,7 +423,7 @@ const SystemLogs: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-2">
                         <span className="text-lg font-semibold">
-                          {getAvailableTabs().find(tab => tab.key === activeTab)?.label}
+                          {availableTabs.find(tab => tab.key === activeTab)?.label}
                         </span>
                         <span className="badge badge-outline">
                           {currentLog.path ? currentLog.path.split(/[/\\]/).pop() || 'Unknown' : 'Unknown'}

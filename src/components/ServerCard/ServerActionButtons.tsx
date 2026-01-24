@@ -38,6 +38,7 @@ const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
           onClick={() => onAction('start', server)}
           disabled={server.status === 'running' || actionLoading === server.name}
           className="btn btn-success btn-xs md:btn-sm min-w-[2.5rem] md:min-w-[3rem]"
+          aria-label={`Start ${server.type === 'cluster' ? 'cluster' : 'server'}`}
         >
           {actionLoading === server.name ? (
             <span className="loading loading-spinner loading-xs"></span>
@@ -50,6 +51,7 @@ const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
           onClick={() => onAction('stop', server)}
           disabled={server.status === 'stopped' || actionLoading === server.name}
           className="btn btn-error btn-xs md:btn-sm min-w-[2.5rem] md:min-w-[3rem]"
+          aria-label={`Stop ${server.type === 'cluster' ? 'cluster' : 'server'}`}
         >
           {actionLoading === server.name ? (
             <span className="loading loading-spinner loading-xs"></span>
@@ -62,6 +64,7 @@ const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
           onClick={() => onAction('restart', server)}
           disabled={server.status === 'stopped' || actionLoading === server.name}
           className="btn btn-warning btn-xs md:btn-sm min-w-[2.5rem] md:min-w-[3rem]"
+          aria-label={`Restart ${server.type === 'cluster' ? 'cluster' : 'server'}`}
         >
           {actionLoading === server.name ? (
             <span className="loading loading-spinner loading-xs"></span>
@@ -101,25 +104,27 @@ const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
           >
             🔧 Fix RCON
           </button>
-          <button
-            title="Debug RCON configuration"
-            onClick={async () => {
-              try {
-                const response = await api.get(`/api/native-servers/${encodeURIComponent(server.name)}/debug-rcon`);
-                if (response.data.success && response.data.debug) {
-                  setDebugInfo(response.data.debug);
-                  setDebugModalOpen(true);
-                } else {
-                  showToast(`❌ Debug failed: ${response.data.message || 'Unknown error'}`, 'error');
+          
+            <button
+              title="Debug RCON configuration"
+              aria-label="Debug RCON configuration"
+              onClick={async () => {
+                try {
+                  const response = await api.get(`/api/native-servers/${encodeURIComponent(server.name)}/debug-rcon`);
+                  if (response.data.success && response.data.debug) {
+                    setDebugInfo(response.data.debug);
+                    setDebugModalOpen(true);
+                  } else {
+                    showToast(`❌ Debug failed: ${response.data.message || 'Unknown error'}`, 'error');
+                  }
+                } catch (error) {
+                  const errorMessage = (error as any).response?.data?.message || (error as Error).message || 'Unknown error';
+                  showToast(`❌ Debug error: ${errorMessage}`, 'error');
                 }
-              } catch (error) {
-                const errorMessage = (error as any).response?.data?.message || (error as Error).message || 'Unknown error';
-                showToast(`❌ Debug error: ${errorMessage}`, 'error');
-              }
-            }}
-            className="btn btn-info btn-xs md:btn-sm min-w-[2.5rem]"
-          >
-            🔍
+              }}
+              className="btn btn-info btn-xs md:btn-sm min-w-[2.5rem]"
+            >
+              🔍
           </button>
         </div>
       )}

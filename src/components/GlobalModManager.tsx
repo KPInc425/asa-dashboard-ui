@@ -183,6 +183,7 @@ const GlobalModManager: React.FC<GlobalModManagerProps> = ({ onClose }) => {
             <button
               onClick={onClose}
               className="btn btn-circle btn-sm btn-ghost"
+              aria-label="Close Global Mods Manager"
             >
               ✕
             </button>

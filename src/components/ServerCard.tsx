@@ -55,7 +55,7 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
     );
   }
 
-  const getMapDisplayName = React.useCallback((mapCode: string): string => {
+  const getMapDisplayName = (mapCode: string): string => {
     const mapNames: Record<string, string> = {
       'TheIsland': 'The Island',
       'TheIsland_WP': 'The Island',
@@ -72,7 +72,7 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
     };
     
     return mapNames[mapCode] || mapCode;
-  }, []);
+  };
 
   return (
     <div className="bg-base-300 rounded-lg p-3 md:p-4 hover:shadow-lg transition-all duration-200 flex flex-col h-full min-h-[320px] md:min-h-[350px]">

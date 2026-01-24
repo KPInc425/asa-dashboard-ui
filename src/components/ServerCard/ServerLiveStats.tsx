@@ -106,7 +106,7 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
       if (usedFallback) {
         const commands = ['listplayers', 'getday', 'gettime'];
         const responses = [];
-        let rconErrors: string[] = [];
+        const rconErrors: string[] = [];
         let cachedDataUsed = false;
         
         for (const command of commands) {

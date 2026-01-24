@@ -31,13 +31,13 @@ interface ServerListProps {
   onConfigClick?: (server: Server) => void;
 }
 
-const ServerList: React.FC<ServerListProps> = React.memo(({
+function ServerListComponent({
   servers,
   actionLoading,
   onAction,
   onViewDetails,
   onConfigClick
-}) => {
+}: ServerListProps) {
   const { showToast } = useToast();
 
   const handleFixRcon = useCallback(async (serverName: string) => {
@@ -210,6 +210,7 @@ const ServerList: React.FC<ServerListProps> = React.memo(({
                     title="Start Server"
                     disabled={server.status === 'running' || actionLoading === server.name}
                     onClick={() => onAction('start', server)}
+                    aria-label={`Start ${server.name}`}
                   >
                     {actionLoading === server.name ? (
                       <span className="loading loading-spinner loading-xs"></span>
@@ -222,6 +223,7 @@ const ServerList: React.FC<ServerListProps> = React.memo(({
                     title="Restart Server"
                     disabled={server.status !== 'running' || actionLoading === server.name}
                     onClick={() => onAction('restart', server)}
+                    aria-label={`Restart ${server.name}`}
                   >
                     {actionLoading === server.name ? (
                       <span className="loading loading-spinner loading-xs"></span>
@@ -234,6 +236,7 @@ const ServerList: React.FC<ServerListProps> = React.memo(({
                     title="Stop Server"
                     disabled={server.status !== 'running' || actionLoading === server.name}
                     onClick={() => onAction('stop', server)}
+                    aria-label={`Stop ${server.name}`}
                   >
                     {actionLoading === server.name ? (
                       <span className="loading loading-spinner loading-xs"></span>
@@ -245,6 +248,7 @@ const ServerList: React.FC<ServerListProps> = React.memo(({
                     title="View Details"
                     onClick={() => onViewDetails(server)}
                     className="btn btn-xs btn-info"
+                    aria-label={`View details for ${server.name}`}
                   >
                     🔍
                   </button>
@@ -253,6 +257,7 @@ const ServerList: React.FC<ServerListProps> = React.memo(({
                       title="Edit Configuration"
                       onClick={() => onConfigClick(server)}
                       className="btn btn-xs btn-secondary"
+                      aria-label={`Edit configuration for ${server.name}`}
                     >
                       ⚙️
                     </button>
@@ -261,6 +266,7 @@ const ServerList: React.FC<ServerListProps> = React.memo(({
                     title="Fix RCON authentication issues"
                     onClick={() => handleFixRcon(server.name)}
                     className="btn btn-xs btn-warning"
+                    aria-label={`Fix RCON for ${server.name}`}
                   >
                     🔧
                   </button>
@@ -271,8 +277,10 @@ const ServerList: React.FC<ServerListProps> = React.memo(({
         </tbody>
       </table>
     </div>
-});
+  );
+}
 
-ServerList.displayName = 'ServerList';
+  const ServerList = React.memo(ServerListComponent);
+  ServerList.displayName = 'ServerList';
 
-export default ServerList;
+  export default ServerList;

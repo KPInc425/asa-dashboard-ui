@@ -69,6 +69,7 @@ const StartScriptViewer: React.FC<StartScriptViewerProps> = ({ serverName, onClo
             <button
               onClick={onClose}
               className="btn btn-ghost btn-sm"
+              aria-label="Close start script viewer"
             >
               ✕
             </button>
@@ -107,6 +108,7 @@ const StartScriptViewer: React.FC<StartScriptViewerProps> = ({ serverName, onClo
           <button
             onClick={onClose}
             className="btn btn-ghost btn-sm"
+            aria-label="Close start script viewer"
           >
             ✕
           </button>

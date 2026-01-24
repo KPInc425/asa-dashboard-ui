@@ -189,21 +189,17 @@ const ServerDetailsRconConsole: React.FC<ServerDetailsRconConsoleProps> = ({ ser
   }, [history.length, chatMessages.length, activeView]);
 
   const executeCommand = async (cmd: string): Promise<RconResponse> => {
+    let response: RconResponse;
     try {
-      let response: RconResponse;
+      response = await containerApi.sendNativeRconCommand(serverName, cmd);
+    } catch (nativeError) {
       try {
-        response = await containerApi.sendNativeRconCommand(serverName, cmd);
-      } catch (nativeError) {
-        try {
-          response = await containerApi.sendRconCommand(serverName, cmd);
-        } catch (containerError) {
-          throw new Error(`RCON connection failed. Server may not be running or RCON may not be configured.`);
-        }
+        response = await containerApi.sendRconCommand(serverName, cmd);
+      } catch (containerError) {
+        throw new Error(`RCON connection failed. Server may not be running or RCON may not be configured.`);
       }
-      return response;
-    } catch (error) {
-      throw error;
     }
+    return response;
   };
 
   // Only allow sending chat messages in chat view

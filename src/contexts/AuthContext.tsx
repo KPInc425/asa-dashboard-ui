@@ -51,17 +51,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = useCallback(async (username: string, password: string, rememberMe: boolean = false) => {
-    try {
-      const response = await authApi.login(username, password, rememberMe);
-      setUser(response.user);
+    const response = await authApi.login(username, password, rememberMe);
+    setUser(response.user);
 
-      // Check if this is the default admin user that needs first-time setup
-      const isDefaultAdmin = response.user?.username === 'admin' && 
-                            (response.user?.profile?.firstName === 'Admin' || !response.user?.profile?.firstName);
-      setNeedsFirstTimeSetup(isDefaultAdmin);
-    } catch (error) {
-      throw error;
-    }
+    // Check if this is the default admin user that needs first-time setup
+    const isDefaultAdmin = response.user?.username === 'admin' && 
+                          (response.user?.profile?.firstName === 'Admin' || !response.user?.profile?.firstName);
+    setNeedsFirstTimeSetup(isDefaultAdmin);
   }, []);
 
   const logout = useCallback(() => {

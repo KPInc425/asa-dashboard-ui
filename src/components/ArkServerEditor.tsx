@@ -80,7 +80,7 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
   const parseServerConfig = (serverConfig: any) => {
     // This is a simplified parser - in a real implementation, you'd want more robust parsing
     const lines = serverConfig.lines;
-    let parsedData: Partial<ArkServerFormData> = {
+    const parsedData: Partial<ArkServerFormData> = {
       name: serverConfig.name.replace('asa-server-', ''), // Remove prefix for display
       containerName: serverConfig.name,
       image: 'mschnitzer/asa-linux-server:latest',

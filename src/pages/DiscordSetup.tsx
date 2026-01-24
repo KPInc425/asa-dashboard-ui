@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { discordService, type DiscordWebhook, type DiscordBotConfig } from '../services/discord';
-import { useConfirm } from '../contexts/ConfirmContext';
+import { useConfirm } from '../contexts/ConfirmContext2';
 
 const DiscordSetup: React.FC = () => {
   const [webhooks, setWebhooks] = useState<DiscordWebhook[]>([]);

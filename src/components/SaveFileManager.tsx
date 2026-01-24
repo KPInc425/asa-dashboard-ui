@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { containerApi } from '../services/api-containers';
-import { useConfirm } from '../contexts/ConfirmContext';
+import { useConfirm } from '../contexts/ConfirmContext2';
 
 interface SaveFile {
   name: string;
@@ -380,6 +380,7 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
                             disabled={downloading === file.name}
                             className="btn btn-xs btn-outline btn-info"
                             title="Download"
+                            aria-label={`Download ${file.name}`}
                           >
                             {downloading === file.name ? (
                               <span className="loading loading-spinner loading-xs"></span>
@@ -391,6 +392,7 @@ const SaveFileManager: React.FC<SaveFileManagerProps> = ({ serverName }) => {
                             onClick={() => handleDelete(file.name)}
                             className="btn btn-xs btn-outline btn-error"
                             title="Delete"
+                            aria-label={`Delete ${file.name}`}
                           >
                             🗑️
                           </button>

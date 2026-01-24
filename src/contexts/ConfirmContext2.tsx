@@ -1,8 +1,6 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import AccessibleModal from '../components/AccessibleModal';
 
- 
-
 type ConfirmOptions = {
   confirmText?: string;
   cancelText?: string;
@@ -39,19 +37,20 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setResolver(null);
   };
 
-  // focus and keyboard are handled by AccessibleModal
+  const titleId = `confirm-title-${idRef.current}`;
+  const descId = `confirm-desc-${idRef.current}`;
 
   return (
     <ConfirmContext.Provider value={{ showConfirm }}>
       {children}
 
-      <AccessibleModal isOpen={open} onClose={() => handleClose(false)} titleId={`confirm-title-${idRef.current}`} descId={`confirm-desc-${idRef.current}`}>
+      <AccessibleModal isOpen={open} onClose={() => handleClose(false)} titleId={titleId} descId={descId}>
         {options?.title && (
-          <h3 id={`confirm-title-${idRef.current}`} className="font-bold text-lg">
+          <h3 id={titleId} className="font-bold text-lg">
             {options.title}
           </h3>
         )}
-        <p id={`confirm-desc-${idRef.current}`} className="py-4">
+        <p id={descId} className="py-4">
           {message}
         </p>
         <div className="modal-action" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
