@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { containerApi, api } from '../../services/api';
+import { 
+  derivePlayerCount, 
+  formatPlayerCount, 
+  getPlayerCountTooltip, 
+  getPlayerCountStatus 
+} from '../../utils/playerUtils';
 
 interface LiveServerStats {
   players: number;
+  playerList?: { name: string; id?: string }[];
+  maxPlayers?: number;
   currentDay: number;
   currentTime: string;
   serverUptime: string;
@@ -18,6 +26,7 @@ interface ServerLiveStatsProps {
     name: string;
     status: string;
     type: string;
+    maxPlayers?: number;
   };
 }
 
@@ -246,6 +255,22 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
     return null;
   }
 
+  // Derive player count using the utility
+  const derivedPlayers = liveStats ? derivePlayerCount({
+    serverId: server.name,
+    status: 'running',
+    players: {
+      online: liveStats.players,
+      max: liveStats.maxPlayers ?? server.maxPlayers ?? 70,
+      list: liveStats.playerList,
+    },
+    updatedAt: liveStats.lastUpdated || new Date().toISOString(),
+    source: liveStats.cached ? 'cached' : 'rcon',
+  }) : null;
+
+  const playerCountStatus = derivedPlayers ? getPlayerCountStatus(derivedPlayers) : 'unknown';
+  const playerCountTooltip = derivedPlayers ? getPlayerCountTooltip(derivedPlayers) : 'Loading...';
+
   return (
     <div className="space-y-1 text-sm md:text-base">
       {statsLoading ? (
@@ -254,7 +279,21 @@ const ServerLiveStats: React.FC<ServerLiveStatsProps> = ({ server }) => {
         <>
           <div className="flex justify-between items-center">
             <span className="text-base-content/70">Players:</span>
-            <span className="font-bold text-primary text-lg md:text-xl">{liveStats.players}</span>
+            <div className="flex items-center gap-1">
+              <span 
+                className={`font-bold text-lg md:text-xl ${
+                  playerCountStatus === 'warning' ? 'text-warning' : 
+                  playerCountStatus === 'error' ? 'text-error' : 
+                  'text-primary'
+                }`}
+                title={playerCountTooltip}
+              >
+                {derivedPlayers ? formatPlayerCount(derivedPlayers) : liveStats.players}
+              </span>
+              {playerCountStatus === 'warning' && (
+                <span className="text-warning text-xs" title="Player count may be inaccurate">*</span>
+              )}
+            </div>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-base-content/70">Day:</span>

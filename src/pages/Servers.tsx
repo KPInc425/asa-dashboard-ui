@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
+import { useServers, useServerMutation, useRefetchServers } from '../hooks/useServerData';
+import type { ServerSummary } from '../api/serverApi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ServerCard from '../components/ServerCard';
 import ServerList from '../components/ServerList';
@@ -11,71 +12,74 @@ import { useDeveloper } from '../contexts/DeveloperContext';
 const Servers: React.FC = () => {
   const navigate = useNavigate();
   const { isDeveloperMode } = useDeveloper();
-  const [servers, setServers] = useState<Server[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<'cards' | 'list'>('cards');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
-  
-  // Use ref to track running servers for status checking
-  const runningServersRef = useRef<Server[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [showUpdateManager, setShowUpdateManager] = useState(false);
 
-  // Add to component state
+  // Pending states for sticky UI behavior during transitions
   const [pendingStop, setPendingStop] = useState<Record<string, boolean>>({});
   const [pendingStart, setPendingStart] = useState<Record<string, boolean>>({});
   const [pendingRestart, setPendingRestart] = useState<Record<string, boolean>>({});
-  const [showUpdateManager, setShowUpdateManager] = useState(false);
 
-  // Initial loadAllServers implementation removed; a stable `useCallback` version
-  // is defined later in the file and used by effects and handlers.
+  // Use the centralized server data hook with automatic polling
+  const { 
+    data: serversData, 
+    isLoading: loading, 
+    error: queryError,
+    refetch 
+  } = useServers({
+    refetchInterval: 10_000, // Poll every 10 seconds for status updates
+  });
 
+  // Server mutations with automatic refetch
+  const startMutation = useServerMutation('start', {
+    onSuccess: () => {
+      refetch();
+    },
+    onError: (err) => {
+      setError(`Failed to start server: ${err.message}`);
+    },
+  });
+
+  const stopMutation = useServerMutation('safeStop', {
+    onSuccess: () => {
+      refetch();
+    },
+    onError: (err) => {
+      setError(`Failed to stop server: ${err.message}`);
+    },
+  });
+
+  const restartMutation = useServerMutation('safeRestart', {
+    onSuccess: () => {
+      refetch();
+    },
+    onError: (err) => {
+      setError(`Failed to restart server: ${err.message}`);
+    },
+  });
+
+  const { refetchList } = useRefetchServers();
+
+  // Convert ServerSummary[] to Server[] for compatibility with existing components
+  const servers = useMemo(() => {
+    return (serversData || []).map((s: ServerSummary) => ({
+      ...s,
+      status: s.status as Server['status'],
+      type: s.type as Server['type'],
+    }));
+  }, [serversData]);
+
+  // Set error from query error
   useEffect(() => {
-    loadAllServers();
-    
-    // Set up periodic status checking for crash detection
-    const statusCheckInterval = setInterval(async () => {
-      try {
-        // Use the ref to get current running servers
-        const runningServers = runningServersRef.current;
-        
-        for (const server of runningServers) {
-          try {
-            let statusResponse;
-            const encodedName = encodeURIComponent(server.name);
-            
-            if (server.type === 'container') {
-              statusResponse = await api.get(`/api/containers/${encodedName}/status`);
-            } else {
-              statusResponse = await api.get(`/api/native-servers/${encodedName}/status`);
-            }
-            
-            if (statusResponse.data.success) {
-              const status = statusResponse.data.status;
-              
-              // If server crashed (native servers only)
-              if (server.type !== 'container' && status.crashInfo && server.status === 'running') {
-                console.error(`Server ${server.name} crashed:`, status.crashInfo);
-                setError(`Server ${server.name} crashed with exit code ${status.crashInfo.exitCode}. ${status.crashInfo.error || ''}`);
-                
-                // Reload servers to update the UI
-                loadAllServers(false);
-              }
-            }
-          } catch (error) {
-            console.error(`Error checking status for ${server.name}:`, error);
-          }
-        }
-      } catch (error) {
-        console.error('Error in periodic status check:', error);
-      }
-    }, 10000); // Check every 10 seconds
-    
-    return () => {
-      clearInterval(statusCheckInterval);
-    };
-  }, []); // Remove servers dependency to prevent infinite loop
-  // Stable helpers and handlers
+    if (queryError) {
+      setError(queryError.message || 'Failed to load servers');
+    }
+  }, [queryError]);
+
+  // Effective status calculation for pending transitions
   const getEffectiveStatus = useCallback((server: Server) => {
     if (pendingStop[server.name] && server.status === 'running') {
       return 'stopping';
@@ -89,7 +93,7 @@ const Servers: React.FC = () => {
     return server.status;
   }, [pendingStop, pendingStart, pendingRestart]);
 
-  // Memoize servers with effective status so memoized children receive stable objects
+  // Memoize servers with effective status
   const memoizedServers = useMemo(() => {
     return servers.map(s => ({ ...s, status: getEffectiveStatus(s) }));
   }, [servers, getEffectiveStatus]);
@@ -102,253 +106,77 @@ const Servers: React.FC = () => {
     navigate(`/servers/${encodeURIComponent(server.name)}?tab=config`);
   }, [navigate]);
 
-  const loadAllServers = useCallback(async (showLoading = true) => {
-    try {
-      if (showLoading) setLoading(true);
-      setError(null);
-
-      // Load both containers and native servers
-      const [containersResponse, nativeServersResponse] = await Promise.all([
-        api.get('/api/containers').catch(() => ({ data: { containers: [] } })),
-        api.get('/api/native-servers').catch(() => ({ data: { servers: [] } }))
-      ]);
-
-      const containers = containersResponse.data?.containers || [];
-      const nativeServers = nativeServersResponse.data?.servers || [];
-
-      // Combine and prioritize native servers (they're more important for this use case)
-      const allServers = [...nativeServers];
-      
-      // Only add containers that don't have a matching native server
-      for (const container of containers) {
-        const existingNative = nativeServers.find((ns: Server) => ns.name === container.name);
-        if (!existingNative) {
-          allServers.push(container);
-        } else {
-          console.log(`Skipping container ${container.name} because native server exists`);
-        }
-      }
-
-      setServers(allServers);
-      
-      // Update the ref with current running servers
-      runningServersRef.current = allServers.filter(s => s.status === 'running');
-    } catch (err) {
-      console.error('Failed to load servers:', err);
-      setError('Failed to load servers. Please try again.');
-    } finally {
-      if (showLoading) setLoading(false);
-    }
-  }, []);
-
-  const checkSimpleStatus = useCallback(async (serverName: string, serverType: string): Promise<string> => {
-    try {
-      const encodedName = encodeURIComponent(serverName);
-      let response;
-      
-      if (serverType === 'container') {
-        response = await api.get(`/api/containers/${encodedName}/running`);
-      } else {
-        // Use the new running endpoint for native servers
-        response = await api.get(`/api/native-servers/${encodedName}/running`);
-      }
-      
-      if (response.data.success) {
-        return response.data.running ? 'running' : 'stopped';
-      }
-      
-      return 'unknown';
-    } catch (error) {
-      console.error(`Error checking simple status for ${serverName}:`, error);
-      return 'unknown';
-    }
-  }, []);
-
-  const startStatusPolling = useCallback((serverName: string, action: string, serverType: string) => {
-    const pollInterval = setInterval(async () => {
-      try {
-        // Use simple status check for faster response
-        const simpleStatus = await checkSimpleStatus(serverName, serverType);
-        console.log(`Polling status for ${serverName}: ${simpleStatus} (action: ${action})`);
-        
-        // Check if action completed
-        let isCompleted = false;
-        if (action === 'start' && simpleStatus === 'running') {
-          isCompleted = true;
-        } else if (action === 'stop' && simpleStatus === 'stopped') {
-          isCompleted = true;
-        } else if (action === 'restart' && simpleStatus === 'running') {
-          isCompleted = true;
-        }
-        
-        if (isCompleted) {
-          clearInterval(pollInterval);
-          setActionStatus(prev => {
-            const newStatus = { ...prev };
-            delete newStatus[serverName];
-            return newStatus;
-          });
-          
-          // Clear pending states when action completes
-          if (action === 'stop') {
-            setPendingStop(prev => {
-              const newPending = { ...prev };
-              delete newPending[serverName];
-              return newPending;
-            });
-          } else if (action === 'start') {
-            setPendingStart(prev => {
-              const newPending = { ...prev };
-              delete newPending[serverName];
-              return newPending;
-            });
-          } else if (action === 'restart') {
-            setPendingRestart(prev => {
-              const newPending = { ...prev };
-              delete newPending[serverName];
-              return newPending;
-            });
-          }
-          
-          // Reload servers to get updated status immediately
-          loadAllServers(false);
-        } else {
-          // Update status message to show progress
-          if (action === 'start' && serverType !== 'container') {
-            setActionStatus(prev => ({ 
-              ...prev, 
-              [serverName]: `Starting... (checking in ${Math.floor((Date.now() - Date.now()) / 1000)}s)` 
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Status polling error:', error);
-        clearInterval(pollInterval);
-        setActionStatus(prev => ({ ...prev, [serverName]: 'Error' }));
-      }
-    }, 2000); // Poll every 2 seconds for faster response
-
-    // Stop polling after 60 seconds to prevent infinite polling
-    setTimeout(() => {
-      clearInterval(pollInterval);
-      setActionStatus(prev => {
-        const newStatus = { ...prev };
-        delete newStatus[serverName];
-        return newStatus;
-      });
-      
-      // For start actions, show a message that the server may still be starting
-      if (action === 'start') {
-        console.log(`Server ${serverName} may still be starting up. Check server status manually.`);
-      }
-    }, 60000); // Increased timeout to 60 seconds for server startup
-  }, [checkSimpleStatus, loadAllServers]);
-
+  // Handle server actions using mutations
   const handleAction = useCallback(async (action: 'start' | 'stop' | 'restart', server: Server) => {
+    setActionLoading(server.name);
+    setError(null);
+
+    // Set pending states for sticky UI behavior
+    if (action === 'stop') {
+      setPendingStop(prev => ({ ...prev, [server.name]: true }));
+    } else if (action === 'start') {
+      setPendingStart(prev => ({ ...prev, [server.name]: true }));
+    } else if (action === 'restart') {
+      setPendingRestart(prev => ({ ...prev, [server.name]: true }));
+    }
+
+    // Update action status
+    const actionStatusText =
+      action === 'stop' ? 'Stopping...'
+      : action === 'start' ? 'Starting...'
+      : 'Restarting...';
+    setActionStatus(prev => ({ ...prev, [server.name]: actionStatusText }));
+
+    const serverType = server.type === 'container' ? 'container' : 'native';
+
     try {
-      setActionLoading(server.name);
-      
-      // Set pending states for sticky UI behavior
-      if (action === 'stop') {
-        setPendingStop(prev => ({ ...prev, [server.name]: true }));
-      } else if (action === 'start') {
-        setPendingStart(prev => ({ ...prev, [server.name]: true }));
+      // Use the appropriate mutation
+      if (action === 'start') {
+        await startMutation.mutateAsync({ serverId: server.name, serverType });
+      } else if (action === 'stop') {
+        await stopMutation.mutateAsync({ serverId: server.name, serverType });
       } else if (action === 'restart') {
-        setPendingRestart(prev => ({ ...prev, [server.name]: true }));
-      }
-      
-      // Use correct English spelling for action status
-      const actionStatusText =
-        action === 'stop' ? 'Stopping...'
-        : action === 'start' ? 'Starting...'
-        : action === 'restart' ? 'Restarting...'
-        : `${(action as string).charAt(0).toUpperCase() + (action as string).slice(1)}ing...`;
-      setActionStatus(prev => ({ ...prev, [server.name]: actionStatusText }));
-
-      let endpoint = '';
-      const encodedName = encodeURIComponent(server.name);
-      if (server.type === 'container') {
-        endpoint = `/api/containers/${encodedName}/${action}`;
-      } else {
-        // For native servers, use the native-servers endpoint
-        endpoint = `/api/native-servers/${encodedName}/${action}`;
+        await restartMutation.mutateAsync({ serverId: server.name, serverType });
       }
 
-      const response = await api.post(endpoint);
-      
-      if (response.data.success) {
-        // For start actions on native servers, the server starts in background
-        // Use the existing status polling to monitor progress
-        if (action === 'start' && server.type !== 'container') {
-          console.log('Server start initiated in background:', response.data.message);
-          // The existing status polling will detect when the server is running
+      // Clear action status and pending states on success after a delay
+      setTimeout(() => {
+        setActionStatus(prev => {
+          const newStatus = { ...prev };
+          delete newStatus[server.name];
+          return newStatus;
+        });
+        
+        if (action === 'stop') {
+          setPendingStop(prev => {
+            const newPending = { ...prev };
+            delete newPending[server.name];
+            return newPending;
+          });
+        } else if (action === 'start') {
+          setPendingStart(prev => {
+            const newPending = { ...prev };
+            delete newPending[server.name];
+            return newPending;
+          });
+        } else if (action === 'restart') {
+          setPendingRestart(prev => {
+            const newPending = { ...prev };
+            delete newPending[server.name];
+            return newPending;
+          });
         }
         
-        // Start polling for status updates using existing mechanism
-        startStatusPolling(server.name, action, server.type);
-        
-        // Also do an immediate status check to update the UI right away
-        setTimeout(async () => {
-          try {
-            // Use simple status check for faster response
-            const simpleStatus = await checkSimpleStatus(server.name, server.type);
-            console.log(`Simple status for ${server.name}: ${simpleStatus}`);
-            
-            // If the action completed, clear the action status immediately
-            if ((action === 'start' && simpleStatus === 'running') ||
-                (action === 'stop' && simpleStatus === 'stopped') ||
-                (action === 'restart' && simpleStatus === 'running')) {
-              setActionStatus(prev => {
-                const newStatus = { ...prev };
-                delete newStatus[server.name];
-                return newStatus;
-              });
-              
-              // Clear pending states when action completes
-              if (action === 'stop') {
-                setPendingStop(prev => {
-                  const newPending = { ...prev };
-                  delete newPending[server.name];
-                  return newPending;
-                });
-              } else if (action === 'start') {
-                setPendingStart(prev => {
-                  const newPending = { ...prev };
-                  delete newPending[server.name];
-                  return newPending;
-                });
-              } else if (action === 'restart') {
-                setPendingRestart(prev => {
-                  const newPending = { ...prev };
-                  delete newPending[server.name];
-                  return newPending;
-                });
-              }
-            }
-            
-            loadAllServers(false);
-          } catch (error) {
-            console.error('Immediate status check failed:', error);
-          }
-        }, 1000);
-      } else {
-        setError(`Failed to ${action} server: ${response.data.message || 'Unknown error'}`);
-        setActionStatus(prev => ({ ...prev, [server.name]: 'Failed' }));
-      }
-    } catch (err: unknown) {
-      console.error(`Failed to ${action} server:`, err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Failed to ${action} server: ${errorMessage}`);
+        // Refetch to get updated status
+        refetchList();
+      }, 2000);
+    } catch (err) {
+      // Error is handled by mutation onError
       setActionStatus(prev => ({ ...prev, [server.name]: 'Failed' }));
     } finally {
       setActionLoading(null);
     }
-  }, [startStatusPolling, checkSimpleStatus, loadAllServers]);
-
-  // Duplicate non-memoized polling helpers removed; using the stable `useCallback`
-  // implementations above (`startStatusPolling` and `checkSimpleStatus`).
-
-  // (Handlers and helpers are memoized above)
+  }, [startMutation, stopMutation, restartMutation, refetchList]);
 
   if (loading) {
     return <LoadingSpinner />;

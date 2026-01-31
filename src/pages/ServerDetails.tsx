@@ -3,7 +3,13 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext2';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Server } from '../utils/serverUtils';
-import { containerApi, provisioningApi } from '../services';
+import { provisioningApi } from '../services';
+import { 
+  useServerDetails, 
+  useServerLiveDataDynamic,
+  useRefetchServers 
+} from '../hooks/useServerData';
+import { useServerCommand } from '../hooks/useServerCommand';
 import ServerModManager from '../components/ServerModManager';
 import ServerConfigEditor from '../components/ServerConfigEditor';
 import ServerLogViewer from '../components/ServerLogViewer';
@@ -13,20 +19,19 @@ import ServerSettingsEditor from '../components/ServerSettingsEditor';
 import ServerLiveDetails from '../components/ServerLiveDetails';
 import SaveFileManager from '../components/SaveFileManager';
 import ServerDetailsRconConsole from '../components/ServerDetailsRconConsole';
+import TransitionProgress from '../components/TransitionProgress';
 
 const ServerDetails: React.FC = () => {
   const { serverName } = useParams<{ serverName: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [server, setServer] = useState<Server | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'rcon' | 'config' | 'logs' | 'mods' | 'saves'>('details');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showStartScript, setShowStartScript] = useState(false);
   const [showUpdateManager, setShowUpdateManager] = useState(false);
   const [showSettingsEditor, setShowSettingsEditor] = useState(false);
   const [configSectionExpanded, setConfigSectionExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Backup/Restore state
   const [serverBackups, setServerBackups] = useState<Array<{ name: string; backupDate?: string; serverName: string }>>([]);
@@ -43,53 +48,56 @@ const ServerDetails: React.FC = () => {
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
 
-  const loadServer = React.useCallback(async () => {
-    if (!serverName) return;
-    setLoading(true);
-    setError(null);
+  // Use centralized hooks for server data and mutations
+  const { 
+    data: serverData, 
+    isLoading: loading, 
+    error: queryError,
+    refetch: refetchServer 
+  } = useServerDetails(serverName);
 
-    try {
-      // Try to get server from both containers and native servers
-      let serverData: Server | null = null;
+  // Use dynamic polling for live data with transition tracking
+  const {
+    data: liveData,
+    transitionTracker,
+    isTransitioning,
+    isRefetching,
+  } = useServerLiveDataDynamic(
+    serverName,
+    serverData?.type === 'container' ? 'container' : 'native'
+  );
 
-      try {
-        const containers = await containerApi.getContainers();
-        const foundContainer = containers.find(c => c.name === serverName);
-        if (foundContainer) {
-          serverData = foundContainer as Server;
-        }
-      } catch (error) {
-        console.log(`Error getting containers for ${serverName}:`, error);
-      }
+  const { refetchServer: invalidateServer } = useRefetchServers();
 
-      if (!serverData) {
-        try {
-          const nativeServers = await containerApi.getNativeServers();
-          const foundNativeServer = nativeServers.find(s => s.name === serverName);
-          if (foundNativeServer) {
-            serverData = foundNativeServer as Server;
-          }
-        } catch (error) {
-          console.log(`Error getting native servers for ${serverName}:`, error);
-        }
-      }
+  // Convert to Server type for backward compatibility
+  const server: Server | null = serverData ? {
+    ...serverData,
+    status: (liveData?.status || serverData.status) as Server['status'],
+    type: serverData.type as Server['type'],
+  } : null;
 
-      if (serverData) {
-        setServer(serverData);
-      } else {
-        setError(`Server "${serverName}" not found`);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load server data');
-    } finally {
-      setLoading(false);
-    }
-  }, [serverName]);
+  // Server command mutations with optimistic updates
+  const {
+    startMutation,
+    safeStopMutation,
+    safeRestartMutation,
+  } = useServerCommand({
+    onSuccess: (action, serverId) => {
+      console.log(`✅ ${action} completed for ${serverId}`);
+      refetchServer();
+      invalidateServer(serverId);
+    },
+    onError: (action, _serverId, err) => {
+      setError(`Failed to ${action} server: ${err.message}`);
+    },
+  });
 
-  // Load server data
+  // Handle query error
   useEffect(() => {
-    loadServer();
-  }, [loadServer]);
+    if (queryError) {
+      setError(queryError.message || 'Failed to load server');
+    }
+  }, [queryError]);
 
   // Handle tab from URL params
   useEffect(() => {
@@ -160,80 +168,30 @@ const ServerDetails: React.FC = () => {
     }
   };
 
-  // Server control actions
+  // Server control actions using mutations
   const handleServerAction = async (action: 'start' | 'stop' | 'restart') => {
-    if (!server) return;
+    if (!server || !serverName) return;
     
     setActionLoading(action);
+    setError(null);
     
     try {
+      const serverType = server.type === 'container' ? 'container' : 'native';
+      
       console.log(`🔄 Attempting to ${action} server: ${server.name} (type: ${server.type})`);
-      let response;
       
-      if (server.type === 'container') {
-        // Use container API methods
-        console.log(`📦 Using container API for ${action}`);
-        switch (action) {
-          case 'start':
-            response = await containerApi.startContainer(server.name);
-            break;
-          case 'stop':
-            response = await containerApi.stopContainer(server.name);
-            break;
-          case 'restart':
-            response = await containerApi.restartContainer(server.name);
-            break;
-        }
-      } else {
-        // Use native server API methods
-        console.log(`🖥️ Using native server API for ${action}`);
-        switch (action) {
-          case 'start':
-            response = await containerApi.startNativeServer(server.name);
-            break;
-          case 'stop':
-            response = await containerApi.stopNativeServer(server.name);
-            break;
-          case 'restart':
-            response = await containerApi.restartNativeServer(server.name);
-            break;
-        }
+      if (action === 'start') {
+        await startMutation.mutateAsync({ serverId: serverName, serverType });
+      } else if (action === 'stop') {
+        await safeStopMutation.mutateAsync({ serverId: serverName, serverType });
+      } else if (action === 'restart') {
+        await safeRestartMutation.mutateAsync({ serverId: serverName, serverType });
       }
       
-      if (response.success) {
-        // For start actions, check if server is actually running after a delay
-        if (action === 'start' && server.type !== 'container') {
-          // Show immediate success message
-          console.log(response.message);
-          
-              // Check server status after a delay
-              setTimeout(async () => {
-                try {
-                  const isRunning = await containerApi.isNativeServerRunning(server.name);
-                  if (isRunning) {
-                    console.log(`Server ${server.name} is now running`);
-                  } else {
-                    console.log(`Server ${server.name} may still be starting up`);
-                  }
-                  // Reload server data to update status
-                  await loadServer();
-                } catch (error) {
-                  console.error('Error checking server status:', error);
-                }
-              }, 5000); // Check after 5 seconds
-        } else {
-          // For other actions, reload immediately
-          setTimeout(() => {
-            loadServer();
-          }, 1000);
-        }
-      } else {
-        setError(`Failed to ${action} server: ${response.message || 'Unknown error'}`);
-      }
+      // Note: refetch is handled by onSuccess callback in useServerCommand
     } catch (err: unknown) {
       console.error(`Failed to ${action} server:`, err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Failed to ${action} server: ${errorMessage}`);
+      // Error is handled by mutation onError
     } finally {
       setActionLoading(null);
     }
@@ -243,93 +201,13 @@ const ServerDetails: React.FC = () => {
   const handleStopWithConfirmation = async () => {
     if (!server) return;
     const proceed = await showConfirm(`Are you sure you want to stop the server "${server.name}"? This will disconnect all players.`);
-    if (proceed) await handleServerActionWithSave('stop');
+    if (proceed) await handleServerAction('stop');
   };
 
   const handleRestartWithConfirmation = async () => {
     if (!server) return;
     const proceed = await showConfirm(`Are you sure you want to restart the server "${server.name}"? This will disconnect all players and restart the server.`);
-    if (proceed) await handleServerActionWithSave('restart');
-  };
-
-  // Handle server actions with automatic saveworld
-  const handleServerActionWithSave = async (action: 'stop' | 'restart') => {
-    if (!server) return;
-    
-    setActionLoading(action);
-    
-    try {
-      console.log(`🔄 Attempting to ${action} server: ${server.name} (type: ${server.type})`);
-      
-      // First, try to save the world via RCON
-      console.log(`💾 Attempting to save world before ${action}...`);
-      try {
-        const saveResponse = await containerApi.sendRconCommand(server.name, 'saveworld');
-        if (saveResponse.success) {
-          console.log(`✅ Save command sent: ${saveResponse.message}`);
-          
-          // Check if the response indicates the world was actually saved
-          const responseText = saveResponse.response || saveResponse.message || '';
-          if (responseText.toLowerCase().includes('world saved') || 
-              responseText.toLowerCase().includes('saved') ||
-              responseText.toLowerCase().includes('success')) {
-            console.log(`✅ World saved successfully: ${responseText}`);
-            // Wait a moment for the save to complete
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          } else {
-            console.warn(`⚠️ Save response unclear: ${responseText}`);
-            // Still wait a bit in case the save is in progress
-            await new Promise(resolve => setTimeout(resolve, 3000));
-          }
-        } else {
-          console.warn(`⚠️ Save world failed: ${saveResponse.message}`);
-        }
-      } catch (saveError) {
-        console.warn(`⚠️ Could not save world via RCON:`, saveError);
-        // Continue with the action even if save fails
-      }
-      
-      let response;
-      
-      if (server.type === 'container') {
-        // Use container API methods
-        console.log(`📦 Using container API for ${action}`);
-        switch (action) {
-          case 'stop':
-            response = await containerApi.stopContainer(server.name);
-            break;
-          case 'restart':
-            response = await containerApi.restartContainer(server.name);
-            break;
-        }
-      } else {
-        // Use native server API methods
-        console.log(`🖥️ Using native server API for ${action}`);
-        switch (action) {
-          case 'stop':
-            response = await containerApi.stopNativeServer(server.name);
-            break;
-          case 'restart':
-            response = await containerApi.restartNativeServer(server.name);
-            break;
-        }
-      }
-      
-      if (response.success) {
-        // Reload immediately for stop/restart actions
-        setTimeout(() => {
-          loadServer();
-        }, 1000);
-      } else {
-        setError(`Failed to ${action} server: ${response.message || 'Unknown error'}`);
-      }
-    } catch (err: unknown) {
-      console.error(`Failed to ${action} server:`, err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Failed to ${action} server: ${errorMessage}`);
-    } finally {
-      setActionLoading(null);
-    }
+    if (proceed) await handleServerAction('restart');
   };
 
   // Server backup modal handlers
@@ -612,13 +490,35 @@ const ServerDetails: React.FC = () => {
           <div className="card-body">
             {activeTab === 'details' && (
               <div className="space-y-6">
-                {/* Live Server Information - Prioritized */}
-                {server.status === 'running' && (
+                {/* Transition Progress - Show during server transitions */}
+                {isTransitioning && (
+                  <TransitionProgress
+                    status={liveData?.status || server.status}
+                    transitionStartedAt={transitionTracker.transitionStartedAt}
+                    expectedDuration={transitionTracker.expectedDuration}
+                    previousStatus={transitionTracker.previousStatus}
+                    variant="full"
+                    onStuck={() => {
+                      showToast('Server transition is taking longer than expected. Check the logs for details.', 'warning');
+                    }}
+                  />
+                )}
+
+                {/* Live Server Information - Show when running (and not transitioning) */}
+                {server.status === 'running' && !isTransitioning && (
                   <div className="mb-6">
                     <ServerLiveDetails 
                       serverName={server.name} 
                       serverType={server.type} 
                     />
+                  </div>
+                )}
+
+                {/* Refetching indicator */}
+                {isRefetching && !isTransitioning && (
+                  <div className="flex items-center gap-2 text-sm text-base-content/60">
+                    <span className="loading loading-spinner loading-xs"></span>
+                    <span>Refreshing data...</span>
                   </div>
                 )}
 
@@ -760,7 +660,7 @@ const ServerDetails: React.FC = () => {
           onClose={() => setShowSettingsEditor(false)}
             onSave={() => {
             // Refresh server data to reflect changes
-            loadServer();
+            refetchServer();
           }}
         />
       )}

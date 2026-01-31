@@ -1,10 +1,13 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
-import AccessibleModal from '../components/AccessibleModal';
+import ThemedModal from '../components/ThemedModal';
+
+type ConfirmVariant = 'default' | 'confirm' | 'warning' | 'destructive' | 'info';
 
 type ConfirmOptions = {
   confirmText?: string;
   cancelText?: string;
   title?: string;
+  variant?: ConfirmVariant;
 };
 
 type ConfirmContextType = {
@@ -44,20 +47,22 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <ConfirmContext.Provider value={{ showConfirm }}>
       {children}
 
-      <AccessibleModal isOpen={open} onClose={() => handleClose(false)} titleId={titleId} descId={descId}>
-        {options?.title && (
-          <h3 id={titleId} className="font-bold text-lg">
-            {options.title}
-          </h3>
-        )}
-        <p id={descId} className="py-4">
+      <ThemedModal 
+        isOpen={open} 
+        onClose={() => handleClose(false)} 
+        onConfirm={() => handleClose(true)}
+        title={options?.title || 'Confirm'}
+        variant={options?.variant || 'default'}
+        confirmText={options?.confirmText || 'OK'}
+        cancelText={options?.cancelText || 'Cancel'}
+        titleId={titleId}
+        descId={descId}
+        size="sm"
+      >
+        <p className="py-2 text-base-content">
           {message}
         </p>
-        <div className="modal-action" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn" onClick={() => handleClose(false)}>{options?.cancelText || 'Cancel'}</button>
-          <button className="btn btn-primary" onClick={() => handleClose(true)}>{options?.confirmText || 'OK'}</button>
-        </div>
-      </AccessibleModal>
+      </ThemedModal>
     </ConfirmContext.Provider>
   );
 };

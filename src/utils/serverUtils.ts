@@ -1,3 +1,8 @@
+import {
+  getStatusStyle,
+  getStatusIcon as getStatusIconFromStyles,
+} from './statusStyles';
+
 export interface Server {
   name: string;
   status: string;
@@ -19,24 +24,20 @@ export interface Server {
   isClusterServer?: boolean;
 }
 
+/**
+ * Get status text color class
+ * @deprecated Use getStatusStyle from statusStyles.ts instead
+ */
 export const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'running': return 'text-success';
-    case 'stopped': return 'text-error';
-    case 'starting': return 'text-warning';
-    case 'restarting': return 'text-warning';
-    default: return 'text-base-content/70';
-  }
+  return getStatusStyle(status).textClass;
 };
 
+/**
+ * Get status icon emoji
+ * @deprecated Use getStatusIcon from statusStyles.ts instead
+ */
 export const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'running': return '🟢';
-    case 'stopped': return '🔴';
-    case 'starting': return '🟡';
-    case 'restarting': return '🟡';
-    default: return '⚪';
-  }
+  return getStatusIconFromStyles(status);
 };
 
 export const getTypeColor = (type: string | undefined) => {

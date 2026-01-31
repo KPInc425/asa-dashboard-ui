@@ -82,15 +82,7 @@ export default function AccessibleModal({ isOpen, onClose, titleId, descId, chil
         // close when clicking on overlay (but not when clicking inside dialog)
         if (e.target === overlayRef.current) onClose();
       }}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 50
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
     >
       <div
         ref={dialogRef}
@@ -99,15 +91,7 @@ export default function AccessibleModal({ isOpen, onClose, titleId, descId, chil
         aria-labelledby={titleId}
         aria-describedby={descId}
         tabIndex={-1}
-        style={{
-          background: 'white',
-          borderRadius: 8,
-          padding: '1rem',
-          maxWidth: '90%',
-          maxHeight: '90%',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-          overflow: 'auto'
-        }}
+        className="bg-base-100 text-base-content border border-base-300 rounded-lg p-4 max-w-[90%] max-h-[90%] shadow-xl overflow-auto"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {children}

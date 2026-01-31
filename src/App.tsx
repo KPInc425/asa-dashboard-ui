@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DeveloperProvider } from './contexts/DeveloperContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -21,6 +22,26 @@ import UserProfile from './components/UserProfile';
 import UserManagement from './components/UserManagement';
 import FirstTimeSetup from './components/FirstTimeSetup';
 import DiscordSetup from './pages/DiscordSetup';
+
+// Create a client with default options
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Consider data stale immediately for most queries
+      staleTime: 0,
+      // Cache data for 5 minutes
+      gcTime: 5 * 60 * 1000,
+      // Retry failed requests up to 3 times
+      retry: 3,
+      // Don't refetch on window focus by default
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      // Retry mutations once on failure
+      retry: 1,
+    },
+  },
+});
 
 // Protected Route Component (currently unused but kept for future use)
 // const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -193,17 +214,19 @@ const App: React.FC = () => {
   // are preferred; the centralized listener was removed to avoid global reloads.
 
   return (
-    <AuthProvider>
-      <DeveloperProvider>
-        <ConfirmProvider>
-          <ToastProvider>
-            <Router>
-              <AppContent />
-            </Router>
-          </ToastProvider>
-        </ConfirmProvider>
-      </DeveloperProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <DeveloperProvider>
+          <ConfirmProvider>
+            <ToastProvider>
+              <Router>
+                <AppContent />
+              </Router>
+            </ToastProvider>
+          </ConfirmProvider>
+        </DeveloperProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 

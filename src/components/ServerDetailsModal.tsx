@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Server } from '../utils/serverUtils';
 import { api } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import { getStatusBadgeClass, getStatusLabel } from '../utils/statusStyles';
 
 interface ServerDetailsModalProps {
   server: Server | null;
@@ -58,17 +59,6 @@ const ServerDetailsModal: React.FC<ServerDetailsModalProps> = ({ server, isOpen,
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'running': return 'badge-success';
-      case 'stopped': return 'badge-error';
-      case 'restarting': return 'badge-warning';
-      case 'starting': return 'badge-warning';
-      case 'stopping': return 'badge-info';
-      default: return 'badge-neutral';
-    }
-  };
-
   const handleOpenFullDetails = () => {
     if (server) {
       navigate(`/servers/${encodeURIComponent(server.name)}`);
@@ -103,8 +93,8 @@ const ServerDetailsModal: React.FC<ServerDetailsModalProps> = ({ server, isOpen,
                   </div>
                   <div className="flex justify-between">
                     <span className="text-base-content/70">Status:</span>
-                    <span className={`badge ${getStatusColor(server.status)}`}>
-                      {server.status.charAt(0).toUpperCase() + server.status.slice(1)}
+                    <span className={`badge ${getStatusBadgeClass(server.status)}`}>
+                      {getStatusLabel(server.status)}
                     </span>
                   </div>
                   {server.map && (

@@ -1,16 +1,4 @@
 import { useState } from 'react';
-import { JSDOM } from 'jsdom';
-
-if (typeof document === 'undefined') {
-  const dom = new JSDOM('<!doctype html><html><body></body></html>');
-  // define globals in a way that works across environments
-  // @ts-expect-error - provide jsdom globals for environments without jsdom
-  Object.defineProperty(global, 'window', { value: dom.window, configurable: true });
-  // @ts-expect-error - provide jsdom globals for environments without jsdom
-  Object.defineProperty(global, 'document', { value: dom.window.document, configurable: true });
-  // @ts-expect-error - provide jsdom globals for environments without jsdom
-  Object.defineProperty(global, 'navigator', { value: dom.window.navigator, configurable: true });
-}
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';

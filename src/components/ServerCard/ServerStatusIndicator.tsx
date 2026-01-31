@@ -1,4 +1,10 @@
 import React from 'react';
+import { 
+  getStatusIcon, 
+  getStatusLabel, 
+  getStatusBadgeClass 
+} from '../../utils/statusStyles';
+import { ServerStatus as ServerStatusEnum } from '../../types/serverStatus';
 
 interface Server {
   name: string;
@@ -12,59 +18,44 @@ interface Server {
     error?: string;
   };
   startupErrors?: string;
+  transition?: {
+    status: string;
+    previousStatus?: string;
+    transitionStartedAt?: string;
+  };
 }
 
 interface ServerStatusIndicatorProps {
   server: Server;
   actionStatus: Record<string, string>;
+  isTransitioning?: boolean;
+  transitionDuration?: number;
 }
 
-const ServerStatusIndicator: React.FC<ServerStatusIndicatorProps> = ({ server, actionStatus }) => {
-  const getStatusColor = (status: string | undefined, actionStatus?: string) => {
-    // If there's an action status, show warning color
-    if (actionStatus) {
+const ServerStatusIndicator: React.FC<ServerStatusIndicatorProps> = ({ 
+  server, 
+  actionStatus,
+  isTransitioning = false,
+  transitionDuration = 0,
+}) => {
+  // Check if server is in transition state
+  const isInTransition = isTransitioning || 
+    server.status === 'starting' || 
+    server.status === 'stopping' ||
+    !!actionStatus[server.name];
+  
+  const getStatusBadgeWithAction = () => {
+    if (actionStatus[server.name]) {
       return 'badge-warning animate-pulse';
     }
-    
-    if (!status) return 'badge-outline';
-    
-    switch (status.toLowerCase()) {
-      case 'running':
-        return 'badge-success';
-      case 'stopped':
-        return 'badge-error';
-      case 'starting':
-      case 'stopping':
-      case 'restarting':
-        return 'badge-warning animate-pulse';
-      case 'crashed':
-        return 'badge-error';
-      case 'error':
-        return 'badge-error';
-      default:
-        return 'badge-outline';
-    }
+    return getStatusBadgeClass(server.status, true);
   };
 
-  const getStatusIcon = (status: string | undefined, actionStatus?: string) => {
-    // If there's an action status, show warning icon immediately
-    if (actionStatus) {
+  const getStatusIconWithAction = () => {
+    if (actionStatus[server.name]) {
       return '🟡';
     }
-    
-    if (!status) return '⚪';
-    
-    // Use simple status detection for the icon
-    switch (status.toLowerCase()) {
-      case 'running': return '🟢';
-      case 'stopped': return '🔴';
-      case 'starting': return '🟡';
-      case 'stopping': return '🟡';
-      case 'restarting': return '🟡';
-      case 'crashed': return '💥';
-      case 'error': return '🔴';
-      default: return '⚪';
-    }
+    return getStatusIcon(server.status);
   };
 
   const getTypeColor = (type: string | undefined) => {
@@ -89,6 +80,18 @@ const ServerStatusIndicator: React.FC<ServerStatusIndicatorProps> = ({ server, a
     }
   };
 
+  // Format transition duration for display
+  const formatDuration = (ms: number): string => {
+    if (ms < 1000) return '0s';
+    const seconds = Math.floor(ms / 1000) % 60;
+    const minutes = Math.floor(ms / 60000);
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+  };
+
+  // Check if status is unknown for special styling
+  const isUnknownStatus = server.status === ServerStatusEnum.UNKNOWN || server.status === 'unknown';
+
   return (
     <>
       {/* Header with title and status icon */}
@@ -104,16 +107,31 @@ const ServerStatusIndicator: React.FC<ServerStatusIndicatorProps> = ({ server, a
             </span>
           )}
         </div>
-        <span className="text-xl md:text-2xl flex-shrink-0">{getStatusIcon(server.status, actionStatus[server.name])}</span>
+        <span className="text-xl md:text-2xl flex-shrink-0">{getStatusIconWithAction()}</span>
       </div>
 
       {/* Status badge */}
       <div className="flex justify-between items-center">
         <span className="text-xs md:text-sm text-base-content/70">Status:</span>
-        <span className={`badge ${getStatusColor(server.status, actionStatus[server.name])} badge-xs md:badge-sm`}>
-          {actionStatus[server.name] || (server.status ? server.status.charAt(0).toUpperCase() + server.status.slice(1) : 'Unknown')}
-        </span>
+        <div className="flex items-center gap-2">
+          {isInTransition && (
+            <span className="loading loading-spinner loading-xs"></span>
+          )}
+          <span className={`badge ${getStatusBadgeWithAction()} badge-xs md:badge-sm ${isUnknownStatus ? 'status-striped' : ''}`}>
+            {actionStatus[server.name] || getStatusLabel(server.status)}
+          </span>
+        </div>
       </div>
+
+      {/* Transition duration indicator */}
+      {isInTransition && transitionDuration > 0 && (
+        <div className="flex justify-between items-center text-xs mt-1">
+          <span className="text-base-content/50">Elapsed:</span>
+          <span className={`${transitionDuration > 300000 ? 'text-warning' : 'text-base-content/50'}`}>
+            {formatDuration(transitionDuration)}
+          </span>
+        </div>
+      )}
 
       {/* Show crash information if server crashed */}
       {server.crashInfo && (

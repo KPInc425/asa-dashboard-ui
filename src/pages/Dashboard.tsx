@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { apiService } from '../services/api';
+import { useServers } from '../hooks/useServerData';
 import LoadingSpinner from '../components/LoadingSpinner';
 import GlobalModManager from '../components/GlobalModManager';
 import { useDeveloper } from '../contexts/DeveloperContext';
@@ -80,7 +81,6 @@ const Dashboard: React.FC = () => {
   const { showToast } = useToast();
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [clusters, setClusters] = useState<Cluster[]>([]);
-  const [nativeServers, setNativeServers] = useState<NativeServer[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalServers: 0,
     runningServers: 0,
@@ -99,6 +99,45 @@ const Dashboard: React.FC = () => {
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Use centralized server data hook - shares cache with Servers page
+  const { data: serverData, isLoading: serversLoading } = useServers({
+    refetchInterval: 30_000, // Refresh every 30 seconds on dashboard
+  });
+
+  // Convert to NativeServer format for backward compatibility
+  const nativeServers: NativeServer[] = React.useMemo(() => {
+    return (serverData || []).map(s => ({
+      name: s.name,
+      status: s.status as string,
+      image: s.image || '',
+      created: s.created || '',
+      type: s.type,
+      clusterName: s.clusterName,
+      map: s.map,
+      gamePort: s.gamePort,
+      queryPort: s.queryPort,
+      rconPort: s.rconPort,
+      maxPlayers: s.maxPlayers,
+      serverPath: s.serverPath,
+    }));
+  }, [serverData]);
+
+  // Update stats when server data changes
+  useEffect(() => {
+    if (serverData) {
+      const totalServers = serverData.length;
+      const runningServers = serverData.filter(s => s.status === 'running').length;
+      const stoppedServers = totalServers - runningServers;
+
+      setStats(prev => ({
+        ...prev,
+        totalServers,
+        runningServers,
+        stoppedServers,
+      }));
+    }
+  }, [serverData]);
+
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -108,10 +147,9 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [systemResponse, clustersResponse, nativeServersResponse] = await Promise.all([
+      const [systemResponse, clustersResponse] = await Promise.all([
         api.get('/api/system/info'),
         apiService.provisioning.listClusters().catch(() => ({ success: false, clusters: [] })),
-        api.get('/api/native-servers').catch(() => ({ data: { success: false, servers: [] } }))
       ]);
 
       if (systemResponse.data.success) {
@@ -120,26 +158,11 @@ const Dashboard: React.FC = () => {
 
       if (clustersResponse.success) {
         setClusters(clustersResponse.clusters as Cluster[]);
+        setStats(prev => ({
+          ...prev,
+          totalClusters: clustersResponse.clusters.length,
+        }));
       }
-
-      if (nativeServersResponse.data.success) {
-        setNativeServers(nativeServersResponse.data.servers);
-      }
-
-      // Calculate stats
-      const totalServers = nativeServersResponse.data.success ? nativeServersResponse.data.servers.length : 0;
-      const runningServers = nativeServersResponse.data.success ? 
-        nativeServersResponse.data.servers.filter((s: any) => s.status === 'running').length : 0;
-      const stoppedServers = totalServers - runningServers;
-      const totalClusters = clustersResponse.success ? clustersResponse.clusters.length : 0;
-
-      setStats({
-        totalServers,
-        runningServers,
-        stoppedServers,
-        totalPlayers: 0, // We'll calculate this separately
-        totalClusters
-      });
 
     } catch (err: any) {
       setError('Failed to load dashboard data');
@@ -256,7 +279,7 @@ const Dashboard: React.FC = () => {
     return 'No servers';
   };
 
-  if (loading) {
+  if (loading && serversLoading) {
     return <LoadingSpinner />;
   }
 
