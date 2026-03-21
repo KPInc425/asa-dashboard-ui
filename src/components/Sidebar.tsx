@@ -58,6 +58,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       label: 'Discord',
       icon: '💬',
       description: 'Discord webhooks and bot setup'
+    },
+    {
+      path: '/auto-update',
+      label: 'Auto-Update',
+      icon: '🔄',
+      description: 'Scheduler, warnings, and update controls'
     }
   ];
 

@@ -22,9 +22,6 @@ export type UpdateStep =
   | 'start' 
   | 'verify';
 
-// Notification channel types
-export type NotificationChannel = 'rcon' | 'discord' | 'socket';
-
 // Server auto-update configuration
 export interface AutoUpdateServerConfig {
   enabled: boolean;
@@ -35,8 +32,18 @@ export interface AutoUpdateServerConfig {
   currentVersion?: string;
   latestVersion?: string;
   checkInterval?: number;
+  checkIntervalMinutes?: number;
+  warningMinutes?: number[];
   updateIfEmpty?: boolean;
   forceUpdate?: boolean;
+  updateOnStart?: boolean;
+  autoRestart?: boolean;
+  cronExpression?: string | null;
+  notifyDiscord?: boolean;
+  notifyInGame?: boolean;
+  notifyRcon?: boolean;
+  notifySocket?: boolean;
+  notificationTemplates?: Record<string, unknown> | null;
 }
 
 // Global auto-update configuration
@@ -150,12 +157,6 @@ export interface AutoUpdateHistoryResponse {
   message?: string;
 }
 
-export interface TestNotificationResponse {
-  success: boolean;
-  channel: NotificationChannel;
-  message?: string;
-}
-
 // Socket event types for real-time updates
 export interface AutoUpdateSocketEvent {
   type: 'status' | 'progress' | 'warning' | 'completed' | 'failed';
@@ -171,11 +172,6 @@ export interface AutoUpdateToggleProps {
   showLastCheck?: boolean;
   compact?: boolean;
   lastCheck?: string;
-}
-
-export interface AutoUpdateSettingsProps {
-  onSave?: () => void;
-  onCancel?: () => void;
 }
 
 export interface UpdateTimelineProps {
@@ -218,6 +214,10 @@ export const DEFAULT_SERVER_CONFIG: AutoUpdateServerConfig = {
   enabled: false,
   serverName: '',
   checkInterval: 60,
+  checkIntervalMinutes: 60,
   updateIfEmpty: true,
-  forceUpdate: false
+  forceUpdate: false,
+  updateOnStart: false,
+  autoRestart: true,
+  warningMinutes: [30, 10, 5, 1]
 };

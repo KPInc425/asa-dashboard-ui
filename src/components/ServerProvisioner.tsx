@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { provisioningApi } from '../services/api-provisioning';
 import { socketService, type JobProgress } from '../services/socket';
-import { useConfirm } from '../contexts/ConfirmContext';
+import { useConfirm } from '../contexts/ConfirmContext2';
 import { useToast } from '../contexts/ToastContext';
 import PasswordInput from './PasswordInput';
 import GlobalConfigManager from './GlobalConfigManager';
@@ -434,7 +434,6 @@ const ServerProvisioner: React.FC = () => {
     
     // Set up Socket.IO job progress listener
     socketService.onJobProgress((progress) => {
-      console.log('Job progress received via Socket.IO:', progress);
       setJobProgress(progress);
       
       // If job is completed or failed, update status
@@ -460,19 +459,10 @@ const ServerProvisioner: React.FC = () => {
         }, 10000);
       }
     });
-    
-    // Add Socket.IO connection status logging
-    socketService.onConnect(() => {
-      console.log('Socket.IO connected - job progress updates should work');
-    });
-    
-    socketService.onDisconnect((reason) => {
-      console.log('Socket.IO disconnected:', reason);
-    });
-    
-    socketService.onError((error) => {
-      console.error('Socket.IO error:', error);
-    });
+
+    socketService.onConnect(() => {});
+    socketService.onDisconnect(() => {});
+    socketService.onError(() => {});
     
     // Cleanup Socket.IO listeners on unmount
     return () => {
@@ -488,7 +478,6 @@ const ServerProvisioner: React.FC = () => {
           const response = await provisioningApi.getJobStatus(currentJobId);
           if (response.success && response.job) {
             const job = response.job;
-            console.log('Job status polled:', job);
             
             // Update job progress with the latest information
             if (job.progress && Array.isArray(job.progress) && job.progress.length > 0) {
@@ -514,7 +503,6 @@ const ServerProvisioner: React.FC = () => {
                 message: latestProgress.message || '',
                 error: job.error as string | undefined
               };
-              console.log('Main component: Setting jobProgress to:', progressData);
               setJobProgress(progressData);
             }
             
@@ -551,9 +539,7 @@ const ServerProvisioner: React.FC = () => {
 
   const loadSystemInfo = async () => {
     try {
-      console.log('Loading system info...');
       const response = await provisioningApi.getSystemInfo();
-      console.log('System info response:', response);
       if (response.success) {
         setSystemInfo(response.status as SystemInfo);
         setStatusMessage('✅ System status refreshed');
@@ -580,9 +566,7 @@ const ServerProvisioner: React.FC = () => {
 
   const loadClusters = async () => {
     try {
-      console.log('Loading clusters...');
       const response = await provisioningApi.listClusters();
-      console.log('Clusters response:', response);
       if (response.success) {
         setClusters((response.clusters || []) as unknown as Cluster[]);
       } else {
@@ -885,7 +869,6 @@ const ServerProvisioner: React.FC = () => {
         name: wizardData.clusterName,
         servers: generateServers(),
       };
-      console.log('[createCluster] Sending payload:', payload);
 
               const response = await provisioningApi.createCluster(payload);
       if (response.success) {

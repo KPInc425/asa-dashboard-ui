@@ -33,6 +33,47 @@ interface ServiceInfo {
   parentProcessId: number;
 }
 
+interface LogTab {
+  key: string;
+  sourceKey: string;
+  label: string;
+  icon: string;
+}
+
+const getLogTabMeta = (key: string): LogTab => {
+  if (key.includes('combined')) {
+    return { key: 'combined', sourceKey: key, label: 'Combined Logs', icon: '📋' };
+  }
+  if (key.includes('error')) {
+    return { key: 'error', sourceKey: key, label: 'Error Logs', icon: '❌' };
+  }
+  if (key.includes('asa-api-service')) {
+    return { key: 'asaApiService', sourceKey: key, label: 'API Service', icon: '🔧' };
+  }
+  if (key.includes('node-out')) {
+    return { key: 'nodeOut', sourceKey: key, label: 'Node Stdout', icon: '📤' };
+  }
+  if (key.includes('node-err')) {
+    return { key: 'nodeErr', sourceKey: key, label: 'Node Stderr', icon: '📥' };
+  }
+  if (key.includes('nssm-out')) {
+    return { key: 'serviceOut', sourceKey: key, label: 'Service Stdout', icon: '⚙️' };
+  }
+  if (key.includes('nssm-err')) {
+    return { key: 'serviceErr', sourceKey: key, label: 'Service Stderr', icon: '⚠️' };
+  }
+
+  return {
+    key,
+    sourceKey: key,
+    label: key
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' '),
+    icon: '📄'
+  };
+};
+
 const SystemLogs: React.FC = () => {
   const navigate = useNavigate();
   const { isDeveloperMode } = useDeveloper();
@@ -89,63 +130,41 @@ const SystemLogs: React.FC = () => {
 
   // Get available tabs based on existing log files or new backend keys
   const availableTabs = useMemo(() => {
-    const tabs: Array<{ key: string; label: string; icon: string }> = [];
+    const tabs = new Map<string, LogTab>();
 
-    // Check for the new backend structure first (logFiles object)
+    const addTab = (tab: LogTab) => {
+      if (!tabs.has(tab.key)) {
+        tabs.set(tab.key, tab);
+      }
+    };
+
     if (logs.logFiles && typeof logs.logFiles === 'object') {
-      Object.keys(logs.logFiles).forEach(key => {
-        const logFile = logs.logFiles![key];
-        if (logFile && logFile.exists) {
-          let label = key;
-          let icon = '📄';
-
-          // Map keys to friendly names and icons
-          if (key.includes('combined')) {
-            label = 'Combined Logs';
-            icon = '📋';
-          } else if (key.includes('error')) {
-            label = 'Error Logs';
-            icon = '❌';
-          } else if (key.includes('asa-api-service')) {
-            label = 'API Service';
-            icon = '🔧';
-          } else if (key.includes('node-out')) {
-            label = 'Node Stdout';
-            icon = '📤';
-          } else if (key.includes('node-err')) {
-            label = 'Node Stderr';
-            icon = '📥';
-          } else if (key.includes('nssm-out')) {
-            label = 'Service Stdout';
-            icon = '⚙️';
-          } else if (key.includes('nssm-err')) {
-            label = 'Service Stderr';
-            icon = '⚠️';
-          } else {
-            // Convert key to title case for unknown files
-            label = key.split('-').map(word => 
-              word.charAt(0).toUpperCase() + word.slice(1)
-            ).join(' ');
+      Object.keys(logs.logFiles)
+        .sort((left, right) => right.localeCompare(left))
+        .forEach(key => {
+          const logFile = logs.logFiles![key];
+          if (logFile && logFile.exists) {
+            addTab(getLogTabMeta(key));
           }
+        });
 
-          tabs.push({ key, label, icon });
-        }
-      });
+      if (tabs.size > 0) {
+        return Array.from(tabs.values());
+      }
     }
 
-    // Fallback to old structure for backward compatibility
-    if (logs.api && logs.api.content) tabs.push({ key: 'api', label: 'API Logs', icon: '📝' });
-    if (logs.server && logs.server.content) tabs.push({ key: 'server', label: 'Server Logs', icon: '🖥️' });
-    if (logs.docker && logs.docker.content) tabs.push({ key: 'docker', label: 'Docker Logs', icon: '🐳' });
-    if (logs.combined?.exists) tabs.push({ key: 'combined', label: 'Combined Logs', icon: '📋' });
-    if (logs.error?.exists) tabs.push({ key: 'error', label: 'Error Logs', icon: '❌' });
-    if (logs.asaApiService?.exists) tabs.push({ key: 'asaApiService', label: 'API Service', icon: '🔧' });
-    if (logs.nodeOut?.exists) tabs.push({ key: 'nodeOut', label: 'Node Stdout', icon: '📤' });
-    if (logs.nodeErr?.exists) tabs.push({ key: 'nodeErr', label: 'Node Stderr', icon: '📥' });
-    if (logs.serviceOut?.exists) tabs.push({ key: 'serviceOut', label: 'Service Stdout', icon: '⚙️' });
-    if (logs.serviceErr?.exists) tabs.push({ key: 'serviceErr', label: 'Service Stderr', icon: '⚠️' });
+    if (logs.api && logs.api.content) addTab({ key: 'api', sourceKey: 'api', label: 'API Logs', icon: '📝' });
+    if (logs.server && logs.server.content) addTab({ key: 'server', sourceKey: 'server', label: 'Server Logs', icon: '🖥️' });
+    if (logs.docker && logs.docker.content) addTab({ key: 'docker', sourceKey: 'docker', label: 'Docker Logs', icon: '🐳' });
+    if (logs.combined?.exists) addTab({ key: 'combined', sourceKey: 'combined', label: 'Combined Logs', icon: '📋' });
+    if (logs.error?.exists) addTab({ key: 'error', sourceKey: 'error', label: 'Error Logs', icon: '❌' });
+    if (logs.asaApiService?.exists) addTab({ key: 'asaApiService', sourceKey: 'asaApiService', label: 'API Service', icon: '🔧' });
+    if (logs.nodeOut?.exists) addTab({ key: 'nodeOut', sourceKey: 'nodeOut', label: 'Node Stdout', icon: '📤' });
+    if (logs.nodeErr?.exists) addTab({ key: 'nodeErr', sourceKey: 'nodeErr', label: 'Node Stderr', icon: '📥' });
+    if (logs.serviceOut?.exists) addTab({ key: 'serviceOut', sourceKey: 'serviceOut', label: 'Service Stdout', icon: '⚙️' });
+    if (logs.serviceErr?.exists) addTab({ key: 'serviceErr', sourceKey: 'serviceErr', label: 'Service Stderr', icon: '⚠️' });
 
-    return tabs;
+    return Array.from(tabs.values());
   }, [logs]);
 
   // Set initial active tab to first available
@@ -219,7 +238,10 @@ const SystemLogs: React.FC = () => {
 
   // Memoize the rendered log content to avoid reprocessing on unrelated renders
   // Support new backend log object structure
-  const currentLog = logs.logFiles?.[activeTab] || (logs[activeTab as keyof SystemLogs] as any);
+  const activeTabMeta = availableTabs.find(tab => tab.key === activeTab);
+  const currentLog = activeTabMeta
+    ? (logs.logFiles?.[activeTabMeta.sourceKey] || (logs[activeTabMeta.sourceKey as keyof SystemLogs] as any))
+    : undefined;
   const currentLogContent = currentLog?.content || '';
 
   const formattedLog = useMemo(() => formatLogContent(currentLogContent), [currentLogContent]);

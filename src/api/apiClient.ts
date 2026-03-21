@@ -73,12 +73,7 @@ function getBaseUrl(): string {
     return envUrl;
   }
 
-  // In development, default to localhost:4000
-  if (import.meta.env.MODE === 'development') {
-    return 'http://localhost:4000';
-  }
-
-  // In production, use relative URL (handled by reverse proxy)
+  // Default to same-origin requests so the Vite proxy handles local development.
   return '';
 }
 

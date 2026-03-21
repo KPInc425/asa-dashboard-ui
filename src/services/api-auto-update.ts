@@ -14,8 +14,6 @@ import type {
   AutoUpdateTriggerResponse,
   AutoUpdateCancelResponse,
   AutoUpdateHistoryResponse,
-  TestNotificationResponse,
-  NotificationChannel,
   UpdateEvent,
   UpdateStatus
 } from '../types/autoUpdate';
@@ -136,6 +134,14 @@ export const autoUpdateApi = {
         config: {
           enabled: Math.random() > 0.5,
           serverName,
+          updateOnStart: false,
+          autoRestart: true,
+          checkIntervalMinutes: 60,
+          warningMinutes: [30, 10, 5, 1],
+          notifyDiscord: true,
+          notifyInGame: true,
+          notifyRcon: true,
+          notifySocket: true,
           lastCheck: new Date(Date.now() - Math.random() * 3600000).toISOString(),
           updateAvailable: Math.random() > 0.7,
           currentVersion: '1.0.1',
@@ -314,45 +320,6 @@ export const autoUpdateApi = {
       return response.data;
     } catch (error) {
       console.error(`Failed to get update history for ${serverName}:`, error);
-      throw error;
-    }
-  },
-
-  /**
-   * Send a test notification to specific channels
-   */
-  testNotification: async (
-    channel: NotificationChannel,
-    serverName?: string
-  ): Promise<TestNotificationResponse> => {
-    if (FRONTEND_ONLY_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return {
-        success: true,
-        channel,
-        message: `Test notification sent to ${channel}`
-      };
-    }
-    
-    try {
-      // Backend expects `channels` object with boolean flags
-      const channels: Record<string, boolean> = {
-        rcon: channel === 'rcon',
-        discord: channel === 'discord',
-        socket: channel === 'socket'
-      };
-      
-      const response = await api.post<TestNotificationResponse>(
-        '/api/auto-update/test-notification',
-        { 
-          serverName: serverName || 'default',
-          channels,
-          message: `[TEST] This is a test notification to ${channel}`
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to send test notification to ${channel}:`, error);
       throw error;
     }
   },

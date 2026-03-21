@@ -177,8 +177,6 @@ const createApiInstance = (): AxiosInstance => {
   const customEndpoint = localStorage.getItem('api_endpoint');
   const baseURL = customEndpoint || import.meta.env.VITE_API_URL || '/';
   
-  console.log('Creating API instance with baseURL:', baseURL);
-  
   const instance = axios.create({
     baseURL: baseURL,
     timeout: 300000, // 5 minutes (increased from 90 seconds to handle long SteamCMD updates)
@@ -246,7 +244,6 @@ const createApiInstance = (): AxiosInstance => {
 let api: AxiosInstance;
 try {
   api = createApiInstance();
-  console.log('API instance created successfully');
 } catch (error) {
   console.error('Failed to create API instance:', error);
   // Create a fallback instance

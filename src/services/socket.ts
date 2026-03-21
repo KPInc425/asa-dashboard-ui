@@ -37,6 +37,25 @@ class SocketManager {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000; // Start with 1 second
 
+  private resolveSocketUrl(): string {
+    const customEndpoint = localStorage.getItem('api_endpoint');
+    if (customEndpoint) {
+      return customEndpoint.replace(/\/$/, '');
+    }
+
+    const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL;
+    if (configuredSocketUrl && configuredSocketUrl !== '/') {
+      return configuredSocketUrl.replace(/\/$/, '');
+    }
+
+    const configuredApiUrl = import.meta.env.VITE_API_URL;
+    if (configuredApiUrl && configuredApiUrl !== '/') {
+      return configuredApiUrl.replace(/\/$/, '');
+    }
+
+    return window.location.origin.replace(/\/$/, '');
+  }
+
   /**
    * Check if the backend server is available
    */
@@ -70,22 +89,7 @@ class SocketManager {
       this.containerName = containerName;
       // Use relative URL for socket.io (handled by reverse proxy)
 
-      // Connect to the main Socket.IO server - use VITE_SOCKET_URL if available, otherwise VITE_API_URL
-      let socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
-      
-      // If neither URL is set or is just '/', determine the correct URL based on environment
-      if (!socketUrl || socketUrl === '/' || socketUrl.trim() === '') {
-        if (import.meta.env.MODE === 'development') {
-          // In development, use localhost:4000 (backend port)
-          socketUrl = 'http://localhost:4000';
-        } else {
-          // In production, use the current origin
-          socketUrl = window.location.origin;
-        }
-      }
-      
-      // Ensure the URL doesn't end with a trailing slash for Socket.IO
-      socketUrl = socketUrl.replace(/\/$/, '');
+      const socketUrl = this.resolveSocketUrl();
       
       const token = localStorage.getItem('auth_token');
       
@@ -437,22 +441,7 @@ class SocketManager {
         this.disconnect();
       }
 
-      // Use the same URL logic as the main connection
-      let socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
-      
-      // If neither URL is set or is just '/', determine the correct URL based on environment
-      if (!socketUrl || socketUrl === '/' || socketUrl.trim() === '') {
-        if (import.meta.env.MODE === 'development') {
-          // In development, use localhost:4000 (backend port)
-          socketUrl = 'http://localhost:4000';
-        } else {
-          // In production, use the current origin
-          socketUrl = window.location.origin;
-        }
-      }
-      
-      // Ensure the URL doesn't end with a trailing slash for Socket.IO
-      socketUrl = socketUrl.replace(/\/$/, '');
+      const socketUrl = this.resolveSocketUrl();
       
       const token = localStorage.getItem('auth_token');
       

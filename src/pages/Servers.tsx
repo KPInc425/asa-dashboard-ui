@@ -244,6 +244,14 @@ const Servers: React.FC = () => {
                   <span className="hidden md:inline">🔄 Update All</span>
                   <span className="md:hidden">🔄</span>
                 </button>
+                <button
+                  onClick={() => navigate('/auto-update')}
+                  className="btn btn-outline btn-sm"
+                  title="Open auto-update controls"
+                >
+                  <span className="hidden md:inline">⚙️ Auto-Update</span>
+                  <span className="md:hidden">⚙️</span>
+                </button>
               </div>
             </div>
           </div>

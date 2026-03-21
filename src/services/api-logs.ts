@@ -1,6 +1,20 @@
 import { api, FRONTEND_ONLY_MODE } from './api-core';
 import type { LogFilesResponse, LogContentResponse } from './api-core';
 
+function getLogsBaseUrl(): string {
+  const customEndpoint = localStorage.getItem('api_endpoint');
+  if (customEndpoint) {
+    return customEndpoint.replace(/\/$/, '');
+  }
+
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl !== '/') {
+    return envUrl.replace(/\/$/, '');
+  }
+
+  return '';
+}
+
 // Logs API (for WebSocket connection setup and file access)
 export const logsApi = {
   /**
@@ -8,7 +22,7 @@ export const logsApi = {
    * Note: This returns the URL for Socket.IO connection
    */
   getLogsUrl: (containerName: string): string => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    const baseUrl = getLogsBaseUrl();
     return `${baseUrl}/api/logs/${encodeURIComponent(containerName)}`;
   },
 
@@ -16,8 +30,7 @@ export const logsApi = {
    * Get available log files for a server
    */
   getLogFiles: async (serverName: string): Promise<LogFilesResponse> => {
-    // Temporary: use /api/logfiles/* to bypass proxy rules on /api/logs/*
-    const response = await api.get(`/api/logfiles/${encodeURIComponent(serverName)}/files`);
+    const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/files`);
     return response.data;
   },
 
@@ -29,8 +42,7 @@ export const logsApi = {
     if (forceRefresh) {
       params._t = Date.now(); // Cache-busting parameter
     }
-    // Temporary: use /api/logfiles/* to bypass proxy rules on /api/logs/*
-    const response = await api.get(`/api/logfiles/${encodeURIComponent(serverName)}/files/${encodeURIComponent(fileName)}`, {
+    const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/files/${encodeURIComponent(fileName)}`, {
       params
     });
     return response.data;
@@ -40,8 +52,7 @@ export const logsApi = {
    * Debug endpoint to get log file information
    */
   debugLogFiles: async (serverName: string): Promise<{ success: boolean; serverName: string; logFiles: Array<{ name: string; path: string; size: number }>; timestamp: string }> => {
-    // Temporary: point to list endpoint for debugging
-    const response = await api.get(`/api/logfiles/${encodeURIComponent(serverName)}/files`);
+    const response = await api.get(`/api/logs/${encodeURIComponent(serverName)}/debug`);
     return response.data;
   },
 

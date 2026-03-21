@@ -697,12 +697,7 @@ export const provisioningApi = {
       });
     }
 
-    console.log('Making API call to /api/provisioning/clusters');
     const response = await api.get('/api/provisioning/clusters');
-    console.log('API response:', response);
-    console.log('API response.data:', response.data);
-    console.log('API response.data.clusters:', response.data.clusters);
-    console.log('API response.data.clusters[0]:', response.data.clusters?.[0]);
     return response.data;
   },
 
@@ -731,9 +726,7 @@ export const provisioningApi = {
       });
     }
 
-    console.log(`Making API call to /api/provisioning/clusters/${clusterName}`);
     const response = await api.get(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}`);
-    console.log('API response:', response);
     return response.data;
   },
 

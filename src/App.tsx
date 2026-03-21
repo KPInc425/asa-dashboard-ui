@@ -22,6 +22,7 @@ import UserProfile from './components/UserProfile';
 import UserManagement from './components/UserManagement';
 import FirstTimeSetup from './components/FirstTimeSetup';
 import DiscordSetup from './pages/DiscordSetup';
+import AutoUpdate from './pages/AutoUpdate';
 
 // Create a client with default options
 const queryClient = new QueryClient({
@@ -199,6 +200,7 @@ const AppContent: React.FC = () => {
             <Route path="/system-logs" element={<SystemLogs />} />
             <Route path="/provisioning" element={<Provisioning />} />
             <Route path="/discord" element={<DiscordSetup />} />
+            <Route path="/auto-update" element={<AutoUpdate />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/users" element={<UserManagement />} />
             <Route path="*" element={<Navigate to="/" replace />} />
