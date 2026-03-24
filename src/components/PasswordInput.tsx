@@ -10,6 +10,7 @@ interface PasswordInputProps {
   name?: string;
   id?: string;
   error?: string;
+  autoComplete?: string;
 }
 
 const PasswordInput: React.FC<PasswordInputProps> = ({
@@ -21,7 +22,8 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
   disabled = false,
   name,
   id,
-  error
+  error,
+  autoComplete
 }) => {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -42,6 +44,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
           disabled={disabled}
           name={name}
           id={id}
+          autoComplete={autoComplete}
         />
         <button
           type="button"

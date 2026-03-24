@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // import { useAuth } from '../contexts/AuthContext';
-import { api as apiClient } from '../services/api';
+import { api as apiClient, ApiError } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import { useConfirm } from '../contexts/ConfirmContext2';
 import PasswordInput from './PasswordInput';
@@ -33,7 +33,88 @@ interface User {
 interface Message {
   type: 'success' | 'error';
   text: string;
+  details?: string[];
 }
+
+interface ApiErrorPayload {
+  message?: string;
+  errors?: string[];
+}
+
+const PASSWORD_REQUIREMENTS = [
+  {
+    id: 'length',
+    label: 'At least 8 characters',
+    test: (password: string) => password.length >= 8,
+    error: 'Password must be at least 8 characters long',
+  },
+  {
+    id: 'uppercase',
+    label: 'At least one uppercase letter',
+    test: (password: string) => /[A-Z]/.test(password),
+    error: 'Password must contain at least one uppercase letter',
+  },
+  {
+    id: 'lowercase',
+    label: 'At least one lowercase letter',
+    test: (password: string) => /[a-z]/.test(password),
+    error: 'Password must contain at least one lowercase letter',
+  },
+  {
+    id: 'number',
+    label: 'At least one number',
+    test: (password: string) => /\d/.test(password),
+    error: 'Password must contain at least one number',
+  },
+  {
+    id: 'special',
+    label: 'At least one special character',
+    test: (password: string) => /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    error: 'Password must contain at least one special character',
+  },
+  {
+    id: 'common-patterns',
+    label: 'Must not contain common patterns like 123, abc, password, admin, or qwerty',
+    test: (password: string) => !/(123|abc|password|admin|qwerty)/i.test(password),
+    error: 'Password cannot contain common patterns',
+  },
+] as const;
+
+const getPasswordValidationErrors = (password: string) => {
+  if (!password) {
+    return [];
+  }
+
+  return PASSWORD_REQUIREMENTS.filter((requirement) => !requirement.test(password)).map(
+    (requirement) => requirement.error
+  );
+};
+
+const extractApiMessage = (error: unknown, fallbackText: string): Message => {
+  if (error instanceof ApiError) {
+    const data = error.data as ApiErrorPayload | undefined;
+    return {
+      type: 'error',
+      text: data?.message || error.message || fallbackText,
+      details: Array.isArray(data?.errors) ? data.errors : undefined,
+    };
+  }
+
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: ApiErrorPayload } }).response;
+    return {
+      type: 'error',
+      text: response?.data?.message || fallbackText,
+      details: Array.isArray(response?.data?.errors) ? response?.data?.errors : undefined,
+    };
+  }
+
+  if (error instanceof Error) {
+    return { type: 'error', text: error.message || fallbackText };
+  }
+
+  return { type: 'error', text: fallbackText };
+};
 
 const UserManagement: React.FC = () => {
   // const { user } = useAuth();
@@ -68,6 +149,12 @@ const UserManagement: React.FC = () => {
   }, []);
 
   const { showConfirm } = useConfirm();
+  const passwordValidationErrors = getPasswordValidationErrors(createForm.password);
+  const passwordRequirements = PASSWORD_REQUIREMENTS.map((requirement) => ({
+    ...requirement,
+    met: requirement.test(createForm.password),
+  }));
+  const passwordsMatch = createForm.confirmPassword.length === 0 || createForm.password === createForm.confirmPassword;
 
   const loadUsers = async () => {
     try {
@@ -81,10 +168,7 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error loading users:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to load users' 
-      });
+      setMessage(extractApiMessage(error, 'Failed to load users'));
     } finally {
       setLoading(false);
     }
@@ -97,6 +181,16 @@ const UserManagement: React.FC = () => {
 
     if (createForm.password !== createForm.confirmPassword) {
       setMessage({ type: 'error', text: 'Passwords do not match' });
+      setSaving(false);
+      return;
+    }
+
+    if (passwordValidationErrors.length > 0) {
+      setMessage({
+        type: 'error',
+        text: 'Password does not meet the required rules.',
+        details: passwordValidationErrors,
+      });
       setSaving(false);
       return;
     }
@@ -133,10 +227,7 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error creating user:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to create user' 
-      });
+      setMessage(extractApiMessage(error, 'Failed to create user'));
     } finally {
       setSaving(false);
     }
@@ -169,10 +260,7 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error updating user:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to update user' 
-      });
+      setMessage(extractApiMessage(error, 'Failed to update user'));
     } finally {
       setSaving(false);
     }
@@ -193,10 +281,7 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error deleting user:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to delete user' 
-      });
+      setMessage(extractApiMessage(error, 'Failed to delete user'));
     }
   };
 
@@ -254,7 +339,16 @@ const UserManagement: React.FC = () => {
         {/* Message */}
         {message && (
           <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-            <span>{message.text}</span>
+            <div className="space-y-2">
+              <span>{message.text}</span>
+              {message.details && message.details.length > 0 && (
+                <ul className="list-disc list-inside text-sm">
+                  {message.details.map((detail) => (
+                    <li key={detail}>{detail}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
 
@@ -267,27 +361,33 @@ const UserManagement: React.FC = () => {
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="form-control">
-                    <label className="label">
+                    <label className="label" htmlFor="create-user-username">
                       <span className="label-text">Username *</span>
                     </label>
                     <input
+                      id="create-user-username"
+                      name="username"
                       type="text"
                       className="input input-bordered"
                       value={createForm.username}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, username: e.target.value }))}
+                      autoComplete="username"
                       required
                     />
                   </div>
                   
                   <div className="form-control">
-                    <label className="label">
+                    <label className="label" htmlFor="create-user-email">
                       <span className="label-text">Email *</span>
                     </label>
                     <input
+                      id="create-user-email"
+                      name="email"
                       type="email"
                       className="input input-bordered"
                       value={createForm.email}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, email: e.target.value }))}
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -295,59 +395,89 @@ const UserManagement: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="form-control">
-                    <label className="label">
+                    <label className="label" htmlFor="create-user-password">
                       <span className="label-text">Password *</span>
                     </label>
                     <PasswordInput
+                      id="create-user-password"
+                      name="new-password"
                       value={createForm.password}
                       onChange={(value) => setCreateForm(prev => ({ ...prev, password: value }))}
+                      autoComplete="new-password"
                       required
                     />
+                    <div className="mt-2 rounded-lg border border-base-300 bg-base-200/60 p-3 text-sm">
+                      <p className="font-medium text-base-content">Password requirements</p>
+                      <div className="mt-2 space-y-1">
+                        {passwordRequirements.map((requirement) => (
+                          <div
+                            key={requirement.id}
+                            className={requirement.met ? 'text-success' : 'text-base-content/70'}
+                          >
+                            {requirement.met ? '✓' : '•'} {requirement.label}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="form-control">
-                    <label className="label">
+                    <label className="label" htmlFor="create-user-confirm-password">
                       <span className="label-text">Confirm Password *</span>
                     </label>
                     <PasswordInput
+                      id="create-user-confirm-password"
+                      name="confirm-password"
                       value={createForm.confirmPassword}
                       onChange={(value) => setCreateForm(prev => ({ ...prev, confirmPassword: value }))}
+                      autoComplete="new-password"
+                      error={!passwordsMatch ? 'Passwords do not match' : undefined}
                       required
                     />
+                    {createForm.confirmPassword && passwordsMatch && (
+                      <div className="mt-2 text-sm text-success">Passwords match</div>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="form-control">
-                    <label className="label">
+                    <label className="label" htmlFor="create-user-first-name">
                       <span className="label-text">First Name</span>
                     </label>
                     <input
+                      id="create-user-first-name"
+                      name="given-name"
                       type="text"
                       className="input input-bordered"
                       value={createForm.firstName}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, firstName: e.target.value }))}
+                      autoComplete="given-name"
                     />
                   </div>
                   
                   <div className="form-control">
-                    <label className="label">
+                    <label className="label" htmlFor="create-user-last-name">
                       <span className="label-text">Last Name</span>
                     </label>
                     <input
+                      id="create-user-last-name"
+                      name="family-name"
                       type="text"
                       className="input input-bordered"
                       value={createForm.lastName}
                       onChange={(e) => setCreateForm(prev => ({ ...prev, lastName: e.target.value }))}
+                      autoComplete="family-name"
                     />
                   </div>
                 </div>
 
                 <div className="form-control">
-                  <label className="label">
+                  <label className="label" htmlFor="create-user-display-name">
                     <span className="label-text">Display Name</span>
                   </label>
                   <input
+                    id="create-user-display-name"
                     type="text"
                     className="input input-bordered"
                     value={createForm.displayName}

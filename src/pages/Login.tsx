@@ -52,10 +52,12 @@ const Login = () => {
             )}
 
             <div className="form-control">
-              <label className="label">
+              <label className="label" htmlFor="login-username">
                 <span className="label-text">Username</span>
               </label>
               <input
+                id="login-username"
+                name="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -67,14 +69,17 @@ const Login = () => {
             </div>
 
             <div className="form-control">
-              <label className="label">
+              <label className="label" htmlFor="login-password">
                 <span className="label-text">Password</span>
               </label>
               <PasswordInput
+                id="login-password"
+                name="current-password"
                 value={password}
                 onChange={setPassword}
                 placeholder="Enter password"
                 className="hover:scale-105 transition-transform duration-200"
+                autoComplete="current-password"
                 required
               />
             </div>
