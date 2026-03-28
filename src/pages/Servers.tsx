@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useServers, useServerMutation, useRefetchServers } from '../hooks/useServerData';
 import type { ServerSummary } from '../api/serverApi';
@@ -8,6 +9,7 @@ import ServerList from '../components/ServerList';
 import ServerUpdateManager from '../components/ServerUpdateManager';
 import type { Server } from '../utils/serverUtils';
 import { useDeveloper } from '../contexts/DeveloperContext';
+import { autoUpdateApi } from '../services/api-auto-update';
 
 const Servers: React.FC = () => {
   const navigate = useNavigate();
@@ -31,6 +33,13 @@ const Servers: React.FC = () => {
     refetch 
   } = useServers({
     refetchInterval: 10_000, // Poll every 10 seconds for status updates
+  });
+
+  const autoUpdateStatusQuery = useQuery({
+    queryKey: ['auto-update', 'status'],
+    queryFn: autoUpdateApi.getAllStatus,
+    staleTime: 10_000,
+    refetchInterval: 30_000,
   });
 
   // Server mutations with automatic refetch
@@ -63,14 +72,17 @@ const Servers: React.FC = () => {
 
   const { refetchList } = useRefetchServers();
 
+  const autoUpdateStatusMap = autoUpdateStatusQuery.data?.servers ?? {};
+
   // Convert ServerSummary[] to Server[] for compatibility with existing components
   const servers = useMemo(() => {
     return (serversData || []).map((s: ServerSummary) => ({
       ...s,
       status: s.status as Server['status'],
       type: s.type as Server['type'],
+      autoUpdateStatus: autoUpdateStatusMap[s.name],
     }));
-  }, [serversData]);
+  }, [serversData, autoUpdateStatusMap]);
 
   // Set error from query error
   useEffect(() => {

@@ -22,6 +22,14 @@ export interface Server {
   serverPath?: string;
   players?: number;
   isClusterServer?: boolean;
+  autoUpdateStatus?: {
+    status: string;
+    updateAvailable: boolean;
+    currentVersion?: string;
+    latestVersion?: string;
+    lastCheck?: string;
+    message?: string;
+  };
 }
 
 /**

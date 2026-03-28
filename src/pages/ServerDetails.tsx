@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext2';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Server } from '../utils/serverUtils';
 import { provisioningApi } from '../services';
+import { autoUpdateApi } from '../services/api-auto-update';
 import { 
   useServerDetails, 
   useServerLiveDataDynamic,
@@ -66,6 +68,14 @@ const ServerDetails: React.FC = () => {
     serverName,
     serverData?.type === 'container' ? 'container' : 'native'
   );
+
+  const autoUpdateStatusQuery = useQuery({
+    queryKey: ['auto-update', 'server-status', serverName],
+    queryFn: () => autoUpdateApi.getStatus(serverName!),
+    enabled: !!serverName,
+    staleTime: 10_000,
+    refetchInterval: 30_000,
+  });
 
   const { refetchServer: invalidateServer } = useRefetchServers();
 
@@ -165,6 +175,30 @@ const ServerDetails: React.FC = () => {
       case 'starting': return 'badge-warning';
       case 'stopping': return 'badge-info';
       default: return 'badge-neutral';
+    }
+  };
+
+  const getUpdateStatusBadge = () => {
+    const status = autoUpdateStatusQuery.data;
+
+    if (!status?.success) {
+      return null;
+    }
+
+    if (status.updateAvailable) {
+      return <span className="badge badge-warning">Needs update</span>;
+    }
+
+    switch (status.status) {
+      case 'checking':
+        return <span className="badge badge-info">Checking updates</span>;
+      case 'warning':
+      case 'updating':
+        return <span className="badge badge-primary">Updating</span>;
+      case 'failed':
+        return <span className="badge badge-error">Update failed</span>;
+      default:
+        return <span className="badge badge-success">Up to date</span>;
     }
   };
 
@@ -364,6 +398,7 @@ const ServerDetails: React.FC = () => {
               <span className={`badge ${getStatusColor(server.status)}`}>
                 {server.status.charAt(0).toUpperCase() + server.status.slice(1)}
               </span>
+              {getUpdateStatusBadge()}
               <div className="btn-group">
                 <button
                   onClick={() => handleServerAction('start')}
@@ -542,6 +577,22 @@ const ServerDetails: React.FC = () => {
                             {server.status.charAt(0).toUpperCase() + server.status.slice(1)}
                           </span>
                         </div>
+                        {autoUpdateStatusQuery.data?.success && (
+                          <>
+                            <div className="flex justify-between gap-4">
+                              <span className="text-base-content/70">Update Status:</span>
+                              <span>{getUpdateStatusBadge()}</span>
+                            </div>
+                            <div className="flex justify-between gap-4">
+                              <span className="text-base-content/70">Last Update Check:</span>
+                              <span className="text-right">
+                                {autoUpdateStatusQuery.data.lastCheck
+                                  ? new Date(autoUpdateStatusQuery.data.lastCheck).toLocaleString()
+                                  : 'Never'}
+                              </span>
+                            </div>
+                          </>
+                        )}
                         {server.map && (
                           <div className="flex justify-between">
                             <span className="text-base-content/70">Map:</span>

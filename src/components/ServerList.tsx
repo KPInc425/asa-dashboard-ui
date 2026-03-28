@@ -21,6 +21,14 @@ interface Server {
   serverPath?: string;
   players?: number;
   isClusterServer?: boolean;
+  autoUpdateStatus?: {
+    status: string;
+    updateAvailable: boolean;
+    currentVersion?: string;
+    latestVersion?: string;
+    lastCheck?: string;
+    message?: string;
+  };
 }
 
 interface ServerListProps {
@@ -69,6 +77,28 @@ function ServerListComponent({
       case 'starting': return '🟡';
       case 'restarting': return '🟡';
       default: return '⚪';
+    }
+  };
+
+  const getUpdateBadge = (server: Server) => {
+    if (!server.autoUpdateStatus) {
+      return null;
+    }
+
+    if (server.autoUpdateStatus.updateAvailable) {
+      return <span className="badge badge-warning badge-sm">Needs update</span>;
+    }
+
+    switch (server.autoUpdateStatus.status) {
+      case 'checking':
+        return <span className="badge badge-info badge-sm">Checking updates</span>;
+      case 'warning':
+      case 'updating':
+        return <span className="badge badge-primary badge-sm">Updating</span>;
+      case 'failed':
+        return <span className="badge badge-error badge-sm">Update failed</span>;
+      default:
+        return <span className="badge badge-success badge-sm">Up to date</span>;
     }
   };
 
@@ -134,6 +164,19 @@ function ServerListComponent({
                     {server.image && (
                       <div className="text-sm opacity-50">{server.image}</div>
                     )}
+                    {server.autoUpdateStatus?.currentVersion && (
+                      <div className="text-xs opacity-60">
+                        Build: {server.autoUpdateStatus.currentVersion}
+                        {server.autoUpdateStatus.latestVersion && server.autoUpdateStatus.latestVersion !== server.autoUpdateStatus.currentVersion
+                          ? ` -> ${server.autoUpdateStatus.latestVersion}`
+                          : ''}
+                      </div>
+                    )}
+                    {server.autoUpdateStatus?.lastCheck && (
+                      <div className="text-xs opacity-60">
+                        Last update check: {new Date(server.autoUpdateStatus.lastCheck).toLocaleString()}
+                      </div>
+                    )}
                   </div>
                 </div>
               </td>
@@ -150,11 +193,12 @@ function ServerListComponent({
                 </div>
               </td>
               <td>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xl">{getStatusIcon(server.status)}</span>
                   <span className={`badge ${getStatusColor(server.status)}`}>
                     {server.status.charAt(0).toUpperCase() + server.status.slice(1)}
                   </span>
+                  {getUpdateBadge(server)}
                 </div>
               </td>
               <td>

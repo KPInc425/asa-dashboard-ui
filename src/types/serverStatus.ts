@@ -1,3 +1,5 @@
+import type { AutoUpdateStatusResponse } from './autoUpdate';
+
 /**
  * Server Status Types
  * 
@@ -176,6 +178,10 @@ export interface ServerSummary {
   serverPath?: string;
   players?: number;
   isClusterServer?: boolean;
+  autoUpdateStatus?: Pick<
+    AutoUpdateStatusResponse,
+    'status' | 'updateAvailable' | 'currentVersion' | 'latestVersion' | 'lastCheck' | 'message'
+  >;
 }
 
 /**

@@ -364,6 +364,9 @@ export const autoUpdateApi = {
           lastCheck: string | null;
           nextCheck: string | null;
           updateAvailable: boolean;
+          currentVersion?: string | null;
+          latestVersion?: string | null;
+          message?: string | null;
           enabled: boolean;
           schedulerActive: boolean;
         }>;
@@ -377,7 +380,10 @@ export const autoUpdateApi = {
           serverName: server.serverName,
           status: server.status,
           updateAvailable: server.updateAvailable,
-          lastCheck: server.lastCheck || undefined
+          currentVersion: server.currentVersion || undefined,
+          latestVersion: server.latestVersion || undefined,
+          lastCheck: server.lastCheck || undefined,
+          message: server.message || undefined
         };
       }
       
