@@ -1,43 +1,111 @@
-# ASA Servers Dashboard
+# Game Estate Dashboard
 
 ## Overview
 
-This is the frontend dashboard for the ASA Management Suite. It provides a modern, web-based UI for managing ARK: Survival Ascended servers via the backend API.
+Multi-environment management dashboard for the ILGaming game server estate. Supports multiple backend APIs hosted remotely or locally, with typed commands, capability-driven UI, and a canonical inventory of all services.
 
-- **Framework:** React, TypeScript
+- **Framework:** React, TypeScript, Vite
+- **Styling:** Tailwind CSS, daisyUI
 - **Build Status:** ✅ **Production Ready** - All TypeScript errors resolved
 - **Features:**
+  - Multi-environment shell (switch between ASA remote, local estate, etc.)
   - Server status and controls
   - RCON console
   - Config file editor (Monaco Editor)
   - Real-time log streaming (Socket.IO)
-  - User authentication
+  - User authentication (per-backend)
   - Server provisioning wizard
   - Cluster management
   - Backup and restore operations
   - Mod management
-  - Responsive, modern UI/UX
+  - Backend adapter system for multi-API support
+  - Capability-driven UI (features hide when backend doesn't support them)
+  - Typed commands with risk-level confirmation
 
-## Setup
+## Local Development Setup
 
-1. Install dependencies:
-   ```sh
-   npm install
-   ```
-2. Copy and edit the environment file:
-   ```sh
-   cp env.example .env
-   # Edit .env as needed
-   ```
-3. Start the dashboard:
-   ```sh
-   npm run dev
-   ```
+### Prerequisites
+- Node.js 18+
+- Access to a running backend API (see below)
+
+### Quick Start
+
+```sh
+npm install
+cp env.example .env
+# Edit .env: set VITE_API_BASE_URL to your backend API URL
+npm run dev
+```
+
+### Connecting to a backend
+
+The dashboard ships with two environments pre-configured in `src/config/environments.ts`:
+
+| Environment | Backend | Behavior |
+|---|---|---|
+| `env:asa-remote` | Your remote ASA API | Full control (start/stop/RCON/config)
+| `env:ilgaming-prod` | None (read-only) | Deep links to Homepage/Uptime Kuma/Dozzle |
+
+Set `VITE_API_BASE_URL` in `.env` or leave it blank and use the environment switcher in the sidebar.
+
+### Adding a new environment
+
+Edit `src/config/environments.ts` and add a new entry following the `EnvironmentConfig` interface from `src/types/environment.ts`.
+
+### Architecture overview
+
+```
+Pages (Dashboard, Servers, etc.)
+  |
+  v
+Adapter Registry (resolves adapter for current environment's backend)
+  |
+  +-- ASAAdapter (talks to asa-control-api REST + Socket.IO)
+  +-- DeployctlAdapter (talks to deployctl.sh on host - stub)
+  +-- NoOpAdapter (graceful degradation when no backend)
+  |
+EnvironmentContext / AuthContext (per-backend auth, env switching)
+```
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/config/environments.ts` | Environment definitions (add new backends here) |
+| `src/contexts/EnvironmentContext.tsx` | Environment state, switching, capability resolution |
+| `src/contexts/AuthContext.tsx` | Per-backend auth tracking, backward compatible |
+| `src/adapters/asa-adapter.ts` | ASA backend adapter (maps ~80 API endpoints) |
+| `src/adapters/adapter-registry.ts` | Adapter factory and singleton registry |
+| `src/adapters/capabilities.ts` | Static capability manifests for known backend types |
+| `src/types/commands.ts` | Typed command model with risk levels |
+| `src/config/commands.ts` | Command registry (restart, stop, backup, etc.) |
+| `src/components/EnvironmentSwitcher.tsx` | daisyUI dropdown for env switching |
+| `src/components/ActionButton.tsx` | Risk-aware action button with confirmation |
+
+## Remaining Work (deferred from initial implementation)
+
+These items are designed and documented in `automation/docs/plans/` but not yet implemented:
+
+1. **Inventory-driven pages** — Refactor `Servers.tsx`/`ServerDetails.tsx` to consume `ServiceEntry` from the adapter instead of hardcoded ASA endpoints
+2. **Environment-aware routing** — Add `/env/:envId/...` URL prefixes for direct bookmarking
+3. **DeployctlAdapter** — Full implementation when local backend hosting is desired
+4. **Playwright MCP tests** — Regression tests before production deploy
+
+## Recent Updates (June 2026)
+
+- ✅ **Multi-environment shell** — EnvironmentContext, switcher, env config
+- ✅ **Backend adapter system** — ASAAdapter, NoOpAdapter, AdapterRegistry
+- ✅ **Capability-driven UI** — 19 capability flags, feature visibility gating
+- ✅ **Typed commands** — 8 commands with risk levels, confirmation modals
+- ✅ **Environment-aware auth** — Per-backend token isolation, backward compatible
+- ✅ **Socket.IO reconnection** — Auto-reconnects on environment switch
+- ✅ **Canonical estate inventory** — 45 services in YAML
+- ✅ **Doc generation scripts** — MkDocs + Homepage config generated from inventory
 
 ## API Usage
 
-- All API requests are sent to the backend at the URL specified in `.env` (`VITE_API_BASE_URL`).
-- Uses JWT authentication for all protected routes.
+- All API requests are sent to the backend at the URL specified in `.env` (`VITE_API_BASE_URL`) or the current environment's backend URL.
+- Uses JWT authentication per backend.
 - See [API_USAGE.md](./docs/API_USAGE.md) for details on API integration and error handling.
 
 ## Documentation Map
