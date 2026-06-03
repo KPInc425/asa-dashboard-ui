@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { provisioningApi } from '../services/api';
-import { useDeveloper } from '../contexts/DeveloperContext';
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { provisioningApi } from "../services/api";
+import { useDeveloper } from "../contexts/DeveloperContext";
 
 interface LogFile {
   content: string;
@@ -24,7 +24,7 @@ interface SystemLogs {
 }
 
 interface ServiceInfo {
-  mode: 'native' | 'docker';
+  mode: "native" | "docker";
   isWindowsService: boolean;
   serviceInstallPath: string | null;
   logBasePath: string;
@@ -41,36 +41,56 @@ interface LogTab {
 }
 
 const getLogTabMeta = (key: string): LogTab => {
-  if (key.includes('combined')) {
-    return { key: 'combined', sourceKey: key, label: 'Combined Logs', icon: '📋' };
+  if (key.includes("combined")) {
+    return {
+      key: "combined",
+      sourceKey: key,
+      label: "Combined Logs",
+      icon: "📋",
+    };
   }
-  if (key.includes('error')) {
-    return { key: 'error', sourceKey: key, label: 'Error Logs', icon: '❌' };
+  if (key.includes("error")) {
+    return { key: "error", sourceKey: key, label: "Error Logs", icon: "❌" };
   }
-  if (key.includes('asa-api-service')) {
-    return { key: 'asaApiService', sourceKey: key, label: 'API Service', icon: '🔧' };
+  if (key.includes("asa-api-service")) {
+    return {
+      key: "asaApiService",
+      sourceKey: key,
+      label: "API Service",
+      icon: "🔧",
+    };
   }
-  if (key.includes('node-out')) {
-    return { key: 'nodeOut', sourceKey: key, label: 'Node Stdout', icon: '📤' };
+  if (key.includes("node-out")) {
+    return { key: "nodeOut", sourceKey: key, label: "Node Stdout", icon: "📤" };
   }
-  if (key.includes('node-err')) {
-    return { key: 'nodeErr', sourceKey: key, label: 'Node Stderr', icon: '📥' };
+  if (key.includes("node-err")) {
+    return { key: "nodeErr", sourceKey: key, label: "Node Stderr", icon: "📥" };
   }
-  if (key.includes('nssm-out')) {
-    return { key: 'serviceOut', sourceKey: key, label: 'Service Stdout', icon: '⚙️' };
+  if (key.includes("nssm-out")) {
+    return {
+      key: "serviceOut",
+      sourceKey: key,
+      label: "Service Stdout",
+      icon: "⚙️",
+    };
   }
-  if (key.includes('nssm-err')) {
-    return { key: 'serviceErr', sourceKey: key, label: 'Service Stderr', icon: '⚠️' };
+  if (key.includes("nssm-err")) {
+    return {
+      key: "serviceErr",
+      sourceKey: key,
+      label: "Service Stderr",
+      icon: "⚠️",
+    };
   }
 
   return {
     key,
     sourceKey: key,
     label: key
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' '),
-    icon: '📄'
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" "),
+    icon: "📄",
   };
 };
 
@@ -81,10 +101,12 @@ const SystemLogs: React.FC = () => {
   const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('combined');
+  const [activeTab, setActiveTab] = useState<string>("combined");
   const [lines, setLines] = useState<number>(100);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
-  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<ReturnType<
+    typeof setInterval
+  > | null>(null);
   const [showDebugModal, setShowDebugModal] = useState<boolean>(false);
   const [debugData, setDebugData] = useState<any>(null);
 
@@ -92,17 +114,19 @@ const SystemLogs: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await provisioningApi.getSystemLogs('all', lines);
-      
+
+      const response = await provisioningApi.getSystemLogs("all", lines);
+
       if (response.success) {
         setLogs(response as unknown as SystemLogs);
         setServiceInfo(response.serviceInfo as unknown as ServiceInfo);
       } else {
-        setError('Failed to load system logs');
+        setError("Failed to load system logs");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load system logs');
+      setError(
+        err instanceof Error ? err.message : "Failed to load system logs",
+      );
     } finally {
       setLoading(false);
     }
@@ -116,7 +140,7 @@ const SystemLogs: React.FC = () => {
     if (autoRefresh) {
       const interval = setInterval(loadLogs, 5000); // Refresh every 5 seconds
       setRefreshInterval(interval);
-      
+
       return () => {
         if (interval) clearInterval(interval);
       };
@@ -138,10 +162,10 @@ const SystemLogs: React.FC = () => {
       }
     };
 
-    if (logs.logFiles && typeof logs.logFiles === 'object') {
+    if (logs.logFiles && typeof logs.logFiles === "object") {
       Object.keys(logs.logFiles)
         .sort((left, right) => right.localeCompare(left))
-        .forEach(key => {
+        .forEach((key) => {
           const logFile = logs.logFiles![key];
           if (logFile && logFile.exists) {
             addTab(getLogTabMeta(key));
@@ -153,107 +177,186 @@ const SystemLogs: React.FC = () => {
       }
     }
 
-    if (logs.api && logs.api.content) addTab({ key: 'api', sourceKey: 'api', label: 'API Logs', icon: '📝' });
-    if (logs.server && logs.server.content) addTab({ key: 'server', sourceKey: 'server', label: 'Server Logs', icon: '🖥️' });
-    if (logs.docker && logs.docker.content) addTab({ key: 'docker', sourceKey: 'docker', label: 'Docker Logs', icon: '🐳' });
-    if (logs.combined?.exists) addTab({ key: 'combined', sourceKey: 'combined', label: 'Combined Logs', icon: '📋' });
-    if (logs.error?.exists) addTab({ key: 'error', sourceKey: 'error', label: 'Error Logs', icon: '❌' });
-    if (logs.asaApiService?.exists) addTab({ key: 'asaApiService', sourceKey: 'asaApiService', label: 'API Service', icon: '🔧' });
-    if (logs.nodeOut?.exists) addTab({ key: 'nodeOut', sourceKey: 'nodeOut', label: 'Node Stdout', icon: '📤' });
-    if (logs.nodeErr?.exists) addTab({ key: 'nodeErr', sourceKey: 'nodeErr', label: 'Node Stderr', icon: '📥' });
-    if (logs.serviceOut?.exists) addTab({ key: 'serviceOut', sourceKey: 'serviceOut', label: 'Service Stdout', icon: '⚙️' });
-    if (logs.serviceErr?.exists) addTab({ key: 'serviceErr', sourceKey: 'serviceErr', label: 'Service Stderr', icon: '⚠️' });
+    if (logs.api && logs.api.content)
+      addTab({ key: "api", sourceKey: "api", label: "API Logs", icon: "📝" });
+    if (logs.server && logs.server.content)
+      addTab({
+        key: "server",
+        sourceKey: "server",
+        label: "Server Logs",
+        icon: "🖥️",
+      });
+    if (logs.docker && logs.docker.content)
+      addTab({
+        key: "docker",
+        sourceKey: "docker",
+        label: "Docker Logs",
+        icon: "🐳",
+      });
+    if (logs.combined?.exists)
+      addTab({
+        key: "combined",
+        sourceKey: "combined",
+        label: "Combined Logs",
+        icon: "📋",
+      });
+    if (logs.error?.exists)
+      addTab({
+        key: "error",
+        sourceKey: "error",
+        label: "Error Logs",
+        icon: "❌",
+      });
+    if (logs.asaApiService?.exists)
+      addTab({
+        key: "asaApiService",
+        sourceKey: "asaApiService",
+        label: "API Service",
+        icon: "🔧",
+      });
+    if (logs.nodeOut?.exists)
+      addTab({
+        key: "nodeOut",
+        sourceKey: "nodeOut",
+        label: "Node Stdout",
+        icon: "📤",
+      });
+    if (logs.nodeErr?.exists)
+      addTab({
+        key: "nodeErr",
+        sourceKey: "nodeErr",
+        label: "Node Stderr",
+        icon: "📥",
+      });
+    if (logs.serviceOut?.exists)
+      addTab({
+        key: "serviceOut",
+        sourceKey: "serviceOut",
+        label: "Service Stdout",
+        icon: "⚙️",
+      });
+    if (logs.serviceErr?.exists)
+      addTab({
+        key: "serviceErr",
+        sourceKey: "serviceErr",
+        label: "Service Stderr",
+        icon: "⚠️",
+      });
 
     return Array.from(tabs.values());
   }, [logs]);
 
   // Set initial active tab to first available
   useEffect(() => {
-    if (availableTabs.length > 0 && !availableTabs.find(tab => tab.key === activeTab)) {
+    if (
+      availableTabs.length > 0 &&
+      !availableTabs.find((tab) => tab.key === activeTab)
+    ) {
       setActiveTab(availableTabs[0].key);
     }
   }, [availableTabs]);
 
   const formatLogContent = (content: string) => {
-    if (!content) return 'No logs available';
-    
-    return content.split('\n').reverse().map((line, index) => {
-      // Improved log level detection
-      let logLevel = 'info';
-      
-      // Check for JSON log format first
-      try {
-        if (line.trim() && line.includes('"level"')) {
-          const match = line.match(/"level":\s*"?([^",\s]+)"?/);
-          if (match) {
-            logLevel = match[1].toLowerCase();
+    if (!content) return "No logs available";
+
+    return content
+      .split("\n")
+      .reverse()
+      .map((line, index) => {
+        // Improved log level detection
+        let logLevel = "info";
+
+        // Check for JSON log format first
+        try {
+          if (line.trim() && line.includes('"level"')) {
+            const match = line.match(/"level":\s*"?([^",\s]+)"?/);
+            if (match) {
+              logLevel = match[1].toLowerCase();
+            }
+          }
+        } catch (error) {
+          // Fallback to text-based detection
+        }
+
+        // If still 'info', check for text-based log level indicators
+        if (logLevel === "info") {
+          const lowerLine = line.toLowerCase();
+
+          // Check for error indicators
+          if (
+            lowerLine.includes("error") ||
+            lowerLine.includes("failed") ||
+            lowerLine.includes("exception") ||
+            lowerLine.includes("fatal") ||
+            lowerLine.includes("critical")
+          ) {
+            logLevel = "error";
+          }
+          // Check for warning indicators
+          else if (
+            lowerLine.includes("warn") ||
+            lowerLine.includes("warning") ||
+            lowerLine.includes("deprecated")
+          ) {
+            logLevel = "warn";
+          }
+          // Check for info indicators
+          else if (
+            lowerLine.includes("info") ||
+            lowerLine.includes("started") ||
+            lowerLine.includes("connected") ||
+            lowerLine.includes("listening") ||
+            lowerLine.includes("ready")
+          ) {
+            logLevel = "info";
+          }
+          // Check for debug indicators
+          else if (lowerLine.includes("debug") || lowerLine.includes("trace")) {
+            logLevel = "debug";
+          }
+          // Default to neutral for lines without clear indicators
+          else {
+            logLevel = "neutral";
           }
         }
-      } catch (error) {
-        // Fallback to text-based detection
-      }
-      
-      // If still 'info', check for text-based log level indicators
-      if (logLevel === 'info') {
-        const lowerLine = line.toLowerCase();
-        
-        // Check for error indicators
-        if (lowerLine.includes('error') || lowerLine.includes('failed') || lowerLine.includes('exception') || 
-            lowerLine.includes('fatal') || lowerLine.includes('critical')) {
-          logLevel = 'error';
-        }
-        // Check for warning indicators
-        else if (lowerLine.includes('warn') || lowerLine.includes('warning') || lowerLine.includes('deprecated')) {
-          logLevel = 'warn';
-        }
-        // Check for info indicators
-        else if (lowerLine.includes('info') || lowerLine.includes('started') || lowerLine.includes('connected') ||
-                 lowerLine.includes('listening') || lowerLine.includes('ready')) {
-          logLevel = 'info';
-        }
-        // Check for debug indicators
-        else if (lowerLine.includes('debug') || lowerLine.includes('trace')) {
-          logLevel = 'debug';
-        }
-        // Default to neutral for lines without clear indicators
-        else {
-          logLevel = 'neutral';
-        }
-      }
-      
-      let className = 'font-mono text-sm';
-      if (logLevel === 'error') className += ' text-error';
-      else if (logLevel === 'warn') className += ' text-warning';
-      else if (logLevel === 'info') className += ' text-info';
-      else if (logLevel === 'debug') className += ' text-base-content/50';
-      else className += ' text-base-content'; // neutral and default
-      
-      return (
-        <div key={`${index}-${line?.slice(0,30)}`} className={className}>
-          {line || '\u00A0'}
-        </div>
-      );
-    });
+
+        let className = "font-mono text-sm";
+        if (logLevel === "error") className += " text-error";
+        else if (logLevel === "warn") className += " text-warning";
+        else if (logLevel === "info") className += " text-info";
+        else if (logLevel === "debug") className += " text-base-content/50";
+        else className += " text-base-content"; // neutral and default
+
+        return (
+          <div key={`${index}-${line?.slice(0, 30)}`} className={className}>
+            {line || "\u00A0"}
+          </div>
+        );
+      });
   };
 
   // Memoize the rendered log content to avoid reprocessing on unrelated renders
   // Support new backend log object structure
-  const activeTabMeta = availableTabs.find(tab => tab.key === activeTab);
+  const activeTabMeta = availableTabs.find((tab) => tab.key === activeTab);
   const currentLog = activeTabMeta
-    ? (logs.logFiles?.[activeTabMeta.sourceKey] || (logs[activeTabMeta.sourceKey as keyof SystemLogs] as any))
+    ? logs.logFiles?.[activeTabMeta.sourceKey] ||
+      (logs[activeTabMeta.sourceKey as keyof SystemLogs] as any)
     : undefined;
-  const currentLogContent = currentLog?.content || '';
+  const currentLogContent = currentLog?.content || "";
 
-  const formattedLog = useMemo(() => formatLogContent(currentLogContent), [currentLogContent]);
+  const formattedLog = useMemo(
+    () => formatLogContent(currentLogContent),
+    [currentLogContent],
+  );
 
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content);
   };
 
   const downloadLogs = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -264,12 +367,12 @@ const SystemLogs: React.FC = () => {
 
   const debugSystemLogs = async () => {
     try {
-      console.log('🔍 Debug: Checking system logs...');
-      
+      console.log("🔍 Debug: Checking system logs...");
+
       // Try to get system logs with debug info
-      const response = await provisioningApi.getSystemLogs('all', lines);
-      console.log('🔍 Debug: System logs response:', response);
-      
+      const response = await provisioningApi.getSystemLogs("all", lines);
+      console.log("🔍 Debug: System logs response:", response);
+
       if (response.success) {
         const debugInfo = {
           serviceInfo: response.serviceInfo,
@@ -277,19 +380,25 @@ const SystemLogs: React.FC = () => {
           availableTabs: availableTabs,
           currentActiveTab: activeTab,
           logsObjectKeys: Object.keys(logs),
-          currentLogContent: currentLogContent ? `${currentLogContent.length} characters` : 'No content'
+          currentLogContent: currentLogContent
+            ? `${currentLogContent.length} characters`
+            : "No content",
         };
-        
-        console.log('🔍 Debug: System logs debug info:', debugInfo);
+
+        console.log("🔍 Debug: System logs debug info:", debugInfo);
         setDebugData(debugInfo);
         setShowDebugModal(true);
       } else {
-        setDebugData({ error: 'Failed to get system logs debug info' });
+        setDebugData({ error: "Failed to get system logs debug info" });
         setShowDebugModal(true);
       }
     } catch (error) {
-      console.error('🔍 Debug: Error getting system logs:', error);
-      setDebugData({ error: 'Error getting debug info: ' + (error instanceof Error ? error.message : 'Unknown error') });
+      console.error("🔍 Debug: Error getting system logs:", error);
+      setDebugData({
+        error:
+          "Error getting debug info: " +
+          (error instanceof Error ? error.message : "Unknown error"),
+      });
       setShowDebugModal(true);
     }
   };
@@ -299,8 +408,6 @@ const SystemLogs: React.FC = () => {
       navigator.clipboard.writeText(JSON.stringify(debugData, null, 2));
     }
   };
-
-  
 
   if (loading && Object.keys(logs).length === 0) {
     return (
@@ -324,15 +431,21 @@ const SystemLogs: React.FC = () => {
                 <span className="text-2xl">📋</span>
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-primary mb-2">System Logs</h1>
+                <h1 className="text-4xl font-bold text-primary mb-2">
+                  System Logs
+                </h1>
                 <p className="text-base-content/70">
                   Monitor backend system logs for debugging and troubleshooting
                 </p>
                 {serviceInfo && (
                   <div className="text-sm text-base-content/60 mt-1">
-                    Mode: {serviceInfo.mode === 'docker' ? 'Docker' : 
-                           serviceInfo.isWindowsService ? 'Native (Windows Service)' : 'Native (Development)'} | 
-                    Logs: {Object.keys(logs).length} files available
+                    Mode:{" "}
+                    {serviceInfo.mode === "docker"
+                      ? "Docker"
+                      : serviceInfo.isWindowsService
+                        ? "Native (Windows Service)"
+                        : "Native (Development)"}{" "}
+                    | Logs: {Object.keys(logs).length} files available
                   </div>
                 )}
               </div>
@@ -348,7 +461,7 @@ const SystemLogs: React.FC = () => {
                 </button>
               )}
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
                 className="btn btn-outline btn-primary hover:shadow-lg hover:shadow-primary/25"
               >
                 ← Back to Dashboard
@@ -401,7 +514,7 @@ const SystemLogs: React.FC = () => {
                   {loading ? (
                     <span className="loading loading-spinner loading-sm"></span>
                   ) : (
-                    '🔄 Refresh'
+                    "🔄 Refresh"
                   )}
                 </button>
               </div>
@@ -412,8 +525,18 @@ const SystemLogs: React.FC = () => {
         {/* Error Display */}
         {error && (
           <div className="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="stroke-current shrink-0 h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <span>{error}</span>
           </div>
@@ -428,7 +551,7 @@ const SystemLogs: React.FC = () => {
                 {availableTabs.map((tab) => (
                   <button
                     key={tab.key}
-                    className={`tab ${activeTab === tab.key ? 'tab-active' : ''}`}
+                    className={`tab ${activeTab === tab.key ? "tab-active" : ""}`}
                     onClick={() => setActiveTab(tab.key)}
                   >
                     <span className="mr-2">{tab.icon}</span>
@@ -445,10 +568,15 @@ const SystemLogs: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-2">
                         <span className="text-lg font-semibold">
-                          {availableTabs.find(tab => tab.key === activeTab)?.label}
+                          {
+                            availableTabs.find((tab) => tab.key === activeTab)
+                              ?.label
+                          }
                         </span>
                         <span className="badge badge-outline">
-                          {currentLog.path ? currentLog.path.split(/[/\\]/).pop() || 'Unknown' : 'Unknown'}
+                          {currentLog.path
+                            ? currentLog.path.split(/[/\\]/).pop() || "Unknown"
+                            : "Unknown"}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -460,7 +588,12 @@ const SystemLogs: React.FC = () => {
                           📋 Copy
                         </button>
                         <button
-                          onClick={() => downloadLogs(currentLogContent, `${activeTab}-logs.txt`)}
+                          onClick={() =>
+                            downloadLogs(
+                              currentLogContent,
+                              `${activeTab}-logs.txt`,
+                            )
+                          }
                           className="btn btn-sm btn-outline"
                           title="Download logs"
                         >
@@ -477,9 +610,12 @@ const SystemLogs: React.FC = () => {
                 ) : (
                   <div className="text-center py-8">
                     <div className="text-4xl mb-4">📄</div>
-                    <h3 className="text-lg font-semibold mb-2">No Log Content</h3>
+                    <h3 className="text-lg font-semibold mb-2">
+                      No Log Content
+                    </h3>
                     <p className="text-base-content/70">
-                      The selected log file doesn't have any content or couldn't be read.
+                      The selected log file doesn't have any content or couldn't
+                      be read.
                     </p>
                   </div>
                 )}
@@ -492,15 +628,24 @@ const SystemLogs: React.FC = () => {
             <div className="text-6xl mb-4">📋</div>
             <h3 className="text-xl font-semibold mb-2">No Logs Available</h3>
             <p className="text-base-content/70">
-              No system logs are currently available. This might be because the log files don't exist yet or the system hasn't generated any logs.
+              No system logs are currently available. This might be because the
+              log files don't exist yet or the system hasn't generated any logs.
             </p>
             {serviceInfo && (
               <div className="mt-4 p-4 bg-base-200 rounded-lg">
                 <h4 className="font-semibold mb-2">Service Information:</h4>
                 <div className="text-sm text-left space-y-1">
-                  <div>Mode: {serviceInfo.mode === 'docker' ? 'Docker' : 
-                               serviceInfo.isWindowsService ? 'Native (Windows Service)' : 'Native (Development)'}</div>
-                  <div>Working Directory: {serviceInfo.currentWorkingDirectory}</div>
+                  <div>
+                    Mode:{" "}
+                    {serviceInfo.mode === "docker"
+                      ? "Docker"
+                      : serviceInfo.isWindowsService
+                        ? "Native (Windows Service)"
+                        : "Native (Development)"}
+                  </div>
+                  <div>
+                    Working Directory: {serviceInfo.currentWorkingDirectory}
+                  </div>
                   <div>Log Base Path: {serviceInfo.logBasePath}</div>
                   <div>Process ID: {serviceInfo.processId}</div>
                 </div>
@@ -513,7 +658,9 @@ const SystemLogs: React.FC = () => {
         {showDebugModal && (
           <div className="modal modal-open">
             <div className="modal-box max-w-4xl max-h-[80vh]">
-              <h3 className="font-bold text-lg mb-4">🔍 System Logs Debug Information</h3>
+              <h3 className="font-bold text-lg mb-4">
+                🔍 System Logs Debug Information
+              </h3>
               <div className="flex justify-end mb-4">
                 <button
                   onClick={copyDebugData}
@@ -536,7 +683,10 @@ const SystemLogs: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="modal-backdrop" onClick={() => setShowDebugModal(false)}></div>
+            <div
+              className="modal-backdrop"
+              onClick={() => setShowDebugModal(false)}
+            ></div>
           </div>
         )}
       </div>
@@ -544,4 +694,4 @@ const SystemLogs: React.FC = () => {
   );
 };
 
-export default SystemLogs; 
+export default SystemLogs;

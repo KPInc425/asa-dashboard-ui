@@ -11,9 +11,11 @@
  * @see /home/steam/automation/docs/plans/phase5-dashboard-shell-design.md
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useEnvironment } from "../contexts/EnvironmentContext";
 import type { ConnectionState, EnvironmentConfig } from "../types/environment";
+import { getEnvironmentById } from "../config/environments";
 
 // ---------------------------------------------------------------------------
 // Connection state colour mapping
@@ -136,12 +138,46 @@ const EnvironmentSwitcher: React.FC = () => {
     setCurrentEnvironment,
     getBackendConnectionState,
   } = useEnvironment();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Detect if we're in env-aware routing mode
+  const isEnvAware = useMemo(() => {
+    return location.pathname.startsWith("/env/");
+  }, [location.pathname]);
+
+  // Extract the current relative path within the env prefix
+  const currentRelativePath = useMemo(() => {
+    if (isEnvAware) {
+      // /env/asa-remote/servers -> /servers
+      const match = location.pathname.match(/^\/env\/[^/]+(\/.*)?$/);
+      return match?.[1] || "/";
+    }
+    // Keep the current path for non-env-aware navigation
+    return location.pathname;
+  }, [location.pathname, isEnvAware]);
 
   const handleSelect = useCallback(
     (envId: string) => {
+      if (envId === currentEnvironment.environmentId) return;
       setCurrentEnvironment(envId);
+
+      if (isEnvAware) {
+        // Navigate to the same relative path in the new environment
+        const env = getEnvironmentById(envId);
+        const slug = env?.slug ?? envId.replace("env:", "");
+        navigate(
+          `/env/${slug}${currentRelativePath === "/" ? "" : currentRelativePath}`,
+        );
+      }
     },
-    [setCurrentEnvironment],
+    [
+      currentEnvironment.environmentId,
+      setCurrentEnvironment,
+      isEnvAware,
+      navigate,
+      currentRelativePath,
+    ],
   );
 
   const currentAggregate = aggregateConnectionState(currentEnvironment);
@@ -242,10 +278,9 @@ const EnvironmentSwitcher: React.FC = () => {
                         // Use the live connection state from context if
                         // this is the current environment; otherwise use
                         // the static config value.
-                        const state =
-                          isActive
-                            ? getBackendConnectionState(backend.backendId)
-                            : backend.connectionState;
+                        const state = isActive
+                          ? getBackendConnectionState(backend.backendId)
+                          : backend.connectionState;
 
                         return (
                           <span

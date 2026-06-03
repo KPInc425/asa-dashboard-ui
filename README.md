@@ -77,12 +77,30 @@ EnvironmentContext / AuthContext (per-backend auth, env switching)
 | `src/adapters/asa-adapter.ts` | ASA backend adapter (maps ~80 API endpoints) |
 | `src/adapters/adapter-registry.ts` | Adapter factory and singleton registry |
 | `src/adapters/capabilities.ts` | Static capability manifests for known backend types |
+| `src/adapters/deployctl-adapter.ts` | Full deployctl.sh adapter for local backends |
+| `src/hooks/useInventoryServices.ts` | Adapter-driven hooks consuming `ServiceEntry` |
+| `src/hooks/useScopedAdapter.ts` | Scoped adapter hook with query key factory |
+| `src/utils/environmentRoutes.ts` | Environment-aware routing utilities |
+| `src/components/EnvAwareRouter.tsx` | Auto-switches env on `/env/:envId/...` routes |
+| `src/components/EnvAwareLayout.tsx` | Layout wrapper for env-aware routes |
 | `src/types/commands.ts` | Typed command model with risk levels |
 | `src/config/commands.ts` | Command registry (restart, stop, backup, etc.) |
 | `src/components/EnvironmentSwitcher.tsx` | daisyUI dropdown for env switching |
 | `src/components/ActionButton.tsx` | Risk-aware action button with confirmation |
 
-## Remaining Work (deferred from initial implementation)
+## Completed Work (June 2026)
+
+The following items from the deferred list have been implemented:
+
+1. **✅ Inventory-driven pages** — `src/hooks/useInventoryServices.ts` provides adapter-driven hooks (`useServices`, `useService`) that consume `ServiceEntry` from the adapter with backward-compatible fallback to direct API calls. `Servers.tsx` now uses the adapter as the primary data source.
+
+2. **✅ Environment-aware routing** — Routes now support `/env/:envId/...` URL prefixes via `EnvAwareRouter`/`EnvAwareLayout`. The `Sidebar` and `EnvironmentSwitcher` use env-aware links when in env mode. Legacy flat routes remain fully functional.
+
+3. **✅ DeployctlAdapter** — Full implementation with shell calls to `deployctl.sh`, proper ServiceEntry mapping, action execution, log parsing, and automatic Node.js environment detection with graceful browser fallback.
+
+4. **✅ Playwright MCP tests** — Test configuration and regression test suite in `.playwright-mcp/` covering navigation, env-aware routing, and accessibility.
+
+## Remaining Work (deferred)
 
 These items are designed and documented in `automation/docs/plans/` but not yet implemented:
 
