@@ -1,27 +1,27 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import PasswordInput from '../components/PasswordInput';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import PasswordInput from "../components/PasswordInput";
 
 const Login = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       await login(username, password, rememberMe);
-      navigate('/');
+      navigate("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -32,20 +32,32 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-2xl p-8 animate-in slide-in-from-bottom-4 duration-500">
           <div className="text-center mb-8">
-                          <div className="animate-pulse inline-block mb-4">
+            <div className="animate-pulse inline-block mb-4">
               <div className="w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
                 <span className="text-3xl">🦖</span>
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-primary mb-2">ARK Dashboard</h1>
+            <h1 className="text-3xl font-bold text-primary mb-2">
+              ARK Dashboard
+            </h1>
             <p className="text-base-content/70">Survival Server Management</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="alert alert-error animate-bounce">
-                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="stroke-current shrink-0 h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 <span>{error}</span>
               </div>
@@ -104,10 +116,39 @@ const Login = () => {
               {isLoading ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (
-                'Login'
+                "Login"
               )}
             </button>
           </form>
+
+          {/* Demo mode divider */}
+          <div className="divider my-6">
+            <span className="text-base-content/50 text-xs">or</span>
+          </div>
+
+          {/* View Demo button */}
+          <Link to="/demo" className="btn btn-outline btn-info w-full gap-2">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+            View Public Demo
+          </Link>
 
           <div className="mt-8 text-center">
             <p className="text-sm text-base-content/50">
@@ -120,4 +161,4 @@ const Login = () => {
   );
 };
 
-export default Login; 
+export default Login;

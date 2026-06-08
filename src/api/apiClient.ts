@@ -1,6 +1,6 @@
 /**
  * Centralized API Client
- * 
+ *
  * This module provides a configured axios instance with:
  * - Base URL configuration from environment
  * - Request/response interceptors for error handling
@@ -8,10 +8,14 @@
  * - ProblemDetails error transformation
  */
 
-import axios from 'axios';
-import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import type { ProblemDetails } from '../types/serverStatus';
-import { isProblemDetails } from '../types/serverStatus';
+import axios from "axios";
+import type {
+  AxiosInstance,
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from "axios";
+import type { ProblemDetails } from "../types/serverStatus";
+import { isProblemDetails } from "../types/serverStatus";
 
 /**
  * Custom API error that includes ProblemDetails information
@@ -31,10 +35,10 @@ export class ApiError extends Error {
       problemDetails?: ProblemDetails;
       retryAfter?: number;
       serverId?: string;
-    }
+    },
   ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.code = options?.code;
     this.problemDetails = options?.problemDetails;
@@ -62,19 +66,19 @@ export class ApiError extends Error {
  */
 function getBaseUrl(): string {
   // Check localStorage for custom endpoint (user-configurable)
-  const customEndpoint = localStorage.getItem('api_endpoint');
+  const customEndpoint = localStorage.getItem("api_endpoint");
   if (customEndpoint) {
     return customEndpoint;
   }
 
   // Use environment variable
   const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl && envUrl !== '/') {
+  if (envUrl && envUrl !== "/") {
     return envUrl;
   }
 
   // Default to same-origin requests so the Vite proxy handles local development.
-  return '';
+  return "";
 }
 
 /**
@@ -87,7 +91,7 @@ function createApiClient(): AxiosInstance {
     baseURL,
     timeout: 300000, // 5 minutes for long operations
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     withCredentials: true,
   });
@@ -95,16 +99,16 @@ function createApiClient(): AxiosInstance {
   // Request interceptor - add auth token
   client.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem("auth_token");
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
       return config;
     },
     (error) => {
-      console.error('Request interceptor error:', error);
+      console.error("Request interceptor error:", error);
       return Promise.reject(error);
-    }
+    },
   );
 
   // Response interceptor - transform errors to ApiError
@@ -113,10 +117,11 @@ function createApiClient(): AxiosInstance {
     (error: AxiosError) => {
       // Handle network/timeout errors
       if (!error.response) {
-        const message = error.code === 'ECONNABORTED'
-          ? 'Request timed out. The server may be busy.'
-          : 'No response from server. Please check your connection.';
-        
+        const message =
+          error.code === "ECONNABORTED"
+            ? "Request timed out. The server may be busy."
+            : "No response from server. Please check your connection.";
+
         return Promise.reject(new ApiError(message, 0));
       }
 
@@ -130,16 +135,17 @@ function createApiClient(): AxiosInstance {
             problemDetails: data,
             retryAfter: data.retryAfter,
             serverId: data.serverId,
-          })
+          }),
         );
       }
 
       // Handle legacy error format
       const legacyData = data as { message?: string; error?: string };
-      const message = legacyData?.message || legacyData?.error || 'An error occurred';
+      const message =
+        legacyData?.message || legacyData?.error || "An error occurred";
 
       return Promise.reject(new ApiError(message, status));
-    }
+    },
   );
 
   return client;
@@ -147,11 +153,11 @@ function createApiClient(): AxiosInstance {
 
 /**
  * The main API client instance
- * 
+ *
  * Usage:
  * ```typescript
  * import { apiClient } from './api/apiClient';
- * 
+ *
  * const response = await apiClient.get('/api/servers');
  * ```
  */
@@ -170,7 +176,7 @@ export function resetApiClient(): AxiosInstance {
  * Update the API base URL at runtime
  */
 export function setApiBaseUrl(url: string): void {
-  localStorage.setItem('api_endpoint', url);
+  localStorage.setItem("api_endpoint", url);
   resetApiClient();
 }
 
@@ -186,7 +192,7 @@ export function getApiBaseUrl(): string {
  */
 export async function checkApiHealth(): Promise<boolean> {
   try {
-    const response = await apiClient.get('/health', { timeout: 5000 });
+    const response = await apiClient.get("/health", { timeout: 5000 });
     return response.status === 200;
   } catch {
     return false;

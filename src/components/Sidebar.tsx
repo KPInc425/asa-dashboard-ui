@@ -5,6 +5,9 @@ import { useEnvironment } from "../contexts/EnvironmentContext";
 import { useEnvironmentRouter } from "../utils/environmentRoutes";
 import EnvironmentSwitcher from "./EnvironmentSwitcher";
 
+// Demo mode detection
+import { isDemoMode } from "../demo/demo-core";
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,21 +24,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     return location.pathname.startsWith("/env/");
   }, [location.pathname]);
 
+  // Determine if we're in demo mode
+  const isDemo = useMemo(() => {
+    return location.pathname.startsWith("/demo");
+  }, [location.pathname]);
+
   const isActive = (path: string) => {
     if (isEnvAware) {
-      // In env-aware mode, match against the env-prefixed path
       return (
         location.pathname ===
         `/env/${envRouter.envId}${path === "/" ? "" : path}`
       );
+    }
+    if (isDemo) {
+      return location.pathname === `/demo${path === "/" ? "" : path}`;
     }
     return location.pathname === path;
   };
 
   const getNavPath = (path: string): string => {
     if (isEnvAware) {
-      // Use env-aware URL when currently in env mode
       return `/env/${envRouter.envId}${path === "/" ? "" : path}`;
+    }
+    if (isDemo) {
+      return `/demo${path === "/" ? "" : path}`;
     }
     return path;
   };

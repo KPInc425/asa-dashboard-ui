@@ -11,7 +11,13 @@
  * @see /home/steam/automation/docs/plans/phase5-dashboard-shell-design.md
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEnvironment } from "../contexts/EnvironmentContext";
 import type { ConnectionState, EnvironmentConfig } from "../types/environment";
@@ -141,6 +147,64 @@ const EnvironmentSwitcher: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLUListElement>(null);
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+
+  /**
+   * Position the dropdown menu using fixed positioning so it never gets
+   * clipped by the sidebar or viewport boundaries. We prefer opening
+   * upward (above the trigger) but fall back to downward when space is
+   * tight. A ResizeObserver keeps the position correct when the menu
+   * content changes size.
+   */
+  const repositionMenu = useCallback(() => {
+    if (!buttonRef.current || !menuRef.current) return;
+
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuHeight = menuRef.current.scrollHeight;
+    const gap = 4; // tighter gap so the menu hugs the trigger
+    const spaceAbove = rect.top - gap;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+
+    let top: number | undefined;
+    let bottom: number | undefined;
+    let maxHeight: number;
+
+    if (spaceAbove >= menuHeight || spaceAbove >= spaceBelow) {
+      // Open above the trigger
+      bottom = window.innerHeight - rect.top + gap;
+      maxHeight = spaceAbove;
+    } else {
+      // Open below the trigger
+      top = rect.bottom + gap;
+      maxHeight = spaceBelow;
+    }
+
+    setMenuStyle({
+      position: "fixed",
+      top: top ?? undefined,
+      bottom: bottom ?? undefined,
+      left: rect.left,
+      width: rect.width,
+      maxHeight: Math.min(maxHeight, 480),
+      overflowY: "auto",
+    });
+  }, []);
+
+  useEffect(() => {
+    repositionMenu();
+    window.addEventListener("resize", repositionMenu);
+    return () => window.removeEventListener("resize", repositionMenu);
+  }, [repositionMenu]);
+
+  useEffect(() => {
+    if (!menuRef.current) return;
+    const observer = new ResizeObserver(() => repositionMenu());
+    observer.observe(menuRef.current);
+    return () => observer.disconnect();
+  }, [repositionMenu]);
+
   // Detect if we're in env-aware routing mode
   const isEnvAware = useMemo(() => {
     return location.pathname.startsWith("/env/");
@@ -183,9 +247,17 @@ const EnvironmentSwitcher: React.FC = () => {
   const currentAggregate = aggregateConnectionState(currentEnvironment);
 
   return (
-    <div className="dropdown dropdown-end w-full">
+    <div className="dropdown w-full">
       {/* Trigger button */}
       <button
+        ref={buttonRef}
+        onClick={() => {
+          // Double rAF ensures the menu has been laid out and is visible
+          // before we measure its bounding box.
+          requestAnimationFrame(() => {
+            requestAnimationFrame(repositionMenu);
+          });
+        }}
         className="btn btn-sm btn-outline btn-ghost w-full justify-start gap-2"
         tabIndex={0}
         role="combobox"
@@ -219,9 +291,11 @@ const EnvironmentSwitcher: React.FC = () => {
         </svg>
       </button>
 
-      {/* Dropdown content */}
+      {/* Dropdown content — match sidebar width so it doesn't overflow */}
       <ul
-        className="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-72 border border-base-300 z-[60]"
+        ref={menuRef}
+        style={menuStyle}
+        className="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box border border-base-300 z-[60] min-w-0 transition-all duration-200 ease-out origin-bottom"
         tabIndex={0}
       >
         {availableEnvironments.map((env) => {
@@ -232,10 +306,10 @@ const EnvironmentSwitcher: React.FC = () => {
           return (
             <li key={env.environmentId}>
               <button
-                className={`flex items-start gap-3 p-3 rounded-lg transition-all duration-200 text-left ${
+                className={`flex items-start gap-3 p-3 rounded-lg transition-all duration-200 ease-out text-left group ${
                   isActive
-                    ? "bg-primary text-primary-content shadow-md"
-                    : "hover:bg-base-200 text-base-content"
+                    ? "bg-primary text-primary-content shadow-md ring-1 ring-primary/20"
+                    : "hover:bg-base-200 hover:translate-x-1 hover:shadow-sm text-base-content border-l-2 border-transparent hover:border-primary/40"
                 }`}
                 onClick={() => handleSelect(env.environmentId)}
                 role="option"
@@ -247,11 +321,15 @@ const EnvironmentSwitcher: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   {/* Name row */}
                   <div className="font-medium text-sm flex items-center gap-1">
-                    {env.icon && <span>{env.icon}</span>}
+                    {env.icon && (
+                      <span className="transition-transform duration-200 group-hover:scale-110">
+                        {env.icon}
+                      </span>
+                    )}
                     <span className="truncate">{env.name}</span>
                     {env.isDefault && (
                       <span
-                        className={`badge badge-xs ${
+                        className={`badge badge-xs ml-1 ${
                           isActive ? "badge-outline" : "badge-ghost"
                         }`}
                       >
@@ -275,9 +353,6 @@ const EnvironmentSwitcher: React.FC = () => {
                   {env.backends.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {env.backends.map((backend) => {
-                        // Use the live connection state from context if
-                        // this is the current environment; otherwise use
-                        // the static config value.
                         const state = isActive
                           ? getBackendConnectionState(backend.backendId)
                           : backend.connectionState;
@@ -285,7 +360,7 @@ const EnvironmentSwitcher: React.FC = () => {
                         return (
                           <span
                             key={backend.backendId}
-                            className="inline-flex items-center gap-1 text-xs"
+                            className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md bg-base-300/40 hover:bg-base-300/70 transition-colors"
                           >
                             <ConnectionStateDot state={state} />
                             <span

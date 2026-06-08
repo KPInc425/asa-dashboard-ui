@@ -5,6 +5,7 @@ import {
   Route,
   Navigate,
   Link,
+  useLocation,
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -31,6 +32,10 @@ import FirstTimeSetup from "./components/FirstTimeSetup";
 import DiscordSetup from "./pages/DiscordSetup";
 import AutoUpdate from "./pages/AutoUpdate";
 import EnvAwareLayout from "./components/EnvAwareLayout";
+
+// Demo mode
+import DemoLayout from "./demo/DemoLayout";
+import { enterDemoMode, exitDemoMode } from "./demo/demo-core";
 
 // Create a client with default options
 const queryClient = new QueryClient({
@@ -213,12 +218,52 @@ const Header: React.FC<{
 
 const AppContent: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
   const {
     isAuthenticated,
     isLoading,
     needsFirstTimeSetup,
     completeFirstTimeSetup,
   } = useAuth();
+
+  // Demo mode: /demo route is a public, unauthenticated preview with mock data.
+  const isDemoRoute =
+    location.pathname === "/demo" || location.pathname.startsWith("/demo/");
+
+  // Enable demo mode module flag so API services return mock data.
+  React.useEffect(() => {
+    if (isDemoRoute) {
+      enterDemoMode();
+    } else {
+      exitDemoMode();
+    }
+  }, [isDemoRoute]);
+
+  // If visiting the public demo route, render the demo layout (bypasses auth).
+  // Uses proper nested routes so paths like /demo/servers are matched correctly.
+  if (isDemoRoute) {
+    return (
+      <Routes>
+        <Route path="/demo" element={<DemoLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="servers" element={<Servers />} />
+          <Route path="servers/:serverName" element={<ServerDetails />} />
+          <Route path="clusters/:clusterName" element={<ClusterDetails />} />
+          <Route path="rcon" element={<RconPage />} />
+          <Route path="rcon/:containerName" element={<RconConsole />} />
+          <Route path="configs" element={<Configs />} />
+          <Route path="global-configs" element={<GlobalServerConfigs />} />
+          <Route path="system-logs" element={<SystemLogs />} />
+          <Route path="provisioning" element={<Provisioning />} />
+          <Route path="discord" element={<DiscordSetup />} />
+          <Route path="auto-update" element={<AutoUpdate />} />
+          <Route path="profile" element={<UserProfile />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="*" element={<Navigate to="/demo" replace />} />
+        </Route>
+      </Routes>
+    );
+  }
 
   // Show loading spinner while checking authentication
   if (isLoading) {

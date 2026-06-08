@@ -13,144 +13,144 @@ import type { AxiosInstance, AxiosResponse, AxiosError } from "axios";
 
 // Core Types for API responses
 export interface Container {
-    name: string;
-    status: "running" | "stopped" | "restarting" | "unknown";
-    image?: string;
-    ports?: string[];
-    created?: string;
-    labels?: Record<string, string>;
-    type?: string;
-    serverCount?: number;
-    maps?: string;
-    map?: string;
-    clusterName?: string;
-    gamePort?: number;
-    queryPort?: number;
-    rconPort?: number;
-    maxPlayers?: number;
-    serverPath?: string;
-    players?: number;
+  name: string;
+  status: "running" | "stopped" | "restarting" | "unknown";
+  image?: string;
+  ports?: string[];
+  created?: string;
+  labels?: Record<string, string>;
+  type?: string;
+  serverCount?: number;
+  maps?: string;
+  map?: string;
+  clusterName?: string;
+  gamePort?: number;
+  queryPort?: number;
+  rconPort?: number;
+  maxPlayers?: number;
+  serverPath?: string;
+  players?: number;
 }
 
 export interface RconResponse {
-    success: boolean;
-    message: string;
-    response?: string;
-    cached?: boolean;
+  success: boolean;
+  message: string;
+  response?: string;
+  cached?: boolean;
 }
 
 export interface ConfigFile {
-    content: string;
-    filename: string;
-    map: string;
+  content: string;
+  filename: string;
+  map: string;
 }
 
 export interface LockStatus {
-    locked: boolean;
-    lockedBy?: string;
-    lockedAt?: string;
-    reason?: string;
+  locked: boolean;
+  lockedBy?: string;
+  lockedAt?: string;
+  reason?: string;
 }
 
 export interface AuthResponse {
-    token: string;
-    user: User;
+  token: string;
+  user: User;
 }
 
 export interface User {
-    username: string;
-    role?: string;
-    permissions?: string[];
-    profile?: {
-        firstName?: string;
-        lastName?: string;
-        displayName?: string;
-        email?: string;
-        timezone?: string;
-        language?: string;
-    };
+  username: string;
+  role?: string;
+  permissions?: string[];
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    email?: string;
+    timezone?: string;
+    language?: string;
+  };
 }
 
 export interface ClusterBackup {
-    clusterName: string;
-    backupName: string;
-    created: string;
-    backupPath: string;
-    size: number;
-    type: string;
-    hasMetadata: boolean;
+  clusterName: string;
+  backupName: string;
+  created: string;
+  backupPath: string;
+  size: number;
+  type: string;
+  hasMetadata: boolean;
 }
 
 export interface LogFile {
-    name: string;
-    path: string;
-    size: number;
+  name: string;
+  path: string;
+  size: number;
 }
 
 export interface LogFilesResponse {
-    success: boolean;
-    serverName: string;
-    logFiles: LogFile[];
+  success: boolean;
+  serverName: string;
+  logFiles: LogFile[];
 }
 
 export interface LogContentResponse {
-    success: boolean;
-    serverName: string;
-    fileName: string;
-    content: string;
-    lines: number;
+  success: boolean;
+  serverName: string;
+  fileName: string;
+  content: string;
+  lines: number;
 }
 
 export interface EnvironmentFile {
-    success: boolean;
-    content: string;
-    variables: Record<string, string>;
-    path: string;
+  success: boolean;
+  content: string;
+  variables: Record<string, string>;
+  path: string;
 }
 
 export interface DockerComposeFile {
-    success: boolean;
-    content: string;
-    path: string;
+  success: boolean;
+  content: string;
+  path: string;
 }
 
 export interface ArkServer {
-    name: string;
-    lines: string[];
-    startLine: number;
-    endLine: number;
+  name: string;
+  lines: string[];
+  startLine: number;
+  endLine: number;
 }
 
 export interface ArkServerConfigs {
-    success: boolean;
-    servers: ArkServer[];
-    count: number;
+  success: boolean;
+  servers: ArkServer[];
+  count: number;
 }
 
 export interface Mod {
-    id: string;
-    name: string;
-    description: string;
-    author: string;
-    version: string;
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  version: string;
 }
 
 export interface ModsResponse {
-    success: boolean;
-    mods: Mod[];
+  success: boolean;
+  mods: Mod[];
 }
 
 // API Error class for better error handling
 export class ApiError extends Error {
-    public status: number;
-    public data?: unknown;
+  public status: number;
+  public data?: unknown;
 
-    constructor(message: string, status: number, data?: unknown) {
-        super(message);
-        this.name = "ApiError";
-        this.status = status;
-        this.data = data;
-    }
+  constructor(message: string, status: number, data?: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
 }
 
 // Frontend-only mode flag - Set via environment variable
@@ -158,17 +158,17 @@ export const FRONTEND_ONLY_MODE = import.meta.env.VITE_FRONTEND_ONLY === "true";
 
 // Mock user data for frontend-only mode
 export const MOCK_USER: User = {
-    username: "admin",
-    role: "admin",
-    permissions: ["read", "write", "admin", "user_management"],
-    profile: {
-        firstName: "Admin",
-        lastName: "User",
-        displayName: "Administrator",
-        email: "admin@example.com",
-        timezone: "UTC",
-        language: "en",
-    },
+  username: "admin",
+  role: "admin",
+  permissions: ["read", "write", "admin", "user_management"],
+  profile: {
+    firstName: "Admin",
+    lastName: "User",
+    displayName: "Administrator",
+    email: "admin@example.com",
+    timezone: "UTC",
+    language: "en",
+  },
 };
 
 // Runtime environment-aware base URL (set by EnvironmentContext on switch)
@@ -178,117 +178,131 @@ let _runtimeBaseUrl: string | null = null;
  * Set the base URL at runtime (called by EnvironmentContext on environment switch)
  */
 export function setEnvironmentBaseUrl(url: string): void {
-    _runtimeBaseUrl = url;
-    // Update existing api instance if already created
-    if (api && "defaults" in api) {
-        api.defaults.baseURL = url;
-    }
+  _runtimeBaseUrl = url;
+  // Update existing api instance if already created
+  if (api && "defaults" in api) {
+    api.defaults.baseURL = url;
+  }
 }
 
 /**
  * Get the current environment-aware base URL
  */
 export function getEnvironmentBaseUrl(): string {
-    if (_runtimeBaseUrl) return _runtimeBaseUrl;
-    const customEndpoint = localStorage.getItem("api_endpoint");
-    return customEndpoint || import.meta.env.VITE_API_URL || "/";
+  if (_runtimeBaseUrl) return _runtimeBaseUrl;
+  const customEndpoint = localStorage.getItem("api_endpoint");
+  return customEndpoint || import.meta.env.VITE_API_URL || "/";
 }
 
 // Create Axios instance with base configuration
 const createApiInstance = (): AxiosInstance => {
-    const baseURL = getEnvironmentBaseUrl();
+  const baseURL = getEnvironmentBaseUrl();
 
-    const instance = axios.create({
-        baseURL: baseURL,
-        timeout: 300000, // 5 minutes (increased from 90 seconds to handle long SteamCMD updates)
-        headers: {
-            "Content-Type": "application/json",
-        },
-        // Enable credentials for cross-origin requests
-        withCredentials: true,
-    });
+  const instance = axios.create({
+    baseURL: baseURL,
+    timeout: 300000, // 5 minutes (increased from 90 seconds to handle long SteamCMD updates)
+    headers: {
+      "Content-Type": "application/json",
+    },
+    // Enable credentials for cross-origin requests
+    withCredentials: true,
+  });
 
-    // Request interceptor to add auth token
-    instance.interceptors.request.use(
-        (config) => {
-            const token = localStorage.getItem("auth_token");
+  // Request interceptor to add auth token
+  instance.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem("auth_token");
 
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
 
-            return config;
-        },
-        (error) => {
-            console.error("Request interceptor error:", error);
-            return Promise.reject(error);
-        },
-    );
+      return config;
+    },
+    (error) => {
+      console.error("Request interceptor error:", error);
+      return Promise.reject(error);
+    },
+  );
 
-    // Response interceptor for error handling
-    instance.interceptors.response.use(
-        (response: AxiosResponse) => {
-            return response;
-        },
-        (error: AxiosError) => {
-            if (error.response) {
-                // Server responded with error status
-                const apiError = new ApiError(
-                    (error.response.data as { message?: string })?.message ||
-                        "An error occurred",
-                    error.response.status,
-                    error.response.data,
-                );
-                return Promise.reject(apiError);
-            } else if (error.request) {
-                // Request was made but no response received
-                const apiError = new ApiError(
-                    "No response from server. Please check your connection.",
-                    0,
-                );
-                return Promise.reject(apiError);
-            } else {
-                // Something else happened
-                const apiError = new ApiError(
-                    error.message || "An unexpected error occurred",
-                    0,
-                );
-                return Promise.reject(apiError);
-            }
-        },
-    );
+  // Response interceptor for error handling
+  instance.interceptors.response.use(
+    (response: AxiosResponse) => {
+      return response;
+    },
+    (error: AxiosError) => {
+      // Demo mode: catch ALL errors and let our demo interceptor handle them.
+      // We import isDemoPath inline to avoid circular dependencies.
+      try {
+        const path =
+          typeof window !== "undefined" ? window.location.pathname : "";
+        if (path === "/demo" || path.startsWith("/demo/")) {
+          // Don't transform the error - pass the raw AxiosError through
+          // so our demo interceptor (which runs next in the chain) can
+          // access error.config to match mock routes.
+          return Promise.reject(error);
+        }
+      } catch {
+        // Fall through to normal error handling
+      }
+      if (error.response) {
+        // Server responded with error status
+        const apiError = new ApiError(
+          (error.response.data as { message?: string })?.message ||
+            "An error occurred",
+          error.response.status,
+          error.response.data,
+        );
+        return Promise.reject(apiError);
+      } else if (error.request) {
+        // Request was made but no response received
+        const apiError = new ApiError(
+          "No response from server. Please check your connection.",
+          0,
+        );
+        return Promise.reject(apiError);
+      } else {
+        // Something else happened
+        const apiError = new ApiError(
+          error.message || "An unexpected error occurred",
+          0,
+        );
+        return Promise.reject(apiError);
+      }
+    },
+  );
 
-    return instance;
+  return instance;
 };
 
 // Create the API instance with error handling
 let api: AxiosInstance;
 try {
-    api = createApiInstance();
+  api = createApiInstance();
 } catch (error) {
-    console.error("Failed to create API instance:", error);
-    // Create a fallback instance
-    api = axios.create({
-        baseURL: "/",
-        timeout: 30000,
-        headers: {
-            "Content-Type": "application/json",
-        },
-    });
+  console.error("Failed to create API instance:", error);
+  // Create a fallback instance
+  api = axios.create({
+    baseURL: "/",
+    timeout: 30000,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 }
 
 // Health check function
 export const healthCheck = async (): Promise<boolean> => {
-    try {
-        const baseUrl = import.meta.env.VITE_API_URL || "/";
-        const response = await axios.get(`${baseUrl}/health`, {
-            timeout: 5000,
-        });
-        return response.status === 200;
-    } catch (error: unknown) {
-        console.warn("Backend health check failed:", error);
-        return false;
-    }
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || "/";
+    const response = await axios.get(`${baseUrl}/health`, {
+      timeout: 5000,
+    });
+    return response.status === 200;
+  } catch (error: unknown) {
+    console.warn("Backend health check failed:", error);
+    return false;
+  }
 };
 
 // Export the API instance
