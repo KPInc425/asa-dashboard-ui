@@ -90,24 +90,81 @@ EnvironmentContext / AuthContext (per-backend auth, env switching)
 
 ## Completed Work (June 2026)
 
-The following items from the deferred list have been implemented:
+1. **✅ Environment-aware routing** — Routes now support `/env/:envId/...` URL prefixes via `EnvAwareRouter`/`EnvAwareLayout`. The `Sidebar` and `EnvironmentSwitcher` use env-aware links when in env mode. Legacy flat routes remain fully functional.
 
-1. **✅ Inventory-driven pages** — `src/hooks/useInventoryServices.ts` provides adapter-driven hooks (`useServices`, `useService`) that consume `ServiceEntry` from the adapter with backward-compatible fallback to direct API calls. `Servers.tsx` now uses the adapter as the primary data source.
+2. **✅ Multi-environment shell** — EnvironmentContext, EnvironmentSwitcher, 3 env configs (ASA Remote, ASA Local, ILGaming Prod)
 
-2. **✅ Environment-aware routing** — Routes now support `/env/:envId/...` URL prefixes via `EnvAwareRouter`/`EnvAwareLayout`. The `Sidebar` and `EnvironmentSwitcher` use env-aware links when in env mode. Legacy flat routes remain fully functional.
+3. **✅ Backend adapter system** — ASAAdapter, NoOpAdapter, AdapterRegistry, capability manifests
 
-3. **✅ DeployctlAdapter** — Full implementation with shell calls to `deployctl.sh`, proper ServiceEntry mapping, action execution, log parsing, and automatic Node.js environment detection with graceful browser fallback.
+4. **✅ Typed commands** — 8 commands with risk levels, ActionButton, ConfirmationModal
 
-4. **✅ Playwright MCP tests** — Test configuration and regression test suite in `.playwright-mcp/` covering navigation, env-aware routing, and accessibility.
+5. **✅ Environment-aware auth** — Per-backend token isolation, backward compatible
 
-## Remaining Work (deferred)
+6. **✅ Socket.IO reconnection** — Auto-reconnects on environment switch
 
-These items are designed and documented in `automation/docs/plans/` but not yet implemented:
+## Remaining Work — needed to complete the env switcher
 
-1. **Inventory-driven pages** — Refactor `Servers.tsx`/`ServerDetails.tsx` to consume `ServiceEntry` from the adapter instead of hardcoded ASA endpoints
-2. **Environment-aware routing** — Add `/env/:envId/...` URL prefixes for direct bookmarking
-3. **DeployctlAdapter** — Full implementation when local backend hosting is desired
-4. **Playwright MCP tests** — Regression tests before production deploy
+These are the specific files and changes needed to make the environment switcher actually change what you see on screen. Currently the switcher works internally but pages still render ASA-only content regardless of which environment is selected.
+
+### 1. Refactor pages to use the adapter layer
+
+These pages currently make direct API calls to hardcoded ASA endpoints. They need to use `useScopedAdapter()` and render differently based on which environment is active.
+
+**Files to change:**
+| File | What to change |
+|------|---------------|
+| `src/pages/Dashboard.tsx` | Replace `api.get('/api/containers')` with `adapter.listServices()` |
+| `src/pages/Servers.tsx` | Replace hardcoded container/native-server API calls with adapter |
+| `src/pages/ServerDetails.tsx` | Use adapter for status, logs, and commands |
+| `src/pages/SystemLogs.tsx` | Use environment-aware socket connection |
+| `src/hooks/useServerData.ts` | Refactor to consume adapter instead of direct axios calls |
+| `src/hooks/useServerCommand.ts` | Refactor to use adapter.executeAction() |
+
+**Three rendering modes per page:**
+
+| Mode | Condition | Behavior |
+|------|-----------|----------|
+| **Full-control** | Backend reachable + authenticated | All features visible (current ASA behavior) |
+| **Read-only** | Backend reachable, limited caps | Status only, no start/stop/restart buttons |
+| **Deep-link-only** | No backend configured | Show links to Homepage/Kuma/Dozzle |
+
+**Key hook to use:**
+```tsx
+import { useScopedAdapter } from '../hooks/useScopedAdapter';
+import { useEnvironment } from '../contexts/EnvironmentContext';
+
+function MyPage() {
+  const { currentEnvironment } = useEnvironment();
+  const { adapter, envId, backendId } = useScopedAdapter();
+  
+  // For deep-link-only mode
+  if (currentEnvironment.backends.length === 0) {
+    return <DeepLinkView links={currentEnvironment.links} />;
+  }
+  
+  // For read-only vs full-control, check capabilities:
+  // supportsCapability('canRestart') from EnvironmentContext
+}
+```
+
+### 2. Gate ASA-specific features by capability
+
+Check `supportsCapability()` from `EnvironmentContext` before showing ASA-only features:
+
+| Feature | Capability |
+|---------|-----------|
+| Server start/stop/restart | `canRestart` |
+| RCON console | `canRcon` |
+| Config editor (Monaco) | `canEditConfig` |
+| Provisioning wizard | `canProvision` |
+
+### 3. Update tests
+
+Write Playwright MCP tests covering:
+- Environment switcher switching between all 3 envs
+- Socket.IO reconnect on switch
+- Deep-link mode rendering when no backend
+- Auth state preserved per-backend
 
 ## Recent Updates (June 2026)
 
@@ -136,92 +193,33 @@ These items are designed and documented in `automation/docs/plans/` but not yet 
 - JWT tokens are stored securely in memory or cookies.
 - All sensitive actions require authentication.
 
-## Recent Updates (August 2025)
-- ✅ **API Service Consolidation** - Resolved duplicate provisioningApi exports and unified all provisioning functions
-- ✅ **TypeScript Error Resolution** - Fixed all compilation errors including parameter type mismatches
-- ✅ **Enhanced Type Safety** - Updated interfaces and function signatures for better development experience
-- ✅ **Build Stability** - Frontend now builds successfully with 0 TypeScript errors
+## Deployment (Linux / Docker)
 
-## Deployment Options
-
-### All-in-One (1-Click) Setup (Frontend + Backend on Same Server)
-
-If you want to run both the backend API and the dashboard on the same server (recommended for simple setups):
-
-1. Clone the repository and enter the project root:
-   ```sh
-   git clone <repo-url>
-   cd asa-management
-   ```
-2. Run the 1-click install script (proposed, see `scripts/install-all-in-one.sh`):
-   ```sh
-   ./scripts/install-all-in-one.sh
-   ```
-   This will:
-   - Install dependencies for both backend and frontend
-   - Copy example env files for both
-   - Build the frontend and backend
-   - Start both services (backend on port 4000, frontend on port 5173 or as static files)
-
-3. Access the dashboard at `http://localhost:5173` (or the port shown in the output).
-
-### Advanced Setup (Separate Frontend/Backend)
-
-If you want to run the backend and frontend on different servers or containers:
-
-#### Backend
-See [../asa-docker-control-api/README.md](../asa-docker-control-api/README.md) for backend setup instructions.
-
-#### Frontend
-1. Enter the dashboard directory:
-   ```sh
-   cd asa-servers-dashboard
-   ```
-2. Install dependencies:
-   ```sh
-   npm install
-   ```
-3. Copy and edit the environment file:
-   ```sh
-   cp env.example .env
-   # Set VITE_API_BASE_URL to your backend API URL
-   ```
-4. Start the dashboard:
-   ```sh
-   npm run dev
-   ```
-5. Access the dashboard at the port shown in the output (default: 5173).
-
-## Windows All-in-One Setup (PowerShell)
-
-For Windows 10/11 users running native ARK servers, you can use the provided PowerShell script for a one-click install and launch:
-
-1. Open PowerShell as Administrator.
-2. Navigate to the dashboard scripts directory:
-   ```powershell
-   cd asa-servers-dashboard/scripts
-   ./install-all-in-one.ps1
-   ```
-   Or, from the backend scripts directory:
-   ```powershell
-   cd asa-docker-control-api/scripts
-   ./install-all-in-one.ps1
-   ```
-3. This will install dependencies, build the frontend, and start both backend and frontend in new windows.
-4. Access the dashboard at [http://localhost:5173](http://localhost:5173) and the API at [http://localhost:4000](http://localhost:4000)
-
-## Linux All-in-One Setup (Bash)
-
-Linux users can use the bash script:
+The production stack runs via Docker on the host:
 
 ```bash
-bash scripts/install-all-in-one.sh
+cd /home/steam/apps/asa-dashboard-ui
+docker compose up -d --build
 ```
 
-Or use Docker Compose for containerized deployment (see `asa-docker-control-api/docker/` and documentation for details).
+This builds and serves the static frontend via nginx on the configured `DASHBOARD_PORT` (default 4010).
+
+The backend API (`asa-control-api`) is deployed separately via its own Docker compose:
+
+```bash
+cd /home/steam/apps/asa-control-api/docker
+docker compose -f docker-compose.linux.yml up -d --build
+```
+
+## Local Development
+
+```bash
+npm install
+cp env.example .env
+# Edit .env: set VITE_API_BASE_URL to your backend API URL
+npm run dev
+```
 
 ---
-
-For more details, see the backend README and the documentation in the `docs/` folder.
 
 For migration stories and debugging adventures, see the [Development Journey](../development-journey/README.md).
