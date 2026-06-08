@@ -102,23 +102,25 @@ EnvironmentContext / AuthContext (per-backend auth, env switching)
 
 6. **✅ Socket.IO reconnection** — Auto-reconnects on environment switch
 
+7. **✅ Add Server to Cluster** — Cluster details page now has "➕ Add Server" button in the servers tab. Opens a modal with form fields (name, map, ports, max players, passwords) and auto-increments ports from existing servers. Backs up to `POST /api/provisioning/clusters/:clusterName/servers` with mock fallback.
+
 ## Remaining Work — needed to complete the env switcher
 
 These are the specific files and changes needed to make the environment switcher actually change what you see on screen. Currently the switcher works internally but pages still render ASA-only content regardless of which environment is selected.
 
 ### 1. Refactor pages to use the adapter layer
 
-These pages currently make direct API calls to hardcoded ASA endpoints. They need to use `useScopedAdapter()` and render differently based on which environment is active.
+These pages still make direct API calls to hardcoded ASA endpoints. They need to use `useScopedAdapter()` and render differently based on which environment is active.
 
 **Files to change:**
-| File | What to change |
-|------|---------------|
-| `src/pages/Dashboard.tsx` | Replace `api.get('/api/containers')` with `adapter.listServices()` |
-| `src/pages/Servers.tsx` | Replace hardcoded container/native-server API calls with adapter |
-| `src/pages/ServerDetails.tsx` | Use adapter for status, logs, and commands |
-| `src/pages/SystemLogs.tsx` | Use environment-aware socket connection |
-| `src/hooks/useServerData.ts` | Refactor to consume adapter instead of direct axios calls |
-| `src/hooks/useServerCommand.ts` | Refactor to use adapter.executeAction() |
+| File | Current Approach | What to change |
+|------|-----------------|---------------|
+| `src/pages/Dashboard.tsx` | Direct `api.get('/api/system/info')`, `api.get('/api/provisioning/debug')`, `provisioningApi.listClusters()` | Use adapter methods; render deep-link-only mode when no backend |
+| `src/pages/Servers.tsx` | Partially adapted — uses `useServices()` with legacy fallback | Complete adapter integration; add capability gating |
+| `src/pages/ServerDetails.tsx` | Direct `provisioningApi` + legacy hooks | Use adapter for status, logs, and commands |
+| `src/pages/SystemLogs.tsx` | Direct `provisioningApi.getSystemLogs()` | Use environment-aware socket connection |
+| `src/hooks/useServerData.ts` | Direct axios calls | Refactor to consume adapter instead of direct axios calls |
+| `src/hooks/useServerCommand.ts` | Direct API calls | Refactor to use `adapter.executeAction()` |
 
 **Three rendering modes per page:**
 
@@ -176,6 +178,7 @@ Write Playwright MCP tests covering:
 - ✅ **Socket.IO reconnection** — Auto-reconnects on environment switch
 - ✅ **Canonical estate inventory** — 45 services in YAML
 - ✅ **Doc generation scripts** — MkDocs + Homepage config generated from inventory
+- ✅ **Add Server to Cluster** — New modal on ClusterDetails page with auto-incrementing ports
 
 ## API Usage
 

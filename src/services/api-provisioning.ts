@@ -1372,6 +1372,33 @@ export const provisioningApi = {
     return response.data;
   },
 
+  /**
+   * Add a new server to an existing cluster.
+   * Server config should include: name, map, gamePort, queryPort, rconPort, maxPlayers, etc.
+   */
+  addServerToCluster: async (
+    clusterName: string,
+    serverConfig: Record<string, unknown>,
+  ): Promise<{ success: boolean; message: string; jobId?: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            success: true,
+            message: `Server added to cluster ${clusterName} successfully (mock)`,
+            jobId: "mock-job-id",
+          });
+        }, 1000);
+      });
+    }
+
+    const response = await api.post(
+      `/api/provisioning/clusters/${encodeURIComponent(clusterName)}/servers`,
+      serverConfig,
+    );
+    return response.data;
+  },
+
   // Re-export existing provisioning functions for convenience
   initializeSystem,
   installSteamCmd,

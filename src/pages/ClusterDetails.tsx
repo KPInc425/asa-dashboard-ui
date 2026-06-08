@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { provisioningApi } from '../services/api-provisioning';
-import { useToast } from '../contexts/ToastContext';
-import GlobalModManager from '../components/GlobalModManager';
-import GlobalConfigManager from '../components/GlobalConfigManager';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { provisioningApi } from "../services/api-provisioning";
+import { useToast } from "../contexts/ToastContext";
+import GlobalModManager from "../components/GlobalModManager";
+import GlobalConfigManager from "../components/GlobalConfigManager";
 
 interface Cluster {
   name: string;
@@ -52,7 +52,9 @@ const ClusterDetails: React.FC = () => {
   const [cluster, setCluster] = useState<Cluster | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'mods' | 'configs' | 'servers'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "mods" | "configs" | "servers"
+  >("overview");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -60,7 +62,9 @@ const ClusterDetails: React.FC = () => {
   const [backups, setBackups] = useState<ClusterBackup[]>([]);
   const [backupLoading, setBackupLoading] = useState(false);
   const [backupError, setBackupError] = useState<string | null>(null);
-  const [downloadBackupLoading, setDownloadBackupLoading] = useState<string | null>(null);
+  const [downloadBackupLoading, setDownloadBackupLoading] = useState<
+    string | null
+  >(null);
 
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
@@ -68,107 +72,261 @@ const ClusterDetails: React.FC = () => {
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [restoreSuccess, setRestoreSuccess] = useState<string | null>(null);
 
-  const [serverBackups, setServerBackups] = useState<Record<string, ServerBackup[]>>({});
-  const [serverBackupLoading, setServerBackupLoading] = useState<Record<string, boolean>>({});
-  const [serverBackupError, setServerBackupError] = useState<Record<string, string>>({});
-  const [downloadServerBackupLoading, setDownloadServerBackupLoading] = useState<Record<string, boolean>>({});
-  const [showServerBackupModal, setShowServerBackupModal] = useState<string | null>(null);
-  const [showServerRestoreModal, setShowServerRestoreModal] = useState<string | null>(null);
-  const [serverRestoreFile, setServerRestoreFile] = useState<Record<string, File | null>>({});
-  const [serverRestoreLoading, setServerRestoreLoading] = useState<Record<string, boolean>>({});
-  const [serverRestoreError, setServerRestoreError] = useState<Record<string, string>>({});
-  const [serverRestoreSuccess, setServerRestoreSuccess] = useState<Record<string, string>>({});
+  const [serverBackups, setServerBackups] = useState<
+    Record<string, ServerBackup[]>
+  >({});
+  const [serverBackupLoading, setServerBackupLoading] = useState<
+    Record<string, boolean>
+  >({});
+  const [serverBackupError, setServerBackupError] = useState<
+    Record<string, string>
+  >({});
+  const [downloadServerBackupLoading, setDownloadServerBackupLoading] =
+    useState<Record<string, boolean>>({});
+  const [showServerBackupModal, setShowServerBackupModal] = useState<
+    string | null
+  >(null);
+  const [showServerRestoreModal, setShowServerRestoreModal] = useState<
+    string | null
+  >(null);
+  const [serverRestoreFile, setServerRestoreFile] = useState<
+    Record<string, File | null>
+  >({});
+  const [serverRestoreLoading, setServerRestoreLoading] = useState<
+    Record<string, boolean>
+  >({});
+  const [serverRestoreError, setServerRestoreError] = useState<
+    Record<string, string>
+  >({});
+  const [serverRestoreSuccess, setServerRestoreSuccess] = useState<
+    Record<string, string>
+  >({});
 
   const [showBackupOptionsModal, setShowBackupOptionsModal] = useState(false);
   const [showRestoreOptionsModal, setShowRestoreOptionsModal] = useState(false);
-  const [backupOptions, setBackupOptions] = useState({ saves: true, configs: true, logs: true });
-  const [restoreOptions, setRestoreOptions] = useState({ saves: true, configs: true, logs: true });
+  const [backupOptions, setBackupOptions] = useState({
+    saves: true,
+    configs: true,
+    logs: true,
+  });
+  const [restoreOptions, setRestoreOptions] = useState({
+    saves: true,
+    configs: true,
+    logs: true,
+  });
 
-  const [downloadNotification, setDownloadNotification] = useState<string | null>(null);
+  const [downloadNotification, setDownloadNotification] = useState<
+    string | null
+  >(null);
   const { showToast } = useToast();
 
-  // Load cluster data
-  useEffect(() => {
-    const loadCluster = async () => {
-      if (!clusterName) return;
-      
-      setLoading(true);
-      setError(null);
-      
-      try {
-        // Get cluster information from the API
-        const response = await provisioningApi.getClusterDetails(clusterName);
-        
-        if (response.success && response.cluster) {
-          setCluster(response.cluster as unknown as Cluster);
-        } else {
-          setError(`Cluster "${clusterName}" not found`);
-        }
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load cluster data');
-      } finally {
-        setLoading(false);
-      }
+  // Add Server to Cluster state
+  const [showAddServerModal, setShowAddServerModal] = useState(false);
+  const [addServerLoading, setAddServerLoading] = useState(false);
+  const [addServerError, setAddServerError] = useState<string | null>(null);
+  const [newServer, setNewServer] = useState({
+    name: "",
+    map: "TheIsland",
+    gamePort: 7777,
+    queryPort: 27015,
+    rconPort: 32330,
+    maxPlayers: 70,
+    adminPassword: "",
+    serverPassword: "",
+  });
+
+  const availableMaps = [
+    { name: "TheIsland", displayName: "The Island" },
+    { name: "TheCenter", displayName: "The Center" },
+    { name: "Ragnarok", displayName: "Ragnarok" },
+    { name: "ScorchedEarth", displayName: "Scorched Earth" },
+    { name: "Aberration", displayName: "Aberration" },
+    { name: "Extinction", displayName: "Extinction" },
+    { name: "CrystalIsles", displayName: "Crystal Isles" },
+    { name: "Valguero", displayName: "Valguero" },
+    { name: "LostIsland", displayName: "Lost Island" },
+    { name: "Fjordur", displayName: "Fjordur" },
+    { name: "Genesis", displayName: "Genesis" },
+    { name: "Genesis2", displayName: "Genesis Part 2" },
+    { name: "BobsMissions", displayName: "Club ARK" },
+  ];
+
+  // Calculate the next available ports based on existing servers
+  const getNextPorts = () => {
+    if (!cluster?.config?.servers || cluster.config.servers.length === 0) {
+      return { gamePort: 7777, queryPort: 27015, rconPort: 32330 };
+    }
+    const maxGame = Math.max(
+      ...cluster.config.servers.map((s) => s.gamePort || 7777),
+    );
+    const maxQuery = Math.max(
+      ...cluster.config.servers.map((s) => s.queryPort || 27015),
+    );
+    const maxRcon = Math.max(
+      ...cluster.config.servers.map((s) => s.rconPort || 32330),
+    );
+    return {
+      gamePort: maxGame + 1,
+      queryPort: maxQuery + 1,
+      rconPort: maxRcon + 1,
     };
-    
-    loadCluster();
+  };
+
+  const handleAddServer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cluster) return;
+
+    setAddServerLoading(true);
+    setAddServerError(null);
+
+    try {
+      const response = await provisioningApi.addServerToCluster(
+        cluster.name,
+        newServer,
+      );
+      if (response.success) {
+        showToast(`Server "${newServer.name}" added successfully!`, "success");
+        setShowAddServerModal(false);
+        // Reset form with next ports
+        const nextPorts = getNextPorts();
+        setNewServer({
+          name: "",
+          map: "TheIsland",
+          gamePort: nextPorts.gamePort,
+          queryPort: nextPorts.queryPort,
+          rconPort: nextPorts.rconPort,
+          maxPlayers: 70,
+          adminPassword: "",
+          serverPassword: "",
+        });
+        // Reload cluster data
+        loadCluster();
+      } else {
+        setAddServerError(response.message || "Failed to add server");
+      }
+    } catch (err: unknown) {
+      setAddServerError(
+        err instanceof Error ? err.message : "Failed to add server",
+      );
+    } finally {
+      setAddServerLoading(false);
+    }
+  };
+
+  const openAddServerModal = () => {
+    const nextPorts = getNextPorts();
+    setNewServer({
+      name: "",
+      map: "TheIsland",
+      gamePort: nextPorts.gamePort,
+      queryPort: nextPorts.queryPort,
+      rconPort: nextPorts.rconPort,
+      maxPlayers: 70,
+      adminPassword: "",
+      serverPassword: "",
+    });
+    setAddServerError(null);
+    setShowAddServerModal(true);
+  };
+
+  // Load cluster data
+  const loadCluster = React.useCallback(async () => {
+    if (!clusterName) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Get cluster information from the API
+      const response = await provisioningApi.getClusterDetails(clusterName);
+
+      if (response.success && response.cluster) {
+        setCluster(response.cluster as unknown as Cluster);
+      } else {
+        setError(`Cluster "${clusterName}" not found`);
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load cluster data",
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [clusterName]);
+
+  useEffect(() => {
+    loadCluster();
+  }, [loadCluster]);
 
   // Handle tab from URL params
   useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam && ['overview', 'mods', 'configs', 'servers'].includes(tabParam)) {
-      setActiveTab(tabParam as 'overview' | 'mods' | 'configs' | 'servers');
+    const tabParam = searchParams.get("tab");
+    if (
+      tabParam &&
+      ["overview", "mods", "configs", "servers"].includes(tabParam)
+    ) {
+      setActiveTab(tabParam as "overview" | "mods" | "configs" | "servers");
     }
   }, [searchParams]);
 
   // Update URL when tab changes
-  const handleTabChange = (tab: 'overview' | 'mods' | 'configs' | 'servers') => {
+  const handleTabChange = (
+    tab: "overview" | "mods" | "configs" | "servers",
+  ) => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'running': return 'badge-success';
-      case 'stopped': return 'badge-error';
-      case 'restarting': return 'badge-warning';
-      case 'starting': return 'badge-warning';
-      case 'stopping': return 'badge-info';
-      default: return 'badge-neutral';
+      case "running":
+        return "badge-success";
+      case "stopped":
+        return "badge-error";
+      case "restarting":
+        return "badge-warning";
+      case "starting":
+        return "badge-warning";
+      case "stopping":
+        return "badge-info";
+      default:
+        return "badge-neutral";
     }
   };
 
-  const handleClusterAction = async (action: 'start' | 'stop' | 'restart') => {
+  const handleClusterAction = async (action: "start" | "stop" | "restart") => {
     if (!cluster) return;
-    
+
     setActionLoading(action);
-    
+
     try {
       let response;
       switch (action) {
-        case 'start':
+        case "start":
           response = await provisioningApi.startCluster(cluster.name);
           break;
-        case 'stop':
+        case "stop":
           response = await provisioningApi.stopCluster(cluster.name);
           break;
-        case 'restart':
+        case "restart":
           response = await provisioningApi.restartCluster(cluster.name);
           break;
       }
-      
+
       if (response.success) {
         // Reload cluster data
         if (clusterName) {
-          const clusterResponse = await provisioningApi.getClusterDetails(clusterName);
+          const clusterResponse =
+            await provisioningApi.getClusterDetails(clusterName);
           if (clusterResponse.success && clusterResponse.cluster) {
             setCluster(clusterResponse.cluster as unknown as Cluster);
           }
         }
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : `Failed to ${action} cluster`);
+      setError(
+        err instanceof Error ? err.message : `Failed to ${action} cluster`,
+      );
     } finally {
       setActionLoading(null);
     }
@@ -182,7 +340,7 @@ const ClusterDetails: React.FC = () => {
     try {
       const blob = await provisioningApi.exportClusterConfig(cluster.name);
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `${cluster.name}-cluster.json`;
       document.body.appendChild(a);
@@ -190,7 +348,7 @@ const ClusterDetails: React.FC = () => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      setDownloadError('Failed to download config');
+      setDownloadError("Failed to download config");
     } finally {
       setDownloadLoading(false);
     }
@@ -203,16 +361,24 @@ const ClusterDetails: React.FC = () => {
     setBackupLoading(true);
     setBackupError(null);
     try {
-      const result: unknown = await provisioningApi.getClusterBackups(cluster.name);
-      if (typeof result === 'object' && result && (result as { success: boolean }).success) {
+      const result: unknown = await provisioningApi.getClusterBackups(
+        cluster.name,
+      );
+      if (
+        typeof result === "object" &&
+        result &&
+        (result as { success: boolean }).success
+      ) {
         setBackups((result as { backups: ClusterBackup[] }).backups || []);
-      } else if (typeof result === 'object' && result) {
-        setBackupError((result as { message?: string }).message || 'Failed to load backups');
+      } else if (typeof result === "object" && result) {
+        setBackupError(
+          (result as { message?: string }).message || "Failed to load backups",
+        );
       } else {
-        setBackupError('Failed to load backups');
+        setBackupError("Failed to load backups");
       }
     } catch {
-      setBackupError('Failed to load backups');
+      setBackupError("Failed to load backups");
     } finally {
       setBackupLoading(false);
     }
@@ -221,24 +387,29 @@ const ClusterDetails: React.FC = () => {
     if (!cluster) return;
     setDownloadBackupLoading(backupName);
     try {
-      const blob = await provisioningApi.downloadClusterBackup(cluster.name, backupName);
+      const blob = await provisioningApi.downloadClusterBackup(
+        cluster.name,
+        backupName,
+      );
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `${backupName}.zip`;
-      a.style.display = 'none';
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
-      setDownloadNotification('Download started. Your browser may prompt you to choose a location.');
+      setDownloadNotification(
+        "Download started. Your browser may prompt you to choose a location.",
+      );
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
         a.remove();
       }, 1000);
       setTimeout(() => setDownloadNotification(null), 4000);
     } catch {
-      showToast('Failed to download backup', 'error');
+      showToast("Failed to download backup", "error");
     } finally {
-      setDownloadBackupLoading('');
+      setDownloadBackupLoading("");
     }
   };
 
@@ -257,21 +428,24 @@ const ClusterDetails: React.FC = () => {
   const handleRestoreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!restoreFile || !cluster) {
-      setRestoreError('Please select a backup ZIP file');
+      setRestoreError("Please select a backup ZIP file");
       return;
     }
     setRestoreLoading(true);
     setRestoreError(null);
     setRestoreSuccess(null);
     try {
-      const result = await provisioningApi.restoreClusterBackup(restoreFile, cluster.name);
+      const result = await provisioningApi.restoreClusterBackup(
+        restoreFile,
+        cluster.name,
+      );
       if (result.success) {
-        setRestoreSuccess(result.message || 'Cluster restored successfully');
+        setRestoreSuccess(result.message || "Cluster restored successfully");
       } else {
-        setRestoreError(result.message || 'Failed to restore cluster');
+        setRestoreError(result.message || "Failed to restore cluster");
       }
     } catch {
-      setRestoreError('Failed to restore cluster');
+      setRestoreError("Failed to restore cluster");
     } finally {
       setRestoreLoading(false);
     }
@@ -280,30 +454,54 @@ const ClusterDetails: React.FC = () => {
   // Server backup modal handlers
   const openServerBackupModal = async (serverName: string) => {
     setShowServerBackupModal(serverName);
-    setServerBackupLoading(prev => ({ ...prev, [serverName]: true }));
-    setServerBackupError(prev => ({ ...prev, [serverName]: '' }));
+    setServerBackupLoading((prev) => ({ ...prev, [serverName]: true }));
+    setServerBackupError((prev) => ({ ...prev, [serverName]: "" }));
     try {
       const result: unknown = await provisioningApi.listServerBackups();
-      if (typeof result === 'object' && result && (result as { success: boolean }).success) {
-        const serverBackups = ((result as { data?: { backups?: ServerBackup[] } }).data?.backups || []).filter((b: ServerBackup) => b.serverName === serverName);
-        setServerBackups(prev => ({ ...prev, [serverName]: serverBackups }));
-      } else if (typeof result === 'object' && result) {
-        setServerBackupError(prev => ({ ...prev, [serverName]: (result as { message?: string }).message || 'Failed to load backups' }));
+      if (
+        typeof result === "object" &&
+        result &&
+        (result as { success: boolean }).success
+      ) {
+        const serverBackups = (
+          (result as { data?: { backups?: ServerBackup[] } }).data?.backups ||
+          []
+        ).filter((b: ServerBackup) => b.serverName === serverName);
+        setServerBackups((prev) => ({ ...prev, [serverName]: serverBackups }));
+      } else if (typeof result === "object" && result) {
+        setServerBackupError((prev) => ({
+          ...prev,
+          [serverName]:
+            (result as { message?: string }).message ||
+            "Failed to load backups",
+        }));
       } else {
-        setServerBackupError(prev => ({ ...prev, [serverName]: 'Failed to load backups' }));
+        setServerBackupError((prev) => ({
+          ...prev,
+          [serverName]: "Failed to load backups",
+        }));
       }
     } catch {
-      setServerBackupError(prev => ({ ...prev, [serverName]: 'Failed to load backups' }));
+      setServerBackupError((prev) => ({
+        ...prev,
+        [serverName]: "Failed to load backups",
+      }));
     } finally {
-      setServerBackupLoading(prev => ({ ...prev, [serverName]: false }));
+      setServerBackupLoading((prev) => ({ ...prev, [serverName]: false }));
     }
   };
-  const handleDownloadServerBackup = async (serverName: string, backupName: string) => {
-    setDownloadServerBackupLoading(prev => ({ ...prev, [backupName]: true }));
+  const handleDownloadServerBackup = async (
+    serverName: string,
+    backupName: string,
+  ) => {
+    setDownloadServerBackupLoading((prev) => ({ ...prev, [backupName]: true }));
     try {
-      const blob = await provisioningApi.downloadServerBackup(serverName, backupName);
+      const blob = await provisioningApi.downloadServerBackup(
+        serverName,
+        backupName,
+      );
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `${backupName}.zip`;
       document.body.appendChild(a);
@@ -311,45 +509,72 @@ const ClusterDetails: React.FC = () => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      showToast('Failed to download server backup', 'error');
+      showToast("Failed to download server backup", "error");
     } finally {
-      setDownloadServerBackupLoading(prev => ({ ...prev, [backupName]: false }));
+      setDownloadServerBackupLoading((prev) => ({
+        ...prev,
+        [backupName]: false,
+      }));
     }
   };
 
   // Server restore modal handlers
   const openServerRestoreModal = (serverName: string) => {
     setShowServerRestoreModal(serverName);
-    setServerRestoreFile(prev => ({ ...prev, [serverName]: null }));
-    setServerRestoreError(prev => ({ ...prev, [serverName]: '' }));
-    setServerRestoreSuccess(prev => ({ ...prev, [serverName]: '' }));
+    setServerRestoreFile((prev) => ({ ...prev, [serverName]: null }));
+    setServerRestoreError((prev) => ({ ...prev, [serverName]: "" }));
+    setServerRestoreSuccess((prev) => ({ ...prev, [serverName]: "" }));
   };
-  const handleServerRestoreFileChange = (serverName: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    setServerRestoreFile(prev => ({ ...prev, [serverName]: e.target.files?.[0] || null }));
-    setServerRestoreError(prev => ({ ...prev, [serverName]: '' }));
-    setServerRestoreSuccess(prev => ({ ...prev, [serverName]: '' }));
+  const handleServerRestoreFileChange = (
+    serverName: string,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setServerRestoreFile((prev) => ({
+      ...prev,
+      [serverName]: e.target.files?.[0] || null,
+    }));
+    setServerRestoreError((prev) => ({ ...prev, [serverName]: "" }));
+    setServerRestoreSuccess((prev) => ({ ...prev, [serverName]: "" }));
   };
-  const handleServerRestoreSubmit = async (serverName: string, e: React.FormEvent) => {
+  const handleServerRestoreSubmit = async (
+    serverName: string,
+    e: React.FormEvent,
+  ) => {
     e.preventDefault();
     const file = serverRestoreFile[serverName];
     if (!file) {
-      setServerRestoreError(prev => ({ ...prev, [serverName]: 'Please select a backup ZIP file' }));
+      setServerRestoreError((prev) => ({
+        ...prev,
+        [serverName]: "Please select a backup ZIP file",
+      }));
       return;
     }
-    setServerRestoreLoading(prev => ({ ...prev, [serverName]: true }));
-    setServerRestoreError(prev => ({ ...prev, [serverName]: '' }));
-    setServerRestoreSuccess(prev => ({ ...prev, [serverName]: '' }));
+    setServerRestoreLoading((prev) => ({ ...prev, [serverName]: true }));
+    setServerRestoreError((prev) => ({ ...prev, [serverName]: "" }));
+    setServerRestoreSuccess((prev) => ({ ...prev, [serverName]: "" }));
     try {
-      const result = await provisioningApi.restoreServerBackup(file, serverName);
+      const result = await provisioningApi.restoreServerBackup(
+        file,
+        serverName,
+      );
       if (result.success) {
-        setServerRestoreSuccess(prev => ({ ...prev, [serverName]: result.message || 'Server restored successfully' }));
+        setServerRestoreSuccess((prev) => ({
+          ...prev,
+          [serverName]: result.message || "Server restored successfully",
+        }));
       } else {
-        setServerRestoreError(prev => ({ ...prev, [serverName]: result.message || 'Failed to restore server' }));
+        setServerRestoreError((prev) => ({
+          ...prev,
+          [serverName]: result.message || "Failed to restore server",
+        }));
       }
     } catch {
-      setServerRestoreError(prev => ({ ...prev, [serverName]: 'Failed to restore server' }));
+      setServerRestoreError((prev) => ({
+        ...prev,
+        [serverName]: "Failed to restore server",
+      }));
     } finally {
-      setServerRestoreLoading(prev => ({ ...prev, [serverName]: false }));
+      setServerRestoreLoading((prev) => ({ ...prev, [serverName]: false }));
     }
   };
 
@@ -369,13 +594,23 @@ const ClusterDetails: React.FC = () => {
       <div className="h-full flex flex-col p-6">
         <div className="max-w-7xl mx-auto w-full">
           <div className="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="stroke-current shrink-0 h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
-            <span>{error || 'Cluster not found'}</span>
+            <span>{error || "Cluster not found"}</span>
           </div>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="btn btn-primary mt-4"
           >
             ← Back to Dashboard
@@ -396,15 +631,18 @@ const ClusterDetails: React.FC = () => {
                 <span className="text-2xl">🏗️</span>
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-primary mb-2">{cluster.name}</h1>
+                <h1 className="text-4xl font-bold text-primary mb-2">
+                  {cluster.name}
+                </h1>
                 <p className="text-base-content/70">
-                  Cluster Management - {cluster.config?.servers?.length || 0} servers
+                  Cluster Management - {cluster.config?.servers?.length || 0}{" "}
+                  servers
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
                 className="btn btn-outline btn-primary hover:shadow-lg hover:shadow-primary/25"
               >
                 ← Back to Dashboard
@@ -416,26 +654,26 @@ const ClusterDetails: React.FC = () => {
         {/* Tab Navigation */}
         <div className="tabs tabs-boxed bg-base-200">
           <button
-            className={`tab ${activeTab === 'overview' ? 'tab-active' : ''}`}
-            onClick={() => handleTabChange('overview')}
+            className={`tab ${activeTab === "overview" ? "tab-active" : ""}`}
+            onClick={() => handleTabChange("overview")}
           >
             📊 Overview
           </button>
           <button
-            className={`tab ${activeTab === 'mods' ? 'tab-active' : ''}`}
-            onClick={() => handleTabChange('mods')}
+            className={`tab ${activeTab === "mods" ? "tab-active" : ""}`}
+            onClick={() => handleTabChange("mods")}
           >
             🧩 Mods
           </button>
           <button
-            className={`tab ${activeTab === 'configs' ? 'tab-active' : ''}`}
-            onClick={() => handleTabChange('configs')}
+            className={`tab ${activeTab === "configs" ? "tab-active" : ""}`}
+            onClick={() => handleTabChange("configs")}
           >
             ⚙️ Configs
           </button>
           <button
-            className={`tab ${activeTab === 'servers' ? 'tab-active' : ''}`}
-            onClick={() => handleTabChange('servers')}
+            className={`tab ${activeTab === "servers" ? "tab-active" : ""}`}
+            onClick={() => handleTabChange("servers")}
           >
             🖥️ Servers
           </button>
@@ -444,7 +682,7 @@ const ClusterDetails: React.FC = () => {
         {/* Tab Content */}
         <div className="card bg-base-100 shadow-sm flex-1">
           <div className="card-body">
-            {activeTab === 'overview' && (
+            {activeTab === "overview" && (
               <div className="space-y-6">
                 {/* Cluster Information */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -458,17 +696,28 @@ const ClusterDetails: React.FC = () => {
                         </div>
                         {cluster.config?.description && (
                           <div className="flex justify-between">
-                            <span className="text-base-content/70">Description:</span>
-                            <span className="font-medium">{cluster.config.description}</span>
+                            <span className="text-base-content/70">
+                              Description:
+                            </span>
+                            <span className="font-medium">
+                              {cluster.config.description}
+                            </span>
                           </div>
                         )}
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Created:</span>
-                          <span>{cluster.created ? new Date(cluster.created).toLocaleDateString() : 'Unknown'}</span>
+                          <span>
+                            {cluster.created
+                              ? new Date(cluster.created).toLocaleDateString()
+                              : "Unknown"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Path:</span>
-                          <div className="font-mono text-xs truncate max-w-48" title={cluster.path}>
+                          <div
+                            className="font-mono text-xs truncate max-w-48"
+                            title={cluster.path}
+                          >
                             {cluster.path}
                           </div>
                         </div>
@@ -481,25 +730,35 @@ const ClusterDetails: React.FC = () => {
                       <h4 className="card-title">Server Status</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-base-content/70">Total Servers:</span>
+                          <span className="text-base-content/70">
+                            Total Servers:
+                          </span>
                           <span>{cluster.config?.servers?.length || 0}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Running:</span>
                           <span className="text-success">
-                            {cluster.config?.servers?.filter((s: { status: string }) => s.status === 'running').length || 0}
+                            {cluster.config?.servers?.filter(
+                              (s: { status: string }) => s.status === "running",
+                            ).length || 0}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Stopped:</span>
                           <span className="text-error">
-                            {cluster.config?.servers?.filter((s: { status: string }) => s.status === 'stopped').length || 0}
+                            {cluster.config?.servers?.filter(
+                              (s: { status: string }) => s.status === "stopped",
+                            ).length || 0}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-base-content/70">Other:</span>
                           <span className="text-warning">
-                            {cluster.config?.servers?.filter((s: { status: string }) => s.status !== 'running' && s.status !== 'stopped').length || 0}
+                            {cluster.config?.servers?.filter(
+                              (s: { status: string }) =>
+                                s.status !== "running" &&
+                                s.status !== "stopped",
+                            ).length || 0}
                           </span>
                         </div>
                       </div>
@@ -513,39 +772,39 @@ const ClusterDetails: React.FC = () => {
                     <h4 className="card-title">Cluster Actions</h4>
                     <div className="flex flex-wrap gap-2">
                       <button
-                        onClick={() => handleClusterAction('start')}
-                        disabled={actionLoading === 'start'}
+                        onClick={() => handleClusterAction("start")}
+                        disabled={actionLoading === "start"}
                         className="btn btn-success"
                         title="Start all servers in this cluster."
                       >
-                        {actionLoading === 'start' ? (
+                        {actionLoading === "start" ? (
                           <span className="loading loading-spinner loading-sm"></span>
                         ) : (
-                          '▶️ Start All'
+                          "▶️ Start All"
                         )}
                       </button>
                       <button
-                        onClick={() => handleClusterAction('stop')}
-                        disabled={actionLoading === 'stop'}
+                        onClick={() => handleClusterAction("stop")}
+                        disabled={actionLoading === "stop"}
                         className="btn btn-error"
                         title="Stop all servers in this cluster."
                       >
-                        {actionLoading === 'stop' ? (
+                        {actionLoading === "stop" ? (
                           <span className="loading loading-spinner loading-sm"></span>
                         ) : (
-                          '⏹️ Stop All'
+                          "⏹️ Stop All"
                         )}
                       </button>
                       <button
-                        onClick={() => handleClusterAction('restart')}
-                        disabled={actionLoading === 'restart'}
+                        onClick={() => handleClusterAction("restart")}
+                        disabled={actionLoading === "restart"}
                         className="btn btn-warning"
                         title="Restart all servers in this cluster."
                       >
-                        {actionLoading === 'restart' ? (
+                        {actionLoading === "restart" ? (
                           <span className="loading loading-spinner loading-sm"></span>
                         ) : (
-                          '🔄 Restart All'
+                          "🔄 Restart All"
                         )}
                       </button>
                       <button
@@ -557,7 +816,7 @@ const ClusterDetails: React.FC = () => {
                         {downloadLoading ? (
                           <span className="loading loading-spinner loading-sm"></span>
                         ) : (
-                          '⬇️ Download Config'
+                          "⬇️ Download Config"
                         )}
                       </button>
                       <button
@@ -576,8 +835,12 @@ const ClusterDetails: React.FC = () => {
                       </button>
                     </div>
                     <span className="text-xs text-base-content/60 block mt-1">
-                      <b>Restore from Backup:</b> Restore the entire cluster from a previously created backup archive (ZIP).<br />
-                      <b>Restore Cluster Data:</b> Restore specific data types (saves, configs, logs) for this cluster. You can select which data to restore.
+                      <b>Restore from Backup:</b> Restore the entire cluster
+                      from a previously created backup archive (ZIP).
+                      <br />
+                      <b>Restore Cluster Data:</b> Restore specific data types
+                      (saves, configs, logs) for this cluster. You can select
+                      which data to restore.
                     </span>
                     {downloadError && (
                       <div className="alert alert-error mt-2">
@@ -593,22 +856,32 @@ const ClusterDetails: React.FC = () => {
                     <div className="card-body">
                       <h4 className="card-title">Configuration</h4>
                       <div className="space-y-2">
-                        {cluster.config.maps && cluster.config.maps.length > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-base-content/70">Maps:</span>
-                            <span>{cluster.config.maps.join(', ')}</span>
-                          </div>
-                        )}
+                        {cluster.config.maps &&
+                          cluster.config.maps.length > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-base-content/70">
+                                Maps:
+                              </span>
+                              <span>{cluster.config.maps.join(", ")}</span>
+                            </div>
+                          )}
                         {cluster.config.clusterPassword && (
                           <div className="flex justify-between">
-                            <span className="text-base-content/70">Cluster Password:</span>
+                            <span className="text-base-content/70">
+                              Cluster Password:
+                            </span>
                             <span className="font-mono">••••••••</span>
                           </div>
                         )}
                         {cluster.config.customDynamicConfigUrl && (
                           <div className="flex justify-between">
-                            <span className="text-base-content/70">Custom Config URL:</span>
-                            <span className="font-mono text-xs truncate max-w-64" title={cluster.config.customDynamicConfigUrl}>
+                            <span className="text-base-content/70">
+                              Custom Config URL:
+                            </span>
+                            <span
+                              className="font-mono text-xs truncate max-w-64"
+                              title={cluster.config.customDynamicConfigUrl}
+                            >
                               {cluster.config.customDynamicConfigUrl}
                             </span>
                           </div>
@@ -618,93 +891,149 @@ const ClusterDetails: React.FC = () => {
                   </div>
                 )}
                 <div className="flex gap-2 mb-4">
-                  <button className="btn btn-info" onClick={() => setShowBackupOptionsModal(true)}>
+                  <button
+                    className="btn btn-info"
+                    onClick={() => setShowBackupOptionsModal(true)}
+                  >
                     Backup Cluster Data
                   </button>
-                  <button className="btn btn-warning" onClick={() => setShowRestoreOptionsModal(true)}>
+                  <button
+                    className="btn btn-warning"
+                    onClick={() => setShowRestoreOptionsModal(true)}
+                  >
                     Restore Cluster Data
                   </button>
                 </div>
               </div>
             )}
 
-            {activeTab === 'mods' && (
-              <GlobalModManager clusterName={cluster.name} onClose={() => handleTabChange('overview')} />
+            {activeTab === "mods" && (
+              <GlobalModManager
+                clusterName={cluster.name}
+                onClose={() => handleTabChange("overview")}
+              />
             )}
 
-            {activeTab === 'configs' && (
+            {activeTab === "configs" && (
               <GlobalConfigManager clusterName={cluster.name} />
             )}
 
-            {activeTab === 'servers' && (
+            {activeTab === "servers" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="card-title">Cluster Servers</h2>
-                  <span className="text-sm text-base-content/70">
-                    {cluster.config?.servers?.length || 0} servers
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-base-content/70">
+                      {cluster.config?.servers?.length || 0} servers
+                    </span>
+                    <button
+                      onClick={openAddServerModal}
+                      className="btn btn-primary btn-sm"
+                    >
+                      ➕ Add Server
+                    </button>
+                  </div>
                 </div>
 
-                {cluster.config?.servers && cluster.config.servers.length > 0 ? (
+                {cluster.config?.servers &&
+                cluster.config.servers.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {cluster.config.servers.map((server: { name: string, status: string, map: string, gamePort: number, queryPort: number, rconPort: number }) => (
-                      <div key={server.name} className="card bg-base-200 hover:shadow-lg transition-shadow">
-                        <div className="card-body">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="card-title text-lg">{server.name}</h3>
-                            <span className={`badge ${getStatusColor(server.status)}`}>
-                              {server.status}
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-1 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-base-content/70">Map:</span>
-                              <span>{server.map}</span>
+                    {cluster.config.servers.map(
+                      (server: {
+                        name: string;
+                        status: string;
+                        map: string;
+                        gamePort: number;
+                        queryPort: number;
+                        rconPort: number;
+                      }) => (
+                        <div
+                          key={server.name}
+                          className="card bg-base-200 hover:shadow-lg transition-shadow"
+                        >
+                          <div className="card-body">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="card-title text-lg">
+                                {server.name}
+                              </h3>
+                              <span
+                                className={`badge ${getStatusColor(server.status)}`}
+                              >
+                                {server.status}
+                              </span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-base-content/70">Port:</span>
-                              <span>{server.gamePort}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-base-content/70">Query:</span>
-                              <span>{server.queryPort}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-base-content/70">RCON:</span>
-                              <span>{server.rconPort}</span>
-                            </div>
-                          </div>
 
-                          <div className="card-actions justify-end mt-4">
-                            <button
-                              onClick={() => navigate(`/servers/${server.name}`)}
-                              className="btn btn-primary btn-sm"
-                            >
-                              Manage
-                            </button>
-                            <button
-                              onClick={() => openServerBackupModal(server.name)}
-                              className="btn btn-outline btn-secondary btn-sm"
-                            >
-                              🗄️ Backup
-                            </button>
-                            <button
-                              onClick={() => openServerRestoreModal(server.name)}
-                              className="btn btn-outline btn-warning btn-sm"
-                            >
-                              ♻️ Restore
-                            </button>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-base-content/70">
+                                  Map:
+                                </span>
+                                <span>{server.map}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-base-content/70">
+                                  Port:
+                                </span>
+                                <span>{server.gamePort}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-base-content/70">
+                                  Query:
+                                </span>
+                                <span>{server.queryPort}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-base-content/70">
+                                  RCON:
+                                </span>
+                                <span>{server.rconPort}</span>
+                              </div>
+                            </div>
+
+                            <div className="card-actions justify-end mt-4">
+                              <button
+                                onClick={() =>
+                                  navigate(`/servers/${server.name}`)
+                                }
+                                className="btn btn-primary btn-sm"
+                              >
+                                Manage
+                              </button>
+                              <button
+                                onClick={() =>
+                                  openServerBackupModal(server.name)
+                                }
+                                className="btn btn-outline btn-secondary btn-sm"
+                              >
+                                🗄️ Backup
+                              </button>
+                              <button
+                                onClick={() =>
+                                  openServerRestoreModal(server.name)
+                                }
+                                className="btn btn-outline btn-warning btn-sm"
+                              >
+                                ♻️ Restore
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-base-content/50">
                     <div className="text-4xl mb-4">🖥️</div>
                     <p className="text-lg">No servers in this cluster</p>
-                    <p className="text-sm">Servers will appear here once they are created</p>
+                    <p className="text-sm mb-4">
+                      Add your first server to get started
+                    </p>
+                    <button
+                      onClick={openAddServerModal}
+                      className="btn btn-primary"
+                    >
+                      ➕ Add Your First Server
+                    </button>
                   </div>
                 )}
               </div>
@@ -724,14 +1053,21 @@ const ClusterDetails: React.FC = () => {
             ) : backupError ? (
               <div className="alert alert-error mb-4">{backupError}</div>
             ) : backups.length === 0 ? (
-              <div className="text-base-content/70">No backups found for this cluster.</div>
+              <div className="text-base-content/70">
+                No backups found for this cluster.
+              </div>
             ) : (
               <ul className="space-y-3">
                 {backups.map((b) => (
-                  <li key={b.backupName} className="flex items-center justify-between bg-base-200 rounded p-3">
+                  <li
+                    key={b.backupName}
+                    className="flex items-center justify-between bg-base-200 rounded p-3"
+                  >
                     <div>
                       <div className="font-mono text-sm">{b.backupName}</div>
-                      <div className="text-xs text-base-content/70">{b.created ? new Date(b.created).toLocaleString() : ''}</div>
+                      <div className="text-xs text-base-content/70">
+                        {b.created ? new Date(b.created).toLocaleString() : ""}
+                      </div>
                     </div>
                     <button
                       className="btn btn-sm btn-primary"
@@ -741,7 +1077,7 @@ const ClusterDetails: React.FC = () => {
                       {downloadBackupLoading === b.backupName ? (
                         <span className="loading loading-spinner loading-xs"></span>
                       ) : (
-                        '⬇️ Download ZIP'
+                        "⬇️ Download ZIP"
                       )}
                     </button>
                   </li>
@@ -749,7 +1085,9 @@ const ClusterDetails: React.FC = () => {
               </ul>
             )}
             <div className="modal-action">
-              <button className="btn" onClick={() => setShowBackupModal(false)}>Close</button>
+              <button className="btn" onClick={() => setShowBackupModal(false)}>
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -759,7 +1097,11 @@ const ClusterDetails: React.FC = () => {
         <div className="modal modal-open">
           <div className="modal-box max-w-md">
             <h3 className="font-bold text-lg mb-4">Restore from Backup</h3>
-            <p className="text-xs text-base-content/60 mb-2">Restore the entire cluster from a previously created backup archive (ZIP). This will overwrite all current data with the contents of the backup.</p>
+            <p className="text-xs text-base-content/60 mb-2">
+              Restore the entire cluster from a previously created backup
+              archive (ZIP). This will overwrite all current data with the
+              contents of the backup.
+            </p>
             <form onSubmit={handleRestoreSubmit} className="space-y-4">
               <div>
                 <label className="label">Target Cluster Name</label>
@@ -780,12 +1122,31 @@ const ClusterDetails: React.FC = () => {
                   disabled={restoreLoading}
                 />
               </div>
-              {restoreError && <div className="alert alert-error">{restoreError}</div>}
-              {restoreSuccess && <div className="alert alert-success">{restoreSuccess}</div>}
+              {restoreError && (
+                <div className="alert alert-error">{restoreError}</div>
+              )}
+              {restoreSuccess && (
+                <div className="alert alert-success">{restoreSuccess}</div>
+              )}
               <div className="modal-action">
-                <button type="button" className="btn" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading}>Cancel</button>
-                <button type="submit" className="btn btn-warning" disabled={restoreLoading}>
-                  {restoreLoading ? <span className="loading loading-spinner loading-xs"></span> : '♻️ Restore'}
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowRestoreModal(false)}
+                  disabled={restoreLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-warning"
+                  disabled={restoreLoading}
+                >
+                  {restoreLoading ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : (
+                    "♻️ Restore"
+                  )}
                 </button>
               </div>
             </form>
@@ -796,40 +1157,65 @@ const ClusterDetails: React.FC = () => {
       {showServerBackupModal && (
         <div className="modal modal-open">
           <div className="modal-box max-w-2xl">
-            <h3 className="font-bold text-lg mb-4">Available Backups for {showServerBackupModal}</h3>
+            <h3 className="font-bold text-lg mb-4">
+              Available Backups for {showServerBackupModal}
+            </h3>
             {serverBackupLoading[showServerBackupModal] ? (
               <div className="flex items-center justify-center py-8">
                 <span className="loading loading-spinner loading-lg"></span>
               </div>
             ) : serverBackupError[showServerBackupModal] ? (
-              <div className="alert alert-error mb-4">{serverBackupError[showServerBackupModal]}</div>
+              <div className="alert alert-error mb-4">
+                {serverBackupError[showServerBackupModal]}
+              </div>
             ) : serverBackups[showServerBackupModal]?.length === 0 ? (
-              <div className="text-base-content/70">No backups found for this server.</div>
+              <div className="text-base-content/70">
+                No backups found for this server.
+              </div>
             ) : (
               <ul className="space-y-3">
-                {serverBackups[showServerBackupModal]?.map((b: ServerBackup) => (
-                  <li key={b.backupName} className="flex items-center justify-between bg-base-200 rounded p-3">
-                    <div>
-                      <div className="font-mono text-sm">{b.backupName}</div>
-                      <div className="text-xs text-base-content/70">{b.created ? new Date(b.created).toLocaleString() : ''}</div>
-                    </div>
-                    <button
-                      className="btn btn-sm btn-primary"
-                      disabled={downloadServerBackupLoading[b.backupName]}
-                      onClick={() => handleDownloadServerBackup(showServerBackupModal, b.backupName)}
+                {serverBackups[showServerBackupModal]?.map(
+                  (b: ServerBackup) => (
+                    <li
+                      key={b.backupName}
+                      className="flex items-center justify-between bg-base-200 rounded p-3"
                     >
-                      {downloadServerBackupLoading[b.backupName] ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      ) : (
-                        '⬇️ Download ZIP'
-                      )}
-                    </button>
-                  </li>
-                ))}
+                      <div>
+                        <div className="font-mono text-sm">{b.backupName}</div>
+                        <div className="text-xs text-base-content/70">
+                          {b.created
+                            ? new Date(b.created).toLocaleString()
+                            : ""}
+                        </div>
+                      </div>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        disabled={downloadServerBackupLoading[b.backupName]}
+                        onClick={() =>
+                          handleDownloadServerBackup(
+                            showServerBackupModal,
+                            b.backupName,
+                          )
+                        }
+                      >
+                        {downloadServerBackupLoading[b.backupName] ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        ) : (
+                          "⬇️ Download ZIP"
+                        )}
+                      </button>
+                    </li>
+                  ),
+                )}
               </ul>
             )}
             <div className="modal-action">
-              <button className="btn" onClick={() => setShowServerBackupModal(null)}>Close</button>
+              <button
+                className="btn"
+                onClick={() => setShowServerBackupModal(null)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -839,7 +1225,12 @@ const ClusterDetails: React.FC = () => {
         <div className="modal modal-open">
           <div className="modal-box max-w-md">
             <h3 className="font-bold text-lg mb-4">Restore Server Saves</h3>
-            <form onSubmit={(e) => handleServerRestoreSubmit(showServerRestoreModal, e)} className="space-y-4">
+            <form
+              onSubmit={(e) =>
+                handleServerRestoreSubmit(showServerRestoreModal, e)
+              }
+              className="space-y-4"
+            >
               <div>
                 <label className="label">Target Server</label>
                 <input
@@ -855,16 +1246,41 @@ const ClusterDetails: React.FC = () => {
                   type="file"
                   accept=".zip"
                   className="file-input file-input-bordered w-full"
-                  onChange={(e) => handleServerRestoreFileChange(showServerRestoreModal, e)}
+                  onChange={(e) =>
+                    handleServerRestoreFileChange(showServerRestoreModal, e)
+                  }
                   disabled={serverRestoreLoading[showServerRestoreModal]}
                 />
               </div>
-              {serverRestoreError[showServerRestoreModal] && <div className="alert alert-error">{serverRestoreError[showServerRestoreModal]}</div>}
-              {serverRestoreSuccess[showServerRestoreModal] && <div className="alert alert-success">{serverRestoreSuccess[showServerRestoreModal]}</div>}
+              {serverRestoreError[showServerRestoreModal] && (
+                <div className="alert alert-error">
+                  {serverRestoreError[showServerRestoreModal]}
+                </div>
+              )}
+              {serverRestoreSuccess[showServerRestoreModal] && (
+                <div className="alert alert-success">
+                  {serverRestoreSuccess[showServerRestoreModal]}
+                </div>
+              )}
               <div className="modal-action">
-                <button type="button" className="btn" onClick={() => setShowServerRestoreModal(null)} disabled={serverRestoreLoading[showServerRestoreModal]}>Cancel</button>
-                <button type="submit" className="btn btn-warning" disabled={serverRestoreLoading[showServerRestoreModal]}>
-                  {serverRestoreLoading[showServerRestoreModal] ? <span className="loading loading-spinner loading-xs"></span> : '♻️ Restore'}
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowServerRestoreModal(null)}
+                  disabled={serverRestoreLoading[showServerRestoreModal]}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-warning"
+                  disabled={serverRestoreLoading[showServerRestoreModal]}
+                >
+                  {serverRestoreLoading[showServerRestoreModal] ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : (
+                    "♻️ Restore"
+                  )}
                 </button>
               </div>
             </form>
@@ -878,43 +1294,77 @@ const ClusterDetails: React.FC = () => {
             <h3 className="font-bold text-lg mb-4">Backup Cluster Data</h3>
             <form>
               <label className="flex items-center mb-2">
-                <input type="checkbox" checked={backupOptions.saves} onChange={e => setBackupOptions(o => ({ ...o, saves: e.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={backupOptions.saves}
+                  onChange={(e) =>
+                    setBackupOptions((o) => ({ ...o, saves: e.target.checked }))
+                  }
+                />
                 <span className="ml-2">Saves</span>
               </label>
               <label className="flex items-center mb-2">
-                <input type="checkbox" checked={backupOptions.configs} onChange={e => setBackupOptions(o => ({ ...o, configs: e.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={backupOptions.configs}
+                  onChange={(e) =>
+                    setBackupOptions((o) => ({
+                      ...o,
+                      configs: e.target.checked,
+                    }))
+                  }
+                />
                 <span className="ml-2">Configs</span>
               </label>
               <label className="flex items-center mb-2">
-                <input type="checkbox" checked={backupOptions.logs} onChange={e => setBackupOptions(o => ({ ...o, logs: e.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={backupOptions.logs}
+                  onChange={(e) =>
+                    setBackupOptions((o) => ({ ...o, logs: e.target.checked }))
+                  }
+                />
                 <span className="ml-2">Logs</span>
               </label>
               <div className="flex gap-2 mt-4">
-                <button type="button" className="btn btn-primary" onClick={async () => {
-  if (!cluster) return;
-  setDownloadLoading(true);
-  setDownloadError(null);
-  try {
-    const response = await provisioningApi.backupCluster(cluster.name, {
-      saves: backupOptions.saves,
-      configs: backupOptions.configs,
-      logs: backupOptions.logs
-    });
-    if (response.success) {
-      // Optionally show a toast or success message
-    } else {
-      setDownloadError(response.message || 'Backup failed');
-    }
-  } catch (err: unknown) {
-    setDownloadError(err instanceof Error ? err.message : 'Backup failed');
-  } finally {
-    setDownloadLoading(false);
-    setShowBackupOptionsModal(false);
-  }
-}}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    if (!cluster) return;
+                    setDownloadLoading(true);
+                    setDownloadError(null);
+                    try {
+                      const response = await provisioningApi.backupCluster(
+                        cluster.name,
+                        {
+                          saves: backupOptions.saves,
+                          configs: backupOptions.configs,
+                          logs: backupOptions.logs,
+                        },
+                      );
+                      if (response.success) {
+                        // Optionally show a toast or success message
+                      } else {
+                        setDownloadError(response.message || "Backup failed");
+                      }
+                    } catch (err: unknown) {
+                      setDownloadError(
+                        err instanceof Error ? err.message : "Backup failed",
+                      );
+                    } finally {
+                      setDownloadLoading(false);
+                      setShowBackupOptionsModal(false);
+                    }
+                  }}
+                >
                   Start Backup
                 </button>
-                <button type="button" className="btn btn-outline" onClick={() => setShowBackupOptionsModal(false)}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setShowBackupOptionsModal(false)}
+                >
                   Cancel
                 </button>
               </div>
@@ -928,46 +1378,87 @@ const ClusterDetails: React.FC = () => {
         <div className="modal modal-open">
           <div className="modal-box">
             <h3 className="font-bold text-lg mb-4">Restore Cluster Data</h3>
-            <p className="text-xs text-base-content/60 mb-2">Restore specific data types (saves, configs, logs) for this cluster. You can select which data to restore. This will not affect other data types.</p>
+            <p className="text-xs text-base-content/60 mb-2">
+              Restore specific data types (saves, configs, logs) for this
+              cluster. You can select which data to restore. This will not
+              affect other data types.
+            </p>
             <form>
               <label className="flex items-center mb-2">
-                <input type="checkbox" checked={restoreOptions.saves} onChange={e => setRestoreOptions(o => ({ ...o, saves: e.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={restoreOptions.saves}
+                  onChange={(e) =>
+                    setRestoreOptions((o) => ({
+                      ...o,
+                      saves: e.target.checked,
+                    }))
+                  }
+                />
                 <span className="ml-2">Saves</span>
               </label>
               <label className="flex items-center mb-2">
-                <input type="checkbox" checked={restoreOptions.configs} onChange={e => setRestoreOptions(o => ({ ...o, configs: e.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={restoreOptions.configs}
+                  onChange={(e) =>
+                    setRestoreOptions((o) => ({
+                      ...o,
+                      configs: e.target.checked,
+                    }))
+                  }
+                />
                 <span className="ml-2">Configs</span>
               </label>
               <label className="flex items-center mb-2">
-                <input type="checkbox" checked={restoreOptions.logs} onChange={e => setRestoreOptions(o => ({ ...o, logs: e.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={restoreOptions.logs}
+                  onChange={(e) =>
+                    setRestoreOptions((o) => ({ ...o, logs: e.target.checked }))
+                  }
+                />
                 <span className="ml-2">Logs</span>
               </label>
               <div className="flex gap-2 mt-4">
-                <button type="button" className="btn btn-warning" onClick={async () => {
-  if (!cluster) return;
-  setRestoreLoading(true);
-  setRestoreError(null);
-  try {
-    const response = await provisioningApi.restoreCluster(cluster.name, {
-      saves: restoreOptions.saves,
-      configs: restoreOptions.configs,
-      logs: restoreOptions.logs
-    });
-    if (response.success) {
-      // Optionally show a toast or success message
-    } else {
-      setRestoreError(response.message || 'Restore failed');
-    }
-  } catch (err: unknown) {
-    setRestoreError(err instanceof Error ? err.message : 'Restore failed');
-  } finally {
-    setRestoreLoading(false);
-    setShowRestoreOptionsModal(false);
-  }
-}}>
+                <button
+                  type="button"
+                  className="btn btn-warning"
+                  onClick={async () => {
+                    if (!cluster) return;
+                    setRestoreLoading(true);
+                    setRestoreError(null);
+                    try {
+                      const response = await provisioningApi.restoreCluster(
+                        cluster.name,
+                        {
+                          saves: restoreOptions.saves,
+                          configs: restoreOptions.configs,
+                          logs: restoreOptions.logs,
+                        },
+                      );
+                      if (response.success) {
+                        // Optionally show a toast or success message
+                      } else {
+                        setRestoreError(response.message || "Restore failed");
+                      }
+                    } catch (err: unknown) {
+                      setRestoreError(
+                        err instanceof Error ? err.message : "Restore failed",
+                      );
+                    } finally {
+                      setRestoreLoading(false);
+                      setShowRestoreOptionsModal(false);
+                    }
+                  }}
+                >
                   Start Restore
                 </button>
-                <button type="button" className="btn btn-outline" onClick={() => setShowRestoreOptionsModal(false)}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setShowRestoreOptionsModal(false)}
+                >
                   Cancel
                 </button>
               </div>
@@ -980,8 +1471,192 @@ const ClusterDetails: React.FC = () => {
           <span>{downloadNotification}</span>
         </div>
       )}
+
+      {/* Add Server Modal */}
+      {showAddServerModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-lg">
+            <h3 className="font-bold text-lg mb-4">
+              ➕ Add Server to {cluster?.name}
+            </h3>
+            <p className="text-xs text-base-content/60 mb-4">
+              Configure the new server. Ports are auto-incremented from the
+              highest existing ports.
+            </p>
+            <form onSubmit={handleAddServer} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Server Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered input-sm w-full"
+                    placeholder="MyServer"
+                    value={newServer.name}
+                    onChange={(e) =>
+                      setNewServer({ ...newServer, name: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Map</span>
+                  </label>
+                  <select
+                    className="select select-bordered select-sm w-full"
+                    value={newServer.map}
+                    onChange={(e) =>
+                      setNewServer({ ...newServer, map: e.target.value })
+                    }
+                  >
+                    {availableMaps.map((m) => (
+                      <option key={m.name} value={m.name}>
+                        {m.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Game Port</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered input-sm w-full"
+                    value={newServer.gamePort}
+                    onChange={(e) =>
+                      setNewServer({
+                        ...newServer,
+                        gamePort: parseInt(e.target.value) || 7777,
+                      })
+                    }
+                    min={1024}
+                    max={65535}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Query Port</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered input-sm w-full"
+                    value={newServer.queryPort}
+                    onChange={(e) =>
+                      setNewServer({
+                        ...newServer,
+                        queryPort: parseInt(e.target.value) || 27015,
+                      })
+                    }
+                    min={1024}
+                    max={65535}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">RCON Port</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered input-sm w-full"
+                    value={newServer.rconPort}
+                    onChange={(e) =>
+                      setNewServer({
+                        ...newServer,
+                        rconPort: parseInt(e.target.value) || 32330,
+                      })
+                    }
+                    min={1024}
+                    max={65535}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Max Players</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered input-sm w-full"
+                    value={newServer.maxPlayers}
+                    onChange={(e) =>
+                      setNewServer({
+                        ...newServer,
+                        maxPlayers: parseInt(e.target.value) || 70,
+                      })
+                    }
+                    min={1}
+                    max={255}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Admin Password</span>
+                  </label>
+                  <input
+                    type="password"
+                    className="input input-bordered input-sm w-full"
+                    placeholder="admin123"
+                    value={newServer.adminPassword}
+                    onChange={(e) =>
+                      setNewServer({
+                        ...newServer,
+                        adminPassword: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Server Password</span>
+                  </label>
+                  <input
+                    type="password"
+                    className="input input-bordered input-sm w-full"
+                    placeholder="(optional)"
+                    value={newServer.serverPassword}
+                    onChange={(e) =>
+                      setNewServer({
+                        ...newServer,
+                        serverPassword: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              {addServerError && (
+                <div className="alert alert-error">{addServerError}</div>
+              )}
+
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowAddServerModal(false)}
+                  disabled={addServerLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={addServerLoading || !newServer.name.trim()}
+                >
+                  {addServerLoading ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : (
+                    "➕ Add Server"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default ClusterDetails; 
+export default ClusterDetails;
