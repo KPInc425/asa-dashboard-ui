@@ -6,7 +6,6 @@ import { useEnvironmentRouter } from "../utils/environmentRoutes";
 import EnvironmentSwitcher from "./EnvironmentSwitcher";
 
 // Demo mode detection
-import { isDemoMode } from "../demo/demo-core";
 
 interface SidebarProps {
   isOpen: boolean;

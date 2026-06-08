@@ -18,12 +18,6 @@ function daysAgo(n: number): string {
   return d.toISOString();
 }
 
-function hoursAgo(n: number): string {
-  const d = new Date();
-  d.setHours(d.getHours() - n);
-  return d.toISOString();
-}
-
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
@@ -740,7 +734,6 @@ export const DEMO_MODS = [
 // Logs
 // ---------------------------------------------------------------------------
 
-const LOG_LEVELS = ["INFO", "WARN", "ERROR", "DEBUG"] as const;
 const LOG_SOURCES = [
   "ServerManager",
   "RCON",
@@ -888,7 +881,7 @@ export function getDemoSystemLogs() {
   };
 }
 
-export function getDemoServerLogs(serverName: string): {
+export function getDemoServerLogs(/* serverName */ _serverName?: string): {
   success: boolean;
   content: string;
 } {

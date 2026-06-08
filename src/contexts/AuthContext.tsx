@@ -133,7 +133,7 @@ interface AuthProviderProps {
 // Demo mode auto-authentication
 // ---------------------------------------------------------------------------
 
-import { isDemoMode, enterDemoMode } from "../demo/demo-core";
+import { isDemoMode } from "../demo/demo-core";
 import { DEMO_USER } from "../demo/demo-data";
 
 // ---------------------------------------------------------------------------
