@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { provisioningApi } from "../services/api";
 import { useDeveloper } from "../contexts/DeveloperContext";
+import { useEnvironment } from "../contexts/EnvironmentContext";
 
 interface LogFile {
   content: string;
@@ -97,6 +98,7 @@ const getLogTabMeta = (key: string): LogTab => {
 const SystemLogs: React.FC = () => {
   const navigate = useNavigate();
   const { isDeveloperMode } = useDeveloper();
+  const { currentEnvironment, supportsCapability } = useEnvironment();
   const [logs, setLogs] = useState<SystemLogs>({});
   const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -415,6 +417,26 @@ const SystemLogs: React.FC = () => {
         <div className="text-center">
           <div className="loading loading-spinner loading-lg mb-4"></div>
           <p className="text-base-content/70">Loading system logs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Deep-link-only mode: no backend configured
+  if (currentEnvironment.backends.length === 0) {
+    return (
+      <div className="h-full flex flex-col p-6">
+        <div className="max-w-7xl mx-auto w-full">
+          <h1 className="text-4xl font-bold text-primary mb-2">System Logs</h1>
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <h2 className="card-title">{currentEnvironment.name}</h2>
+              <p className="text-base-content/70">
+                {currentEnvironment.description ||
+                  "This environment is configured as read-only. System logs are not available without a backend API connection."}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );

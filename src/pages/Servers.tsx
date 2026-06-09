@@ -14,11 +14,13 @@ import ServerList from "../components/ServerList";
 import ServerUpdateManager from "../components/ServerUpdateManager";
 import type { Server } from "../utils/serverUtils";
 import { useDeveloper } from "../contexts/DeveloperContext";
+import { useEnvironment } from "../contexts/EnvironmentContext";
 import { autoUpdateApi } from "../services/api-auto-update";
 
 const Servers: React.FC = () => {
   const navigate = useNavigate();
   const { isDeveloperMode } = useDeveloper();
+  const { currentEnvironment, supportsCapability } = useEnvironment();
   const [layoutMode, setLayoutMode] = useState<"cards" | "list">("cards");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
@@ -142,6 +144,12 @@ const Servers: React.FC = () => {
   // Handle server actions using mutations
   const handleAction = useCallback(
     async (action: "start" | "stop" | "restart", server: Server) => {
+      // Gate by capability
+      if (!supportsCapability("canRestart")) {
+        setError("Server actions are not supported by the current environment");
+        return;
+      }
+
       setActionLoading(server.name);
       setError(null);
 
@@ -219,11 +227,63 @@ const Servers: React.FC = () => {
         setActionLoading(null);
       }
     },
-    [startMutation, stopMutation, restartMutation, refetchList],
+    [
+      startMutation,
+      stopMutation,
+      restartMutation,
+      refetchList,
+      supportsCapability,
+    ],
   );
 
   if (loading) {
     return <LoadingSpinner />;
+  }
+
+  // Deep-link-only mode: no backend configured
+  if (currentEnvironment.backends.length === 0) {
+    const links = currentEnvironment.links ?? {};
+    const linkEntries = Object.entries(links)
+      .filter(([, url]) => !!url)
+      .map(([key, url]) => ({
+        label: key
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (c) => c.toUpperCase()),
+        url: url as string,
+      }));
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 p-4 md:p-6">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-2xl md:text-3xl font-bold text-primary mb-2">
+            Server Management
+          </h1>
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <h2 className="card-title">{currentEnvironment.name}</h2>
+              <p className="text-base-content/70 mb-4">
+                {currentEnvironment.description ||
+                  "This environment is configured as read-only. Server management is not available without a backend API connection."}
+              </p>
+              {linkEntries.length > 0 && (
+                <div className="flex flex-wrap gap-4">
+                  {linkEntries.map((link, i) => (
+                    <a
+                      key={i}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-outline btn-primary"
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -284,7 +344,7 @@ const Servers: React.FC = () => {
 
               {/* Action buttons */}
               <div className="flex gap-2">
-                {isDeveloperMode && (
+                {isDeveloperMode && supportsCapability("canViewStatus") && (
                   <>
                     <button
                       onClick={() => navigate("/provisioning?action=fix-rcon")}

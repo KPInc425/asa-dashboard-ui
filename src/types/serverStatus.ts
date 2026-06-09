@@ -1,11 +1,11 @@
-import type { AutoUpdateStatusResponse } from './autoUpdate';
+import type { AutoUpdateStatusResponse } from "./autoUpdate";
 
 /**
  * Server Status Types
- * 
+ *
  * TypeScript types matching the backend status contract defined in
  * docs/STATUS_ERROR_CONTRACT.md
- * 
+ *
  * These types provide a single source of truth for server status data
  * across the frontend application.
  */
@@ -14,15 +14,15 @@ import type { AutoUpdateStatusResponse } from './autoUpdate';
  * Canonical server status values
  */
 export const ServerStatus = {
-  RUNNING: 'running',
-  STOPPED: 'stopped',
-  STARTING: 'starting',
-  STOPPING: 'stopping',
-  FAILED: 'failed',
-  UNKNOWN: 'unknown'
+  RUNNING: "running",
+  STOPPED: "stopped",
+  STARTING: "starting",
+  STOPPING: "stopping",
+  FAILED: "failed",
+  UNKNOWN: "unknown",
 } as const;
 
-export type ServerStatus = typeof ServerStatus[keyof typeof ServerStatus];
+export type ServerStatus = (typeof ServerStatus)[keyof typeof ServerStatus];
 
 /**
  * Data source priority for status information
@@ -31,7 +31,7 @@ export type ServerStatus = typeof ServerStatus[keyof typeof ServerStatus];
  * - query: Server browser query
  * - cached: Last known good data (lowest priority)
  */
-export type DataSource = 'process' | 'rcon' | 'query' | 'cached';
+export type DataSource = "process" | "rcon" | "query" | "cached";
 
 /**
  * Player information from server
@@ -134,18 +134,18 @@ export interface ProblemDetails {
  * Standard error codes used by the API
  */
 export const ErrorCode = {
-  SERVER_NOT_FOUND: 'SERVER_NOT_FOUND',
-  SERVER_OFFLINE: 'SERVER_OFFLINE',
-  RCON_FAILED: 'RCON_FAILED',
-  TIMEOUT: 'TIMEOUT',
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-  INTERNAL_ERROR: 'INTERNAL_ERROR',
-  RATE_LIMITED: 'RATE_LIMITED'
+  SERVER_NOT_FOUND: "SERVER_NOT_FOUND",
+  SERVER_OFFLINE: "SERVER_OFFLINE",
+  RCON_FAILED: "RCON_FAILED",
+  TIMEOUT: "TIMEOUT",
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  INTERNAL_ERROR: "INTERNAL_ERROR",
+  RATE_LIMITED: "RATE_LIMITED",
 } as const;
 
-export type ErrorCode = typeof ErrorCode[keyof typeof ErrorCode];
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 /**
  * Generic API response wrapper
@@ -162,7 +162,7 @@ export interface ApiResponse<T> {
 export interface ServerSummary {
   name: string;
   status: ServerStatus | string;
-  type: 'container' | 'native' | 'cluster' | 'cluster-server' | 'individual';
+  type: "container" | "native" | "cluster" | "cluster-server" | "individual";
   image?: string;
   ports?: unknown[];
   created?: string;
@@ -180,7 +180,12 @@ export interface ServerSummary {
   isClusterServer?: boolean;
   autoUpdateStatus?: Pick<
     AutoUpdateStatusResponse,
-    'status' | 'updateAvailable' | 'currentVersion' | 'latestVersion' | 'lastCheck' | 'message'
+    | "status"
+    | "updateAvailable"
+    | "currentVersion"
+    | "latestVersion"
+    | "lastCheck"
+    | "message"
   >;
 }
 
@@ -190,6 +195,7 @@ export interface ServerSummary {
 export interface ServerActionResult {
   success: boolean;
   message: string;
+  jobId?: string;
 }
 
 /**
@@ -204,11 +210,11 @@ export function isServerStatus(value: string): value is ServerStatus {
  */
 export function normalizeStatus(status: string): ServerStatus {
   const statusMap: Record<string, ServerStatus> = {
-    'online': ServerStatus.RUNNING,
-    'offline': ServerStatus.STOPPED,
-    'error': ServerStatus.FAILED,
-    'crashed': ServerStatus.FAILED,
-    'restarting': ServerStatus.STARTING,
+    online: ServerStatus.RUNNING,
+    offline: ServerStatus.STOPPED,
+    error: ServerStatus.FAILED,
+    crashed: ServerStatus.FAILED,
+    restarting: ServerStatus.STARTING,
   };
 
   if (isServerStatus(status)) {
@@ -233,10 +239,10 @@ export function isDataStale(data: ServerLiveData): boolean {
  */
 export function isProblemDetails(value: unknown): value is ProblemDetails {
   return (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
-    'type' in value &&
-    'title' in value &&
-    'status' in value
+    "type" in value &&
+    "title" in value &&
+    "status" in value
   );
 }

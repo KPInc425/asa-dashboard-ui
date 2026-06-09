@@ -1,6 +1,6 @@
 /**
  * Server Data Hooks
- * 
+ *
  * React Query hooks for server data fetching and caching.
  * These hooks provide:
  * - Automatic caching and deduplication
@@ -9,21 +9,21 @@
  * - Transition-aware polling with exponential backoff
  * - Optimistic updates for mutations
  * - Browser visibility-aware polling
- * 
+ *
  * Polling Behavior by Status:
  * - starting/stopping: 2s (transition states need fast updates)
  * - failed/unknown: 10s (recovery monitoring)
  * - running: 5s if stale, 30s normal (moderate for player counts)
  * - stopped: 60s (just for unexpected state changes)
- * 
+ *
  * Usage:
  * ```tsx
  * import { useServers, useServerLiveDataDynamic, useServerMutation } from '../hooks/useServerData';
- * 
+ *
  * function ServerList() {
  *   const { data: servers, isLoading, error } = useServers();
  *   const { mutate: startServer } = useServerMutation('start');
- *   
+ *
  *   return (
  *     <div>
  *       {servers?.map(server => (
@@ -37,14 +37,14 @@
  * ```
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 import {
   useQuery,
   useMutation,
   useQueryClient,
   type UseQueryOptions,
   type UseMutationOptions,
-} from '@tanstack/react-query';
+} from "@tanstack/react-query";
 import {
   fetchServers,
   fetchServerDetails,
@@ -55,10 +55,15 @@ import {
   safeStopServer,
   safeRestartServer,
   isServerRunning,
-} from '../api/serverApi';
-import type { ServerSummary, ServerLiveData, ServerActionResult } from '../api/serverApi';
-import { ApiError } from '../api/apiClient';
-import { ServerStatus, isDataStale } from '../types/serverStatus';
+} from "../api/serverApi";
+import type {
+  ServerSummary,
+  ServerLiveData,
+  ServerActionResult,
+} from "../api/serverApi";
+import { ApiError } from "../api/apiClient";
+import { ServerStatus, isDataStale } from "../types/serverStatus";
+import type { BackendAdapter } from "../adapters/types";
 
 // ============================================================================
 // POLLING CONFIGURATION
@@ -92,7 +97,7 @@ export const TRANSITION_THRESHOLDS = {
 
 /**
  * Calculate the appropriate polling interval based on server status
- * 
+ *
  * @param status - Current server status
  * @param isStale - Whether the data is stale
  * @param transitionDuration - How long the server has been in a transition state (ms)
@@ -101,7 +106,7 @@ export const TRANSITION_THRESHOLDS = {
 export function getPollingInterval(
   status: ServerStatus | string,
   isStale: boolean = false,
-  transitionDuration: number = 0
+  transitionDuration: number = 0,
 ): number | false {
   // Transition states - poll frequently, but back off if taking too long
   if (status === ServerStatus.STARTING || status === ServerStatus.STOPPING) {
@@ -109,11 +114,11 @@ export function getPollingInterval(
       // Exponential backoff: start at 2s, max at 15s
       const backoffFactor = Math.min(
         transitionDuration / TRANSITION_THRESHOLDS.BACKOFF_START,
-        TRANSITION_THRESHOLDS.MAX_BACKOFF / POLLING_INTERVALS.TRANSITION
+        TRANSITION_THRESHOLDS.MAX_BACKOFF / POLLING_INTERVALS.TRANSITION,
       );
       return Math.min(
         POLLING_INTERVALS.TRANSITION * backoffFactor,
-        TRANSITION_THRESHOLDS.MAX_BACKOFF
+        TRANSITION_THRESHOLDS.MAX_BACKOFF,
       );
     }
     return POLLING_INTERVALS.TRANSITION;
@@ -126,7 +131,9 @@ export function getPollingInterval(
 
   // Running - moderate polling for player counts
   if (status === ServerStatus.RUNNING) {
-    return isStale ? POLLING_INTERVALS.RUNNING_STALE : POLLING_INTERVALS.RUNNING_NORMAL;
+    return isStale
+      ? POLLING_INTERVALS.RUNNING_STALE
+      : POLLING_INTERVALS.RUNNING_NORMAL;
   }
 
   // Stopped - slow polling or none
@@ -168,9 +175,9 @@ export function usePageVisibility(): boolean {
       setIsVisible(!document.hidden);
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -179,26 +186,29 @@ export function usePageVisibility(): boolean {
 
 // Query keys for cache management
 export const serverQueryKeys = {
-  all: ['servers'] as const,
-  lists: () => [...serverQueryKeys.all, 'list'] as const,
+  all: ["servers"] as const,
+  lists: () => [...serverQueryKeys.all, "list"] as const,
   list: () => serverQueryKeys.lists(),
-  details: () => [...serverQueryKeys.all, 'detail'] as const,
+  details: () => [...serverQueryKeys.all, "detail"] as const,
   detail: (id: string) => [...serverQueryKeys.details(), id] as const,
-  liveData: () => [...serverQueryKeys.all, 'live'] as const,
+  liveData: () => [...serverQueryKeys.all, "live"] as const,
   live: (id: string) => [...serverQueryKeys.liveData(), id] as const,
-  running: (id: string) => [...serverQueryKeys.all, 'running', id] as const,
+  running: (id: string) => [...serverQueryKeys.all, "running", id] as const,
 };
 
 /**
  * Hook for fetching all servers
- * 
+ *
  * Features:
  * - Caches server list
  * - Refetches in background every 30 seconds (configurable)
  * - Deduplicates concurrent requests
  */
 export function useServers(
-  options?: Omit<UseQueryOptions<ServerSummary[], ApiError>, 'queryKey' | 'queryFn'>
+  options?: Omit<
+    UseQueryOptions<ServerSummary[], ApiError>,
+    "queryKey" | "queryFn"
+  >,
 ) {
   return useQuery({
     queryKey: serverQueryKeys.list(),
@@ -211,15 +221,18 @@ export function useServers(
 
 /**
  * Hook for fetching server details
- * 
+ *
  * @param serverId - The server ID to fetch details for
  */
 export function useServerDetails(
   serverId: string | undefined,
-  options?: Omit<UseQueryOptions<ServerSummary | null, ApiError>, 'queryKey' | 'queryFn'>
+  options?: Omit<
+    UseQueryOptions<ServerSummary | null, ApiError>,
+    "queryKey" | "queryFn"
+  >,
 ) {
   return useQuery({
-    queryKey: serverQueryKeys.detail(serverId || ''),
+    queryKey: serverQueryKeys.detail(serverId || ""),
     queryFn: () => (serverId ? fetchServerDetails(serverId) : null),
     enabled: !!serverId,
     staleTime: 10_000,
@@ -229,24 +242,27 @@ export function useServerDetails(
 
 /**
  * Hook for fetching server live data with polling
- * 
+ *
  * Features:
  * - Polls for live status updates
  * - Configurable poll interval
  * - Only polls when enabled (e.g., when component is visible)
- * 
+ *
  * @param serverId - The server ID
  * @param serverType - 'native' or 'container'
  * @param pollInterval - Polling interval in ms (default: 5000)
  */
 export function useServerLiveData(
   serverId: string | undefined,
-  serverType: 'native' | 'container' = 'native',
+  serverType: "native" | "container" = "native",
   pollInterval: number | false = 5000,
-  options?: Omit<UseQueryOptions<ServerLiveData, ApiError>, 'queryKey' | 'queryFn'>
+  options?: Omit<
+    UseQueryOptions<ServerLiveData, ApiError>,
+    "queryKey" | "queryFn"
+  >,
 ) {
   return useQuery({
-    queryKey: serverQueryKeys.live(serverId || ''),
+    queryKey: serverQueryKeys.live(serverId || ""),
     queryFn: () => fetchServerLiveData(serverId!, serverType),
     enabled: !!serverId,
     staleTime: 2_000, // Consider fresh for 2 seconds
@@ -257,7 +273,7 @@ export function useServerLiveData(
 
 /**
  * Enhanced hook for fetching server live data with dynamic, status-aware polling
- * 
+ *
  * Features:
  * - Dynamic polling intervals based on server status
  * - Transition state tracking with duration monitoring
@@ -265,38 +281,43 @@ export function useServerLiveData(
  * - Browser visibility-aware (pauses when tab is hidden)
  * - Stale data detection and faster refresh
  * - Comprehensive transition state information
- * 
+ *
  * @param serverId - The server ID
  * @param serverType - 'native' or 'container'
  * @param options - Additional query options
  */
 export function useServerLiveDataDynamic(
   serverId: string | undefined,
-  serverType: 'native' | 'container' = 'native',
-  options?: Omit<UseQueryOptions<ServerLiveData, ApiError>, 'queryKey' | 'queryFn' | 'refetchInterval'>
+  serverType: "native" | "container" = "native",
+  options?: Omit<
+    UseQueryOptions<ServerLiveData, ApiError>,
+    "queryKey" | "queryFn" | "refetchInterval"
+  >,
 ) {
   const isPageVisible = usePageVisibility();
   const transitionStartRef = useRef<Date | null>(null);
   const previousStatusRef = useRef<ServerStatus | null>(null);
-  const [transitionTracker, setTransitionTracker] = useState<TransitionTracker>({
-    isTransitioning: false,
-    transitionDuration: 0,
-    isPotentiallyStuck: false,
-  });
+  const [transitionTracker, setTransitionTracker] = useState<TransitionTracker>(
+    {
+      isTransitioning: false,
+      transitionDuration: 0,
+      isPotentiallyStuck: false,
+    },
+  );
 
   const query = useQuery({
-    queryKey: serverQueryKeys.live(serverId || ''),
+    queryKey: serverQueryKeys.live(serverId || ""),
     queryFn: () => fetchServerLiveData(serverId!, serverType),
     enabled: !!serverId && isPageVisible,
     staleTime: 2_000,
     // Dynamic refetch interval based on status
     refetchInterval: (data) => {
       if (!isPageVisible) return false;
-      
+
       const status = data?.state?.data?.status || ServerStatus.UNKNOWN;
       const isStale = data?.state?.data ? isDataStale(data.state.data) : false;
       const transitionDuration = transitionTracker.transitionDuration;
-      
+
       return getPollingInterval(status, isStale, transitionDuration);
     },
     ...options,
@@ -307,16 +328,17 @@ export function useServerLiveDataDynamic(
     const currentStatus = query.data?.status;
     if (!currentStatus) return;
 
-    const isInTransition = 
-      currentStatus === ServerStatus.STARTING || 
+    const isInTransition =
+      currentStatus === ServerStatus.STARTING ||
       currentStatus === ServerStatus.STOPPING;
 
     // Detect transition start
     if (isInTransition && !transitionStartRef.current) {
       transitionStartRef.current = new Date();
-      previousStatusRef.current = previousStatusRef.current || ServerStatus.UNKNOWN;
+      previousStatusRef.current =
+        previousStatusRef.current || ServerStatus.UNKNOWN;
     }
-    
+
     // Detect transition end
     if (!isInTransition && transitionStartRef.current) {
       transitionStartRef.current = null;
@@ -328,11 +350,12 @@ export function useServerLiveDataDynamic(
     }
 
     // Calculate current transition state
-    const transitionDuration = transitionStartRef.current 
-      ? Date.now() - transitionStartRef.current.getTime() 
+    const transitionDuration = transitionStartRef.current
+      ? Date.now() - transitionStartRef.current.getTime()
       : 0;
-    
-    const isPotentiallyStuck = transitionDuration > TRANSITION_THRESHOLDS.STUCK_THRESHOLD;
+
+    const isPotentiallyStuck =
+      transitionDuration > TRANSITION_THRESHOLDS.STUCK_THRESHOLD;
 
     setTransitionTracker({
       isTransitioning: isInTransition,
@@ -347,11 +370,12 @@ export function useServerLiveDataDynamic(
 
   // Update transition duration periodically while in transition
   useEffect(() => {
-    if (!transitionTracker.isTransitioning || !transitionStartRef.current) return;
+    if (!transitionTracker.isTransitioning || !transitionStartRef.current)
+      return;
 
     const intervalId = setInterval(() => {
       const duration = Date.now() - transitionStartRef.current!.getTime();
-      setTransitionTracker(prev => ({
+      setTransitionTracker((prev) => ({
         ...prev,
         transitionDuration: duration,
         isPotentiallyStuck: duration > TRANSITION_THRESHOLDS.STUCK_THRESHOLD,
@@ -367,25 +391,27 @@ export function useServerLiveDataDynamic(
     transitionTracker,
     isTransitioning: transitionTracker.isTransitioning,
     isPotentiallyStuck: transitionTracker.isPotentiallyStuck,
-    lastFetchTime: query.dataUpdatedAt ? new Date(query.dataUpdatedAt) : undefined,
+    lastFetchTime: query.dataUpdatedAt
+      ? new Date(query.dataUpdatedAt)
+      : undefined,
     isPageVisible,
   };
 }
 
 /**
  * Hook for checking if a server is running
- * 
+ *
  * @param serverId - The server ID
  * @param serverType - 'native' or 'container'
  * @param pollInterval - Polling interval in ms (default: 2000)
  */
 export function useServerRunning(
   serverId: string | undefined,
-  serverType: 'native' | 'container' = 'native',
-  pollInterval: number | false = 2000
+  serverType: "native" | "container" = "native",
+  pollInterval: number | false = 2000,
 ) {
   return useQuery({
-    queryKey: serverQueryKeys.running(serverId || ''),
+    queryKey: serverQueryKeys.running(serverId || ""),
     queryFn: () => isServerRunning(serverId!, serverType),
     enabled: !!serverId,
     staleTime: 1_000,
@@ -396,48 +422,83 @@ export function useServerRunning(
 /**
  * Server action type
  */
-export type ServerAction = 'start' | 'stop' | 'restart' | 'safeStop' | 'safeRestart';
+export type ServerAction =
+  | "start"
+  | "stop"
+  | "restart"
+  | "safeStop"
+  | "safeRestart";
 
 /**
  * Mutation input type
  */
 interface ServerMutationInput {
   serverId: string;
-  serverType?: 'native' | 'container';
+  serverType?: "native" | "container";
 }
 
 /**
  * Hook for server mutations (start/stop/restart)
- * 
+ *
  * Features:
  * - Automatic query invalidation on success
  * - Optimistic updates (optional)
  * - Error handling
- * 
+ *
  * @param action - The action to perform
  */
 export function useServerMutation(
   action: ServerAction,
   options?: Omit<
     UseMutationOptions<ServerActionResult, ApiError, ServerMutationInput>,
-    'mutationFn'
-  >
+    "mutationFn"
+  >,
+  adapter?: BackendAdapter,
 ) {
   const queryClient = useQueryClient();
 
-  const actionFn = (input: ServerMutationInput): Promise<ServerActionResult> => {
-    const { serverId, serverType = 'native' } = input;
-    
+  const actionFn = async (
+    input: ServerMutationInput,
+  ): Promise<ServerActionResult> => {
+    const { serverId, serverType = "native" } = input;
+
+    // Try adapter first if available
+    if (adapter) {
+      const actionIdMap: Record<string, string> = {
+        start: "start",
+        stop: "stop",
+        restart: "restart",
+        safeStop: "stop",
+        safeRestart: "restart",
+      };
+      const mappedId = actionIdMap[action];
+      if (mappedId) {
+        const availableActions = await adapter.getAvailableActions(serverId);
+        const typedAction = availableActions.find(
+          (a) => a.actionId === mappedId,
+        );
+        if (typedAction) {
+          const result = await adapter.executeAction(serverId, typedAction);
+          return {
+            success: result.success,
+            message: result.message,
+            jobId: result.jobId,
+          };
+        }
+      }
+    }
+
+    // Fallback: direct API calls
     switch (action) {
-      case 'start':
+      case "start":
         return startServer(serverId, serverType);
-      case 'stop':
+      case "stop":
         return stopServer(serverId, serverType);
-      case 'restart':
+      case "restart":
         return restartServer(serverId, serverType);
-      case 'safeStop':
+      case "safeStop":
         return safeStopServer(serverId, serverType);
-      case 'safeRestart':
+      case "safeRestart":
         return safeRestartServer(serverId, serverType);
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -449,9 +510,15 @@ export function useServerMutation(
     onSuccess: (_data: ServerActionResult, variables: ServerMutationInput) => {
       // Invalidate relevant queries to trigger refetch
       queryClient.invalidateQueries({ queryKey: serverQueryKeys.list() });
-      queryClient.invalidateQueries({ queryKey: serverQueryKeys.live(variables.serverId) });
-      queryClient.invalidateQueries({ queryKey: serverQueryKeys.running(variables.serverId) });
-      queryClient.invalidateQueries({ queryKey: serverQueryKeys.detail(variables.serverId) });
+      queryClient.invalidateQueries({
+        queryKey: serverQueryKeys.live(variables.serverId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: serverQueryKeys.running(variables.serverId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: serverQueryKeys.detail(variables.serverId),
+      });
     },
     ...options,
   });
@@ -463,10 +530,10 @@ export function useServerMutation(
 export function useStartServer(
   options?: Omit<
     UseMutationOptions<ServerActionResult, ApiError, ServerMutationInput>,
-    'mutationFn'
-  >
+    "mutationFn"
+  >,
 ) {
-  return useServerMutation('start', options);
+  return useServerMutation("start", options);
 }
 
 /**
@@ -475,10 +542,10 @@ export function useStartServer(
 export function useStopServer(
   options?: Omit<
     UseMutationOptions<ServerActionResult, ApiError, ServerMutationInput>,
-    'mutationFn'
-  >
+    "mutationFn"
+  >,
 ) {
-  return useServerMutation('stop', options);
+  return useServerMutation("stop", options);
 }
 
 /**
@@ -487,10 +554,10 @@ export function useStopServer(
 export function useSafeStopServer(
   options?: Omit<
     UseMutationOptions<ServerActionResult, ApiError, ServerMutationInput>,
-    'mutationFn'
-  >
+    "mutationFn"
+  >,
 ) {
-  return useServerMutation('safeStop', options);
+  return useServerMutation("safeStop", options);
 }
 
 /**
@@ -499,10 +566,10 @@ export function useSafeStopServer(
 export function useRestartServer(
   options?: Omit<
     UseMutationOptions<ServerActionResult, ApiError, ServerMutationInput>,
-    'mutationFn'
-  >
+    "mutationFn"
+  >,
 ) {
-  return useServerMutation('restart', options);
+  return useServerMutation("restart", options);
 }
 
 /**
@@ -511,10 +578,10 @@ export function useRestartServer(
 export function useSafeRestartServer(
   options?: Omit<
     UseMutationOptions<ServerActionResult, ApiError, ServerMutationInput>,
-    'mutationFn'
-  >
+    "mutationFn"
+  >,
 ) {
-  return useServerMutation('safeRestart', options);
+  return useServerMutation("safeRestart", options);
 }
 
 /**
@@ -531,7 +598,10 @@ export function usePrefetchServerData() {
         staleTime: 10_000,
       });
     },
-    prefetchServerLiveData: (serverId: string, serverType: 'native' | 'container' = 'native') => {
+    prefetchServerLiveData: (
+      serverId: string,
+      serverType: "native" | "container" = "native",
+    ) => {
       queryClient.prefetchQuery({
         queryKey: serverQueryKeys.live(serverId),
         queryFn: () => fetchServerLiveData(serverId, serverType),
@@ -548,12 +618,20 @@ export function useRefetchServers() {
   const queryClient = useQueryClient();
 
   return {
-    refetchAll: () => queryClient.invalidateQueries({ queryKey: serverQueryKeys.all }),
-    refetchList: () => queryClient.invalidateQueries({ queryKey: serverQueryKeys.list() }),
+    refetchAll: () =>
+      queryClient.invalidateQueries({ queryKey: serverQueryKeys.all }),
+    refetchList: () =>
+      queryClient.invalidateQueries({ queryKey: serverQueryKeys.list() }),
     refetchServer: (serverId: string) => {
-      queryClient.invalidateQueries({ queryKey: serverQueryKeys.detail(serverId) });
-      queryClient.invalidateQueries({ queryKey: serverQueryKeys.live(serverId) });
-      queryClient.invalidateQueries({ queryKey: serverQueryKeys.running(serverId) });
+      queryClient.invalidateQueries({
+        queryKey: serverQueryKeys.detail(serverId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: serverQueryKeys.live(serverId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: serverQueryKeys.running(serverId),
+      });
     },
   };
 }

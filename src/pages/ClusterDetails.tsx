@@ -4,6 +4,7 @@ import { provisioningApi } from "../services/api-provisioning";
 import { useToast } from "../contexts/ToastContext";
 import GlobalModManager from "../components/GlobalModManager";
 import GlobalConfigManager from "../components/GlobalConfigManager";
+import { getAvailableMaps } from "../config/maps";
 
 interface Cluster {
   name: string;
@@ -135,21 +136,14 @@ const ClusterDetails: React.FC = () => {
     serverPassword: "",
   });
 
-  const availableMaps = [
-    { name: "TheIsland", displayName: "The Island" },
-    { name: "TheCenter", displayName: "The Center" },
-    { name: "Ragnarok", displayName: "Ragnarok" },
-    { name: "ScorchedEarth", displayName: "Scorched Earth" },
-    { name: "Aberration", displayName: "Aberration" },
-    { name: "Extinction", displayName: "Extinction" },
-    { name: "CrystalIsles", displayName: "Crystal Isles" },
-    { name: "Valguero", displayName: "Valguero" },
-    { name: "LostIsland", displayName: "Lost Island" },
-    { name: "Fjordur", displayName: "Fjordur" },
-    { name: "Genesis", displayName: "Genesis" },
-    { name: "Genesis2", displayName: "Genesis Part 2" },
-    { name: "BobsMissions", displayName: "Club ARK" },
-  ];
+  const availableMaps = React.useMemo(
+    () =>
+      getAvailableMaps().map((m) => ({
+        name: m.name,
+        displayName: m.displayName,
+      })),
+    [],
+  );
 
   // Calculate the next available ports based on existing servers
   const getNextPorts = () => {

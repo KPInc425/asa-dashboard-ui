@@ -25,6 +25,8 @@ import {
 import IndividualServersStep from "./provisioning/IndividualServersStep";
 import ModsStep from "./provisioning/ModsStep";
 import { Link } from "react-router-dom";
+import { getAvailableMaps } from "../config/maps";
+import MapManager from "./MapManager";
 
 const ReviewStep: React.FC<
   StepProps & { setCurrentStep?: (step: WizardStep) => void }
@@ -520,6 +522,7 @@ const ServerProvisioner: React.FC = () => {
   const [showGlobalConfigManager, setShowGlobalConfigManager] = useState(false);
   const [showGlobalModManager, setShowGlobalModManager] = useState(false);
   const [showServerBackupManager, setShowServerBackupManager] = useState(false);
+  const [showMapManager, setShowMapManager] = useState(false);
   const [selectedServerForBackup, setSelectedServerForBackup] = useState<
     string | null
   >(null);
@@ -618,21 +621,13 @@ const ServerProvisioner: React.FC = () => {
   });
   const [availableMaps] = useState<
     { name: string; displayName: string; available: boolean }[]
-  >([
-    { name: "TheIsland", displayName: "The Island", available: true },
-    { name: "TheCenter", displayName: "The Center", available: true },
-    { name: "Ragnarok", displayName: "Ragnarok", available: true },
-    { name: "ScorchedEarth", displayName: "Scorched Earth", available: true },
-    { name: "Aberration", displayName: "Aberration", available: true },
-    { name: "Extinction", displayName: "Extinction", available: true },
-    { name: "CrystalIsles", displayName: "Crystal Isles", available: false },
-    { name: "Valguero", displayName: "Valguero", available: false },
-    { name: "LostIsland", displayName: "Lost Island", available: false },
-    { name: "Fjordur", displayName: "Fjordur", available: false },
-    { name: "Genesis", displayName: "Genesis", available: false },
-    { name: "Genesis2", displayName: "Genesis Part 2", available: false },
-    { name: "BobsMissions", displayName: "Club ARK", available: true },
-  ]);
+  >(() =>
+    getAvailableMaps().map((m) => ({
+      name: m.name,
+      displayName: m.displayName,
+      available: m.available,
+    })),
+  );
 
   // Add state for restore modal
   type Backup = {
@@ -1512,6 +1507,12 @@ const ServerProvisioner: React.FC = () => {
                     >
                       💾 Server Backup Manager
                     </button>
+                    <button
+                      className="btn btn-outline btn-sm w-full justify-start"
+                      onClick={() => setShowMapManager(true)}
+                    >
+                      🗺️ Map Manager
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1782,6 +1783,11 @@ const ServerProvisioner: React.FC = () => {
       {/* Global Mod Manager Modal */}
       {showGlobalModManager && (
         <GlobalModManager onClose={() => setShowGlobalModManager(false)} />
+      )}
+
+      {/* Map Manager Modal */}
+      {showMapManager && (
+        <MapManager onClose={() => setShowMapManager(false)} />
       )}
 
       {/* Server Backup Manager Modal */}

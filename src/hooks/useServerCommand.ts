@@ -1,23 +1,23 @@
 /**
  * Server Command Hooks
- * 
+ *
  * Enhanced mutation hooks for server commands with:
  * - Optimistic updates (immediate UI feedback)
  * - Automatic refetching on command completion
  * - Transition state management
  * - Retry logic for transient failures
  * - Progress tracking
- * 
+ *
  * Usage:
  * ```tsx
  * import { useServerCommand } from '../hooks/useServerCommand';
- * 
+ *
  * function ServerControls({ serverId }: { serverId: string }) {
  *   const { startMutation, stopMutation, restartMutation, isPending } = useServerCommand();
- *   
+ *
  *   return (
  *     <div>
- *       <button 
+ *       <button
  *         onClick={() => startMutation.mutate({ serverId })}
  *         disabled={isPending}
  *       >
@@ -29,25 +29,26 @@
  * ```
  */
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   startServer,
   stopServer,
   restartServer,
   safeStopServer,
   safeRestartServer,
-} from '../api/serverApi';
-import type { ServerActionResult, ServerLiveData } from '../api/serverApi';
-import { ApiError } from '../api/apiClient';
-import { ServerStatus, type TransitionState } from '../types/serverStatus';
-import { serverQueryKeys } from './useServerData';
+} from "../api/serverApi";
+import type { ServerActionResult, ServerLiveData } from "../api/serverApi";
+import { ApiError } from "../api/apiClient";
+import { ServerStatus, type TransitionState } from "../types/serverStatus";
+import { serverQueryKeys } from "./useServerData";
+import type { BackendAdapter } from "../adapters/types";
 
 /**
  * Mutation input type for server commands
  */
 export interface ServerCommandInput {
   serverId: string;
-  serverType?: 'native' | 'container';
+  serverType?: "native" | "container";
 }
 
 /**
@@ -57,7 +58,11 @@ export interface UseServerCommandOptions {
   /** Callback when mutation starts */
   onMutationStart?: (action: string, serverId: string) => void;
   /** Callback on successful mutation */
-  onSuccess?: (action: string, serverId: string, result: ServerActionResult) => void;
+  onSuccess?: (
+    action: string,
+    serverId: string,
+    result: ServerActionResult,
+  ) => void;
   /** Callback on mutation error */
   onError?: (action: string, serverId: string, error: ApiError) => void;
   /** Callback when mutation settles (success or error) */
@@ -66,23 +71,25 @@ export interface UseServerCommandOptions {
   enableOptimisticUpdates?: boolean;
   /** Number of retries on transient failures (default: 2) */
   retryCount?: number;
+  /** Optional adapter for adapter-driven execution */
+  adapter?: BackendAdapter;
 }
 
 /**
  * Get the expected transition state for an action
  */
 function getTransitionStateForAction(
-  action: 'start' | 'stop' | 'restart' | 'safeStop' | 'safeRestart',
-  _previousStatus?: ServerStatus
+  action: "start" | "stop" | "restart" | "safeStop" | "safeRestart",
+  _previousStatus?: ServerStatus,
 ): { status: ServerStatus; expectedDuration?: number } {
   switch (action) {
-    case 'start':
+    case "start":
       return { status: ServerStatus.STARTING, expectedDuration: 60000 }; // 1 minute typical
-    case 'stop':
-    case 'safeStop':
+    case "stop":
+    case "safeStop":
       return { status: ServerStatus.STOPPING, expectedDuration: 30000 }; // 30 seconds typical
-    case 'restart':
-    case 'safeRestart':
+    case "restart":
+    case "safeRestart":
       return { status: ServerStatus.STOPPING, expectedDuration: 90000 }; // 1.5 minute for full restart
     default:
       return { status: ServerStatus.UNKNOWN };
@@ -99,7 +106,7 @@ interface MutationContext {
 
 /**
  * Enhanced hook for server commands with optimistic updates and transition tracking
- * 
+ *
  * Provides mutations for start, stop, restart, safeStop, and safeRestart operations
  * with automatic optimistic updates and proper cache invalidation.
  */
@@ -112,14 +119,53 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
     onSettled,
     enableOptimisticUpdates = true,
     retryCount = 2,
+    adapter,
   } = options;
+
+  /**
+   * Resolve the mutation function, using the adapter when available
+   * and falling back to the existing direct API calls.
+   */
+  const resolveMutationFn = (actionId: string) => {
+    return async ({
+      serverId,
+    }: ServerCommandInput): Promise<ServerActionResult> => {
+      if (adapter) {
+        const availableActions = await adapter.getAvailableActions(serverId);
+        const action = availableActions.find((a) => a.actionId === actionId);
+        if (action) {
+          const result = await adapter.executeAction(serverId, action);
+          return {
+            success: result.success,
+            message: result.message,
+            jobId: result.jobId,
+          };
+        }
+      }
+      // Fallback: use existing direct API calls
+      switch (actionId) {
+        case "start":
+          return startServer(serverId, "native");
+        case "stop":
+          return stopServer(serverId, "native");
+        case "restart":
+          return restartServer(serverId, "native");
+        case "safeStop":
+          return safeStopServer(serverId, "native");
+        case "safeRestart":
+          return safeRestartServer(serverId, "native");
+        default:
+          throw new ApiError(`Unknown action: ${actionId}`, 400);
+      }
+    };
+  };
 
   /**
    * Create optimistic update for a server command
    */
   const createOptimisticUpdate = async (
-    action: 'start' | 'stop' | 'restart' | 'safeStop' | 'safeRestart',
-    input: ServerCommandInput
+    action: "start" | "stop" | "restart" | "safeStop" | "safeRestart",
+    input: ServerCommandInput,
   ): Promise<MutationContext> => {
     if (!enableOptimisticUpdates) {
       return {};
@@ -137,7 +183,7 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
     // Get the expected transition state
     const transitionInfo = getTransitionStateForAction(
       action,
-      previousData?.status
+      previousData?.status,
     );
 
     // Optimistically update to the transition state
@@ -169,7 +215,7 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
     action: string,
     error: ApiError,
     input: ServerCommandInput,
-    context: MutationContext | undefined
+    context: MutationContext | undefined,
   ) => {
     // Rollback to previous data on error
     if (context?.previousData && context?.queryKey) {
@@ -185,8 +231,12 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
   const handleMutationSettled = (action: string, serverId: string) => {
     // Always invalidate queries after mutation settles
     queryClient.invalidateQueries({ queryKey: serverQueryKeys.live(serverId) });
-    queryClient.invalidateQueries({ queryKey: serverQueryKeys.running(serverId) });
-    queryClient.invalidateQueries({ queryKey: serverQueryKeys.detail(serverId) });
+    queryClient.invalidateQueries({
+      queryKey: serverQueryKeys.running(serverId),
+    });
+    queryClient.invalidateQueries({
+      queryKey: serverQueryKeys.detail(serverId),
+    });
     queryClient.invalidateQueries({ queryKey: serverQueryKeys.list() });
 
     onSettled?.(action, serverId);
@@ -199,19 +249,19 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
     ServerCommandInput,
     MutationContext
   >({
-    mutationFn: ({ serverId, serverType = 'native' }) => startServer(serverId, serverType),
+    mutationFn: resolveMutationFn("start"),
     onMutate: async (input) => {
-      onMutationStart?.('start', input.serverId);
-      return createOptimisticUpdate('start', input);
+      onMutationStart?.("start", input.serverId);
+      return createOptimisticUpdate("start", input);
     },
     onSuccess: (result, input) => {
-      onSuccess?.('start', input.serverId, result);
+      onSuccess?.("start", input.serverId, result);
     },
     onError: (error, input, context) => {
-      handleMutationError('start', error, input, context);
+      handleMutationError("start", error, input, context);
     },
     onSettled: (_, __, input) => {
-      handleMutationSettled('start', input.serverId);
+      handleMutationSettled("start", input.serverId);
     },
     retry: retryCount,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
@@ -224,19 +274,19 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
     ServerCommandInput,
     MutationContext
   >({
-    mutationFn: ({ serverId, serverType = 'native' }) => stopServer(serverId, serverType),
+    mutationFn: resolveMutationFn("stop"),
     onMutate: async (input) => {
-      onMutationStart?.('stop', input.serverId);
-      return createOptimisticUpdate('stop', input);
+      onMutationStart?.("stop", input.serverId);
+      return createOptimisticUpdate("stop", input);
     },
     onSuccess: (result, input) => {
-      onSuccess?.('stop', input.serverId, result);
+      onSuccess?.("stop", input.serverId, result);
     },
     onError: (error, input, context) => {
-      handleMutationError('stop', error, input, context);
+      handleMutationError("stop", error, input, context);
     },
     onSettled: (_, __, input) => {
-      handleMutationSettled('stop', input.serverId);
+      handleMutationSettled("stop", input.serverId);
     },
     retry: retryCount,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
@@ -249,19 +299,19 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
     ServerCommandInput,
     MutationContext
   >({
-    mutationFn: ({ serverId, serverType = 'native' }) => restartServer(serverId, serverType),
+    mutationFn: resolveMutationFn("restart"),
     onMutate: async (input) => {
-      onMutationStart?.('restart', input.serverId);
-      return createOptimisticUpdate('restart', input);
+      onMutationStart?.("restart", input.serverId);
+      return createOptimisticUpdate("restart", input);
     },
     onSuccess: (result, input) => {
-      onSuccess?.('restart', input.serverId, result);
+      onSuccess?.("restart", input.serverId, result);
     },
     onError: (error, input, context) => {
-      handleMutationError('restart', error, input, context);
+      handleMutationError("restart", error, input, context);
     },
     onSettled: (_, __, input) => {
-      handleMutationSettled('restart', input.serverId);
+      handleMutationSettled("restart", input.serverId);
     },
     retry: retryCount,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
@@ -274,19 +324,19 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
     ServerCommandInput,
     MutationContext
   >({
-    mutationFn: ({ serverId, serverType = 'native' }) => safeStopServer(serverId, serverType),
+    mutationFn: resolveMutationFn("safeStop"),
     onMutate: async (input) => {
-      onMutationStart?.('safeStop', input.serverId);
-      return createOptimisticUpdate('safeStop', input);
+      onMutationStart?.("safeStop", input.serverId);
+      return createOptimisticUpdate("safeStop", input);
     },
     onSuccess: (result, input) => {
-      onSuccess?.('safeStop', input.serverId, result);
+      onSuccess?.("safeStop", input.serverId, result);
     },
     onError: (error, input, context) => {
-      handleMutationError('safeStop', error, input, context);
+      handleMutationError("safeStop", error, input, context);
     },
     onSettled: (_, __, input) => {
-      handleMutationSettled('safeStop', input.serverId);
+      handleMutationSettled("safeStop", input.serverId);
     },
     retry: retryCount,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
@@ -299,19 +349,19 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
     ServerCommandInput,
     MutationContext
   >({
-    mutationFn: ({ serverId, serverType = 'native' }) => safeRestartServer(serverId, serverType),
+    mutationFn: resolveMutationFn("safeRestart"),
     onMutate: async (input) => {
-      onMutationStart?.('safeRestart', input.serverId);
-      return createOptimisticUpdate('safeRestart', input);
+      onMutationStart?.("safeRestart", input.serverId);
+      return createOptimisticUpdate("safeRestart", input);
     },
     onSuccess: (result, input) => {
-      onSuccess?.('safeRestart', input.serverId, result);
+      onSuccess?.("safeRestart", input.serverId, result);
     },
     onError: (error, input, context) => {
-      handleMutationError('safeRestart', error, input, context);
+      handleMutationError("safeRestart", error, input, context);
     },
     onSettled: (_, __, input) => {
-      handleMutationSettled('safeRestart', input.serverId);
+      handleMutationSettled("safeRestart", input.serverId);
     },
     retry: retryCount,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
@@ -327,16 +377,16 @@ export function useServerCommand(options: UseServerCommandOptions = {}) {
 
   // Get the current action being performed
   const currentAction = startMutation.isPending
-    ? 'start'
+    ? "start"
     : stopMutation.isPending
-    ? 'stop'
-    : restartMutation.isPending
-    ? 'restart'
-    : safeStopMutation.isPending
-    ? 'safeStop'
-    : safeRestartMutation.isPending
-    ? 'safeRestart'
-    : null;
+      ? "stop"
+      : restartMutation.isPending
+        ? "restart"
+        : safeStopMutation.isPending
+          ? "safeStop"
+          : safeRestartMutation.isPending
+            ? "safeRestart"
+            : null;
 
   return {
     startMutation,

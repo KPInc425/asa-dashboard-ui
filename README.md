@@ -104,63 +104,42 @@ EnvironmentContext / AuthContext (per-backend auth, env switching)
 
 7. **✅ Add Server to Cluster** — Cluster details page now has "➕ Add Server" button in the servers tab. Opens a modal with form fields (name, map, ports, max players, passwords) and auto-increments ports from existing servers. Backs up to `POST /api/provisioning/clusters/:clusterName/servers` with mock fallback.
 
-## Remaining Work — needed to complete the env switcher
+8. **✅ Dashboard env-aware** — Dashboard now renders three modes: deep-link-only (shows external links when no backend), full-control (direct API calls), and capability-gated quick actions (global settings gated by `canEditConfig`, mods gated by `canUpdateMods`, debug gated by `canViewStatus`).
 
-These are the specific files and changes needed to make the environment switcher actually change what you see on screen. Currently the switcher works internally but pages still render ASA-only content regardless of which environment is selected.
+9. **✅ SystemLogs env-aware** — Renders deep-link-only message when no backend is configured.
 
-### 1. Refactor pages to use the adapter layer
+10. **✅ useServerCommand adapter support** — Refactored to optionally accept a `BackendAdapter`. When provided, commands execute via `adapter.executeAction()` with fallback to existing direct API calls. `ServerActionResult` type extended with `jobId`.
 
-These pages still make direct API calls to hardcoded ASA endpoints. They need to use `useScopedAdapter()` and render differently based on which environment is active.
+11. **✅ Servers page env-aware** — Deep-link-only mode (shows external links when no backend), developer buttons gated by `canViewStatus`, server actions gated by `canRestart`.
 
-**Files to change:**
-| File | Current Approach | What to change |
-|------|-----------------|---------------|
-| `src/pages/Dashboard.tsx` | Direct `api.get('/api/system/info')`, `api.get('/api/provisioning/debug')`, `provisioningApi.listClusters()` | Use adapter methods; render deep-link-only mode when no backend |
-| `src/pages/Servers.tsx` | Partially adapted — uses `useServices()` with legacy fallback | Complete adapter integration; add capability gating |
-| `src/pages/ServerDetails.tsx` | Direct `provisioningApi` + legacy hooks | Use adapter for status, logs, and commands |
-| `src/pages/SystemLogs.tsx` | Direct `provisioningApi.getSystemLogs()` | Use environment-aware socket connection |
-| `src/hooks/useServerData.ts` | Direct axios calls | Refactor to consume adapter instead of direct axios calls |
-| `src/hooks/useServerCommand.ts` | Direct API calls | Refactor to use `adapter.executeAction()` |
+12. **✅ ServerDetails page env-aware** — Deep-link-only mode, action buttons gated by `canRestart`, tabs gated by capability (RCON via `canRcon`, Config via `canEditConfig`, Mods via `canUpdateMods`, Saves via `canBackup`), header buttons gated by capability.
 
-**Three rendering modes per page:**
+13. **✅ useServerData adapter support** — `useServerMutation` now takes an optional `BackendAdapter` param. When provided, mutations route through `adapter.getAvailableActions()` + `adapter.executeAction()` with fallback to direct API calls.
 
-| Mode | Condition | Behavior |
-|------|-----------|----------|
-| **Full-control** | Backend reachable + authenticated | All features visible (current ASA behavior) |
-| **Read-only** | Backend reachable, limited caps | Status only, no start/stop/restart buttons |
-| **Deep-link-only** | No backend configured | Show links to Homepage/Kuma/Dozzle |
-
-**Key hook to use:**
-```tsx
-import { useScopedAdapter } from '../hooks/useScopedAdapter';
-import { useEnvironment } from '../contexts/EnvironmentContext';
-
-function MyPage() {
-  const { currentEnvironment } = useEnvironment();
-  const { adapter, envId, backendId } = useScopedAdapter();
-  
-  // For deep-link-only mode
-  if (currentEnvironment.backends.length === 0) {
-    return <DeepLinkView links={currentEnvironment.links} />;
-  }
-  
-  // For read-only vs full-control, check capabilities:
-  // supportsCapability('canRestart') from EnvironmentContext
-}
-```
-
-### 2. Gate ASA-specific features by capability
-
-Check `supportsCapability()` from `EnvironmentContext` before showing ASA-only features:
-
-| Feature | Capability |
-|---------|-----------|
-| Server start/stop/restart | `canRestart` |
-| RCON console | `canRcon` |
-| Config editor (Monaco) | `canEditConfig` |
-| Provisioning wizard | `canProvision` |
+14. **✅ Centralized map registry with admin UI** — All hardcoded map lists consolidated into `src/config/maps.ts`. Lost Colony and all official ASA maps included with correct available/disabled state. Admins can add custom maps via the new **🗺️ Map Manager** modal in the Provisioning page (Quick Actions > Map Manager), stored in localStorage so new maps don't require a code deploy. Built-in toggle (enable/disable) and remove (custom only). `ServerDetails.tsx` consolidated to use the shared `getMapDisplayName()`.
 
 ### 3. Update tests
+
+Write Playwright MCP tests covering:
+- Environment switcher switching between all 3 envs
+- Socket.IO reconnect on switch
+- Deep-link mode rendering when no backend
+- Auth state preserved per-backend
+
+## Remaining Work — the env switcher is now complete
+
+All pages have been made environment-aware:
+
+| File | Status |
+|------|--------|
+| `src/pages/Dashboard.tsx` | ✅ Deep-link-only, full-control, capability-gated quick actions |
+| `src/pages/Servers.tsx` | ✅ Deep-link-only, actions gated by `canRestart`, dev buttons gated by `canViewStatus` |
+| `src/pages/ServerDetails.tsx` | ✅ Deep-link-only, actions gated by `canRestart`, tabs gated by `canRcon`/`canEditConfig`/`canUpdateMods`/`canBackup` |
+| `src/pages/SystemLogs.tsx` | ✅ Deep-link-only message when no backend |
+| `src/hooks/useServerData.ts` | ✅ `useServerMutation` accepts optional `BackendAdapter` |
+| `src/hooks/useServerCommand.ts` | ✅ Accepts optional `BackendAdapter` |
+
+## Tests still needed
 
 Write Playwright MCP tests covering:
 - Environment switcher switching between all 3 envs
@@ -179,6 +158,13 @@ Write Playwright MCP tests covering:
 - ✅ **Canonical estate inventory** — 45 services in YAML
 - ✅ **Doc generation scripts** — MkDocs + Homepage config generated from inventory
 - ✅ **Add Server to Cluster** — New modal on ClusterDetails page with auto-incrementing ports
+- ✅ **Dashboard env-aware** — Deep-link-only, full-control, and capability-gated quick actions
+- ✅ **SystemLogs env-aware** — Deep-link-only rendering
+- ✅ **useServerCommand adapter integration** — Optional BackendAdapter param with fallback to direct API
+- ✅ **Servers page env-aware** — Deep-link-only, capability-gated actions
+- ✅ **ServerDetails page env-aware** — Deep-link-only, capability-gated tabs and buttons
+- ✅ **useServerData adapter integration** — `useServerMutation` accepts optional BackendAdapter
+- ✅ **Centralized map registry** — `src/config/maps.ts` with Lost Colony + all official maps, admin-editable via new 🗺️ Map Manager in Provisioning Quick Actions
 
 ## API Usage
 
