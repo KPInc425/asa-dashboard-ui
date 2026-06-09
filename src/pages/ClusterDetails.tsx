@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { provisioningApi } from "../services/api-provisioning";
+import { socketService, type JobProgress } from "../services/socket";
 import { useToast } from "../contexts/ToastContext";
 import GlobalModManager from "../components/GlobalModManager";
 import GlobalConfigManager from "../components/GlobalConfigManager";
@@ -125,6 +126,9 @@ const ClusterDetails: React.FC = () => {
   const [showAddServerModal, setShowAddServerModal] = useState(false);
   const [addServerLoading, setAddServerLoading] = useState(false);
   const [addServerError, setAddServerError] = useState<string | null>(null);
+  const [addServerJobId, setAddServerJobId] = useState<string | null>(null);
+  const [addServerProgress, setAddServerProgress] =
+    useState<JobProgress | null>(null);
   const [newServer, setNewServer] = useState({
     name: "",
     map: "TheIsland",
@@ -172,16 +176,22 @@ const ClusterDetails: React.FC = () => {
 
     setAddServerLoading(true);
     setAddServerError(null);
+    setAddServerProgress(null);
+    setShowAddServerModal(false); // Close modal immediately
 
     try {
       const response = await provisioningApi.addServerToCluster(
         cluster.name,
         newServer,
       );
-      if (response.success) {
+
+      if (response.jobId) {
+        // Async job — track progress via Socket.IO and polling
+        setAddServerJobId(response.jobId);
+        showToast(`Server "${newServer.name}" creation started...`, "info");
+      } else if (response.success) {
+        // Synchronous completion (fallback)
         showToast(`Server "${newServer.name}" added successfully!`, "success");
-        setShowAddServerModal(false);
-        // Reset form with next ports
         const nextPorts = getNextPorts();
         setNewServer({
           name: "",
@@ -193,16 +203,16 @@ const ClusterDetails: React.FC = () => {
           adminPassword: "",
           serverPassword: "",
         });
-        // Reload cluster data
+        setAddServerLoading(false);
         loadCluster();
       } else {
         setAddServerError(response.message || "Failed to add server");
+        setAddServerLoading(false);
       }
     } catch (err: unknown) {
       setAddServerError(
         err instanceof Error ? err.message : "Failed to add server",
       );
-    } finally {
       setAddServerLoading(false);
     }
   };
@@ -251,6 +261,98 @@ const ClusterDetails: React.FC = () => {
   useEffect(() => {
     loadCluster();
   }, [loadCluster]);
+
+  // Socket.IO listener for add-server job progress
+  useEffect(() => {
+    const handleJobProgress = (progress: JobProgress) => {
+      if (addServerJobId && progress.jobId === addServerJobId) {
+        setAddServerProgress(progress);
+
+        if (progress.status === "completed") {
+          showToast(
+            progress.message || "Server added successfully!",
+            "success",
+          );
+          setAddServerJobId(null);
+          setAddServerProgress(null);
+          setAddServerLoading(false);
+          // Reset form
+          const nextPorts = getNextPorts();
+          setNewServer({
+            name: "",
+            map: "TheIsland",
+            gamePort: nextPorts.gamePort,
+            queryPort: nextPorts.queryPort,
+            rconPort: nextPorts.rconPort,
+            maxPlayers: 70,
+            adminPassword: "",
+            serverPassword: "",
+          });
+          loadCluster();
+        } else if (progress.status === "failed") {
+          setAddServerError(
+            progress.error || progress.message || "Failed to add server",
+          );
+          setAddServerJobId(null);
+          setAddServerProgress(null);
+          setAddServerLoading(false);
+        }
+      }
+    };
+
+    try {
+      socketService.onJobProgress(handleJobProgress);
+    } catch {}
+
+    return () => {
+      try {
+        socketService.offJobProgress();
+      } catch {}
+    };
+  }, [addServerJobId, loadCluster, showToast]);
+
+  // Poll for job status as fallback
+  useEffect(() => {
+    if (!addServerJobId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await provisioningApi.getJobStatus(addServerJobId);
+        if (response.success && response.job) {
+          const job = response.job as Record<string, unknown>;
+          setAddServerProgress({
+            jobId: addServerJobId,
+            status: job.status as "running" | "completed" | "failed",
+            progress: job.progress as number,
+            message: (job.message as string) || "",
+            error: job.error as string | undefined,
+          });
+
+          if (job.status === "completed") {
+            showToast(
+              (job.message as string) || "Server added successfully!",
+              "success",
+            );
+            setAddServerJobId(null);
+            setAddServerProgress(null);
+            setAddServerLoading(false);
+            loadCluster();
+          } else if (job.status === "failed") {
+            setAddServerError(
+              (job.error as string) ||
+                (job.message as string) ||
+                "Failed to add server",
+            );
+            setAddServerJobId(null);
+            setAddServerProgress(null);
+            setAddServerLoading(false);
+          }
+        }
+      } catch {}
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, [addServerJobId, loadCluster, showToast]);
 
   // Handle tab from URL params
   useEffect(() => {
@@ -644,6 +746,46 @@ const ClusterDetails: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Add Server Progress Banner */}
+        {addServerProgress && addServerProgress.status === "running" && (
+          <div className="alert alert-info shadow-lg">
+            <div className="flex items-center gap-3 w-full">
+              <span className="loading loading-spinner loading-sm"></span>
+              <div className="flex-1">
+                <p className="font-medium">
+                  Adding server "{newServer.name || "..."}"...
+                </p>
+                <p className="text-sm text-base-content/70">
+                  {addServerProgress.message || "Working..."}
+                </p>
+              </div>
+              {typeof addServerProgress.progress === "number" && (
+                <div className="w-24">
+                  <progress
+                    className="progress progress-primary w-full"
+                    value={addServerProgress.progress}
+                    max="100"
+                  ></progress>
+                  <span className="text-xs text-base-content/60">
+                    {addServerProgress.progress}%
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {addServerError && (
+          <div className="alert alert-error">
+            <span>{addServerError}</span>
+            <button
+              className="btn btn-sm btn-ghost"
+              onClick={() => setAddServerError(null)}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="tabs tabs-boxed bg-base-200">
