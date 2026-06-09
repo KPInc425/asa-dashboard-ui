@@ -13,7 +13,6 @@ import {
 } from "../hooks/useServerData";
 import { useServerCommand } from "../hooks/useServerCommand";
 import { useEnvironment } from "../contexts/EnvironmentContext";
-import { useScopedAdapter } from "../hooks/useScopedAdapter";
 import { getMapDisplayName } from "../config/maps";
 import ServerModManager from "../components/ServerModManager";
 import ServerConfigEditor from "../components/ServerConfigEditor";
@@ -58,7 +57,6 @@ const ServerDetails: React.FC = () => {
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
   const { currentEnvironment, supportsCapability } = useEnvironment();
-  const { adapter } = useScopedAdapter();
 
   // Use centralized hooks for server data and mutations
   const {

@@ -98,7 +98,7 @@ const getLogTabMeta = (key: string): LogTab => {
 const SystemLogs: React.FC = () => {
   const navigate = useNavigate();
   const { isDeveloperMode } = useDeveloper();
-  const { currentEnvironment, supportsCapability } = useEnvironment();
+  const { currentEnvironment } = useEnvironment();
   const [logs, setLogs] = useState<SystemLogs>({});
   const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(null);
   const [loading, setLoading] = useState(true);
