@@ -106,6 +106,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const adminMenuItems = user?.permissions?.includes("user_management")
     ? [
         {
+          path: "/games",
+          label: "Game Types",
+          icon: "🎮",
+          description: "Manage supported game types",
+        },
+        {
           path: "/users",
           label: "User Management",
           icon: "👥",

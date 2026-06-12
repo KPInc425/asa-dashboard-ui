@@ -31,6 +31,7 @@ import UserManagement from "./components/UserManagement";
 import FirstTimeSetup from "./components/FirstTimeSetup";
 import DiscordSetup from "./pages/DiscordSetup";
 import AutoUpdate from "./pages/AutoUpdate";
+import GamesPage from "./pages/Games";
 import EnvAwareLayout from "./components/EnvAwareLayout";
 
 // Demo mode
@@ -257,6 +258,7 @@ const AppContent: React.FC = () => {
           <Route path="provisioning" element={<Provisioning />} />
           <Route path="discord" element={<DiscordSetup />} />
           <Route path="auto-update" element={<AutoUpdate />} />
+          <Route path="games" element={<GamesPage />} />
           <Route path="profile" element={<UserProfile />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="*" element={<Navigate to="/demo" replace />} />
@@ -321,6 +323,7 @@ const AppContent: React.FC = () => {
             <Route path="/provisioning" element={<Provisioning />} />
             <Route path="/discord" element={<DiscordSetup />} />
             <Route path="/auto-update" element={<AutoUpdate />} />
+            <Route path="/games" element={<GamesPage />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/users" element={<UserManagement />} />
 
@@ -341,6 +344,7 @@ const AppContent: React.FC = () => {
               <Route path="provisioning" element={<Provisioning />} />
               <Route path="discord" element={<DiscordSetup />} />
               <Route path="auto-update" element={<AutoUpdate />} />
+              <Route path="games" element={<GamesPage />} />
               <Route path="profile" element={<UserProfile />} />
               <Route path="users" element={<UserManagement />} />
             </Route>

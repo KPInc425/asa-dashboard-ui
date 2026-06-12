@@ -1,14 +1,18 @@
 // Export all API services
-export * from './api';
-export { default as apiService } from './api';
+export * from "./api";
+export { default as apiService } from "./api";
 
 // Export all Socket.IO services
-export * from './socket';
-export { default as socketService } from './socket';
+export * from "./socket";
+export { default as socketService } from "./socket";
 
 // Export auto-update API service
-export * from './api-auto-update';
-export { default as autoUpdateApi } from './api-auto-update';
+export * from "./api-auto-update";
+export { default as autoUpdateApi } from "./api-auto-update";
+
+// Export games API service
+export * from "./api-games";
+export { default as gamesApi } from "./api-games";
 
 // Re-export commonly used types from core
 export type {
@@ -28,6 +32,6 @@ export type {
   ArkServerConfigs,
   Mod,
   ModsResponse,
-} from './api-core';
+} from "./api-core";
 
-export type { LogMessage } from './socket'; 
+export type { LogMessage } from "./socket";
