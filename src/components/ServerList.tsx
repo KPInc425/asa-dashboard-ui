@@ -37,6 +37,7 @@ interface ServerListProps {
   onAction: (action: 'start' | 'stop' | 'restart', server: Server) => void;
   onViewDetails: (server: Server) => void;
   onConfigClick?: (server: Server) => void;
+  onDelete?: (server: Server) => void;
 }
 
 function ServerListComponent({
@@ -44,7 +45,8 @@ function ServerListComponent({
   actionLoading,
   onAction,
   onViewDetails,
-  onConfigClick
+  onConfigClick,
+  onDelete
 }: ServerListProps) {
   const { showToast } = useToast();
 
@@ -304,6 +306,20 @@ function ServerListComponent({
                       aria-label={`Edit configuration for ${server.name}`}
                     >
                       ⚙️
+                    </button>
+                  )}
+                  {onDelete && server.type !== 'cluster' && server.type !== 'cluster-server' && (
+                    <button
+                      title="Delete Server"
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to permanently delete "${server.name}"? This cannot be undone.`)) {
+                          onDelete(server);
+                        }
+                      }}
+                      className="btn btn-xs btn-error"
+                      aria-label={`Delete ${server.name}`}
+                    >
+                      🗑️
                     </button>
                   )}
                   <button

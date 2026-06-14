@@ -44,6 +44,7 @@ interface ServerCardProps {
   actionStatus: Record<string, string>;
   onAction: (action: 'start' | 'stop' | 'restart', server: Server) => void;
   onViewDetails: (server: Server) => void;
+  onDelete?: (server: Server) => void;
 }
 
 const ServerCard: React.FC<ServerCardProps> = React.memo(({
@@ -51,7 +52,8 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
   actionLoading,
   actionStatus,
   onAction,
-  onViewDetails
+  onViewDetails,
+  onDelete
 }) => {
   // Safety check - if server is invalid, don't render
   if (!server || typeof server !== 'object') {
@@ -236,6 +238,7 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
           actionLoading={actionLoading}
           onAction={onAction}
           onViewDetails={onViewDetails}
+          onDelete={onDelete}
         />
       </div>
     </div>

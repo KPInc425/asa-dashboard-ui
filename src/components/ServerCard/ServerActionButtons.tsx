@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { api } from '../../services/api';
 import { useDeveloper } from '../../contexts/DeveloperContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext2';
 import RconDebugModal from '../RconDebugModal';
 
 interface Server {
@@ -16,16 +17,19 @@ interface ServerActionButtonsProps {
   actionLoading: string | null;
   onAction: (action: 'start' | 'stop' | 'restart', server: Server) => void;
   onViewDetails: (server: Server) => void;
+  onDelete?: (server: Server) => void;
 }
 
 const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
   server,
   actionLoading,
   onAction,
-  onViewDetails
+  onViewDetails,
+  onDelete
 }) => {
   const { isDeveloperMode } = useDeveloper();
   const { showToast } = useToast();
+  const { showConfirm } = useConfirm();
   const [debugModalOpen, setDebugModalOpen] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
@@ -82,6 +86,22 @@ const ServerActionButtons: React.FC<ServerActionButtonsProps> = ({
       >
         🔍 View Details
       </button>
+
+      {/* Delete button — only for standalone servers, not clusters or cluster-servers */}
+      {onDelete && server.type !== 'cluster' && server.type !== 'cluster-server' && (
+        <button
+          title="Delete Server"
+          onClick={async () => {
+            const confirmed = await showConfirm(`Are you sure you want to permanently delete "${server.name}"? This cannot be undone.`);
+            if (confirmed) {
+              onDelete(server);
+            }
+          }}
+          className="btn btn-error btn-sm w-full text-xs md:text-sm"
+        >
+          🗑️ Delete
+        </button>
+      )}
       
       {/* Fix RCON button for native servers - Only show in developer mode */}
       {isDeveloperMode && (server.type === 'native' || server.type === 'cluster-server' || server.type === 'individual') && server.rconPort && (

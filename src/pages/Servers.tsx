@@ -16,6 +16,7 @@ import type { Server } from "../utils/serverUtils";
 import { useDeveloper } from "../contexts/DeveloperContext";
 import { useEnvironment } from "../contexts/EnvironmentContext";
 import { autoUpdateApi } from "../services/api-auto-update";
+import { deleteServer } from "../services/api-provisioning";
 
 const Servers: React.FC = () => {
   const navigate = useNavigate();
@@ -235,6 +236,21 @@ const Servers: React.FC = () => {
       supportsCapability,
     ],
   );
+
+  const handleDeleteServer = useCallback(async (server: Server) => {
+    setActionLoading(server.name);
+    setError(null);
+    try {
+      await deleteServer(server.name);
+      refetch();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete server",
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  }, [refetch]);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -473,6 +489,7 @@ const Servers: React.FC = () => {
                   actionStatus={actionStatus}
                   onAction={handleAction}
                   onViewDetails={handleViewDetails}
+                  onDelete={handleDeleteServer}
                 />
               ))}
             </div>
@@ -484,6 +501,7 @@ const Servers: React.FC = () => {
               onAction={handleAction}
               onViewDetails={handleViewDetails}
               onConfigClick={handleConfigClick}
+              onDelete={handleDeleteServer}
             />
           )}
         </div>
