@@ -35,8 +35,8 @@ export const installSteamCmd = async (): Promise<{
 
 export const createServer = async (
   serverConfig: Record<string, unknown>,
-): Promise<{ success: boolean; message: string }> => {
-  const response = await api.post<{ success: boolean; message: string }>(
+): Promise<{ success: boolean; message: string; jobId?: string }> => {
+  const response = await api.post<{ success: boolean; message: string; jobId?: string }>(
     "/api/provisioning/create-server",
     serverConfig,
   );
