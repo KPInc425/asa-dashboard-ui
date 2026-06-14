@@ -139,6 +139,8 @@ const ClusterDetails: React.FC = () => {
     adminPassword: "",
     serverPassword: "",
   });
+  const [isCustomMap, setIsCustomMap] = useState(false);
+  const [customMapName, setCustomMapName] = useState("");
 
   const availableMaps = React.useMemo(
     () =>
@@ -203,6 +205,8 @@ const ClusterDetails: React.FC = () => {
           adminPassword: "",
           serverPassword: "",
         });
+        setIsCustomMap(false);
+        setCustomMapName("");
         setAddServerLoading(false);
         loadCluster();
       } else {
@@ -229,6 +233,8 @@ const ClusterDetails: React.FC = () => {
       adminPassword: "",
       serverPassword: "",
     });
+    setIsCustomMap(false);
+    setCustomMapName("");
     setAddServerError(null);
     setShowAddServerModal(true);
   };
@@ -1642,17 +1648,42 @@ const ClusterDetails: React.FC = () => {
                   </label>
                   <select
                     className="select select-bordered select-sm w-full"
-                    value={newServer.map}
-                    onChange={(e) =>
-                      setNewServer({ ...newServer, map: e.target.value })
-                    }
+                    value={isCustomMap ? "__custom__" : newServer.map}
+                    onChange={(e) => {
+                      if (e.target.value === "__custom__") {
+                        setIsCustomMap(true);
+                        setNewServer({
+                          ...newServer,
+                          map: customMapName || "CustomMap",
+                        });
+                      } else {
+                        setIsCustomMap(false);
+                        setNewServer({ ...newServer, map: e.target.value });
+                      }
+                    }}
                   >
                     {availableMaps.map((m) => (
                       <option key={m.name} value={m.name}>
                         {m.displayName}
                       </option>
                     ))}
+                    <option value="__custom__">Custom Map...</option>
                   </select>
+                  {isCustomMap && (
+                    <input
+                      type="text"
+                      className="input input-bordered input-sm w-full mt-2"
+                      placeholder="Enter exact map name (e.g., MyCustomMap)"
+                      value={customMapName}
+                      onChange={(e) => {
+                        setCustomMapName(e.target.value);
+                        setNewServer({
+                          ...newServer,
+                          map: e.target.value || "CustomMap",
+                        });
+                      }}
+                    />
+                  )}
                 </div>
                 <div className="form-control">
                   <label className="label">

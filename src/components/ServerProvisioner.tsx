@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { provisioningApi } from "../services/api-provisioning";
+import { provisioningApi, createServer } from "../services/api-provisioning";
 import { socketService, type JobProgress } from "../services/socket";
 import { useConfirm } from "../contexts/ConfirmContext2";
 import { useToast } from "../contexts/ToastContext";
@@ -526,6 +526,25 @@ const ServerProvisioner: React.FC = () => {
   const [selectedServerForBackup, setSelectedServerForBackup] = useState<
     string | null
   >(null);
+
+  // Standalone server creation state
+  const [showStandaloneModal, setShowStandaloneModal] = useState(false);
+  const [standaloneLoading, setStandaloneLoading] = useState(false);
+  const [standaloneError, setStandaloneError] = useState<string | null>(null);
+  const [standaloneSuccess, setStandaloneSuccess] = useState<string | null>(null);
+  const [standaloneForm, setStandaloneForm] = useState({
+    name: "",
+    map: "TheIsland",
+    gamePort: 7777,
+    queryPort: 27015,
+    rconPort: 32330,
+    maxPlayers: 70,
+    adminPassword: "admin123",
+    serverPassword: "",
+    disableBattleEye: false,
+  });
+  const [standaloneCustomMap, setStandaloneCustomMap] = useState(false);
+  const [standaloneCustomMapName, setStandaloneCustomMapName] = useState("");
   const [wizardData, setWizardData] = useState<WizardData>({
     clusterName: "",
     description: "",
@@ -1012,6 +1031,45 @@ const ServerProvisioner: React.FC = () => {
       );
       setStatusType("error");
       setTimeout(() => setStatusMessage(null), 10000);
+    }
+  };
+
+  const handleCreateStandaloneServer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStandaloneLoading(true);
+    setStandaloneError(null);
+    setStandaloneSuccess(null);
+
+    try {
+      const response = await createServer(standaloneForm);
+      if (response.success) {
+        setStandaloneSuccess(`Server "${standaloneForm.name}" created successfully!`);
+        setStandaloneForm({
+          name: "",
+          map: "TheIsland",
+          gamePort: 7777,
+          queryPort: 27015,
+          rconPort: 32330,
+          maxPlayers: 70,
+          adminPassword: "admin123",
+          serverPassword: "",
+          disableBattleEye: false,
+        });
+        setStandaloneCustomMap(false);
+        setStandaloneCustomMapName("");
+        setTimeout(() => {
+          setShowStandaloneModal(false);
+          setStandaloneSuccess(null);
+        }, 2000);
+      } else {
+        setStandaloneError(response.message || "Failed to create server");
+      }
+    } catch (err: unknown) {
+      setStandaloneError(
+        err instanceof Error ? err.message : "Failed to create server",
+      );
+    } finally {
+      setStandaloneLoading(false);
     }
   };
 
@@ -1513,6 +1571,29 @@ const ServerProvisioner: React.FC = () => {
                     >
                       🗺️ Map Manager
                     </button>
+                    <button
+                      className="btn btn-primary btn-sm w-full justify-start"
+                      onClick={() => {
+                        setStandaloneForm({
+                          name: "",
+                          map: "TheIsland",
+                          gamePort: 7777,
+                          queryPort: 27015,
+                          rconPort: 32330,
+                          maxPlayers: 70,
+                          adminPassword: "admin123",
+                          serverPassword: "",
+                          disableBattleEye: false,
+                        });
+                        setStandaloneCustomMap(false);
+                        setStandaloneCustomMapName("");
+                        setStandaloneError(null);
+                        setStandaloneSuccess(null);
+                        setShowStandaloneModal(true);
+                      }}
+                    >
+                      ➕ Quick Add Standalone Server
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1850,6 +1931,242 @@ const ServerProvisioner: React.FC = () => {
                 Restore
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Standalone Server Creation Modal */}
+      {showStandaloneModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">➕ Create Standalone Server</h3>
+              <button
+                className="btn btn-sm btn-circle btn-ghost"
+                onClick={() => setShowStandaloneModal(false)}
+                disabled={standaloneLoading}
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-base-content/60 mb-4">
+              Create a single server not attached to any cluster.
+            </p>
+            <form onSubmit={handleCreateStandaloneServer} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Server Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered input-sm w-full"
+                    placeholder="MyServer"
+                    value={standaloneForm.name}
+                    onChange={(e) =>
+                      setStandaloneForm({ ...standaloneForm, name: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Map</span>
+                  </label>
+                  <select
+                    className="select select-bordered select-sm w-full"
+                    value={standaloneCustomMap ? "__custom__" : standaloneForm.map}
+                    onChange={(e) => {
+                      if (e.target.value === "__custom__") {
+                        setStandaloneCustomMap(true);
+                        setStandaloneForm({
+                          ...standaloneForm,
+                          map: standaloneCustomMapName || "CustomMap",
+                        });
+                      } else {
+                        setStandaloneCustomMap(false);
+                        setStandaloneForm({ ...standaloneForm, map: e.target.value });
+                      }
+                    }}
+                  >
+                    {availableMaps.map((m) => (
+                      <option key={m.name} value={m.name}>
+                        {m.displayName}
+                      </option>
+                    ))}
+                    <option value="__custom__">Custom Map...</option>
+                  </select>
+                  {standaloneCustomMap && (
+                    <input
+                      type="text"
+                      className="input input-bordered input-sm w-full mt-2"
+                      placeholder="Enter exact map name (e.g., MyCustomMap)"
+                      value={standaloneCustomMapName}
+                      onChange={(e) => {
+                        setStandaloneCustomMapName(e.target.value);
+                        setStandaloneForm({
+                          ...standaloneForm,
+                          map: e.target.value || "CustomMap",
+                        });
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Game Port</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered input-sm w-full"
+                    value={standaloneForm.gamePort}
+                    onChange={(e) =>
+                      setStandaloneForm({
+                        ...standaloneForm,
+                        gamePort: parseInt(e.target.value) || 7777,
+                      })
+                    }
+                    min={1024}
+                    max={65535}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Query Port</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered input-sm w-full"
+                    value={standaloneForm.queryPort}
+                    onChange={(e) =>
+                      setStandaloneForm({
+                        ...standaloneForm,
+                        queryPort: parseInt(e.target.value) || 27015,
+                      })
+                    }
+                    min={1024}
+                    max={65535}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">RCON Port</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered input-sm w-full"
+                    value={standaloneForm.rconPort}
+                    onChange={(e) =>
+                      setStandaloneForm({
+                        ...standaloneForm,
+                        rconPort: parseInt(e.target.value) || 32330,
+                      })
+                    }
+                    min={1024}
+                    max={65535}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Max Players</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered input-sm w-full"
+                    value={standaloneForm.maxPlayers}
+                    onChange={(e) =>
+                      setStandaloneForm({
+                        ...standaloneForm,
+                        maxPlayers: parseInt(e.target.value) || 70,
+                      })
+                    }
+                    min={1}
+                    max={255}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Admin Password</span>
+                  </label>
+                  <input
+                    type="password"
+                    className="input input-bordered input-sm w-full"
+                    placeholder="admin123"
+                    value={standaloneForm.adminPassword}
+                    onChange={(e) =>
+                      setStandaloneForm({
+                        ...standaloneForm,
+                        adminPassword: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Server Password</span>
+                  </label>
+                  <input
+                    type="password"
+                    className="input input-bordered input-sm w-full"
+                    placeholder="(optional)"
+                    value={standaloneForm.serverPassword}
+                    onChange={(e) =>
+                      setStandaloneForm({
+                        ...standaloneForm,
+                        serverPassword: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="standalone-disable-battleeye"
+                  className="checkbox checkbox-primary checkbox-sm"
+                  checked={standaloneForm.disableBattleEye}
+                  onChange={(e) =>
+                    setStandaloneForm({
+                      ...standaloneForm,
+                      disableBattleEye: e.target.checked,
+                    })
+                  }
+                />
+                <label htmlFor="standalone-disable-battleeye" className="label-text text-sm">
+                  Disable BattleEye
+                </label>
+              </div>
+
+              {standaloneError && (
+                <div className="alert alert-error">{standaloneError}</div>
+              )}
+              {standaloneSuccess && (
+                <div className="alert alert-success">{standaloneSuccess}</div>
+              )}
+
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowStandaloneModal(false)}
+                  disabled={standaloneLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={standaloneLoading || !standaloneForm.name.trim()}
+                >
+                  {standaloneLoading ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : (
+                    "➕ Create Server"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
