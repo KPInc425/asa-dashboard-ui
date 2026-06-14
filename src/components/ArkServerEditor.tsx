@@ -44,6 +44,8 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
   const [availableMods, setAvailableMods] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isCustomMap, setIsCustomMap] = useState(false);
+  const [customMapName, setCustomMapName] = useState('');
 
   const mapOptions = [
     { value: 'TheIsland', label: 'The Island' },
@@ -57,7 +59,9 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
     { value: 'Fjordur', label: 'Fjordur' },
     { value: 'CrystalIsles', label: 'Crystal Isles' },
     { value: 'Ragnarok', label: 'Ragnarok' },
-    { value: 'Valguero', label: 'Valguero' }
+    { value: 'Valguero', label: 'Valguero' },
+    { value: 'LostColony', label: 'Lost Colony' },
+    { value: '__custom__', label: 'Custom Map...' }
   ];
 
   useEffect(() => {
@@ -251,8 +255,16 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
                 <span className="label-text">Map</span>
               </label>
               <select
-                value={formData.mapName}
-                onChange={(e) => handleInputChange('mapName', e.target.value)}
+                value={isCustomMap ? '__custom__' : formData.mapName}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setIsCustomMap(true);
+                    handleInputChange('mapName', customMapName || 'CustomMap');
+                  } else {
+                    setIsCustomMap(false);
+                    handleInputChange('mapName', e.target.value);
+                  }
+                }}
                 className="select select-bordered w-full"
               >
                 {mapOptions.map(option => (
@@ -261,6 +273,18 @@ const ArkServerEditor = ({ server, onSave, onCancel }: ArkServerEditorProps) => 
                   </option>
                 ))}
               </select>
+              {isCustomMap && (
+                <input
+                  type="text"
+                  value={customMapName}
+                  onChange={(e) => {
+                    setCustomMapName(e.target.value);
+                    handleInputChange('mapName', e.target.value || 'CustomMap');
+                  }}
+                  className="input input-bordered w-full mt-2"
+                  placeholder="Enter exact map name (e.g., SurviveTheNight)"
+                />
+              )}
             </div>
 
             <div>
