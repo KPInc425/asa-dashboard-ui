@@ -82,7 +82,7 @@ export default function AccessibleModal({ isOpen, onClose, titleId, descId, chil
         // close when clicking on overlay (but not when clicking inside dialog)
         if (e.target === overlayRef.current) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
     >
       <div
         ref={dialogRef}

@@ -49,6 +49,12 @@
   }
 }
 
+/* More opaque modal backdrops — keeps blur, reduces dashboard visibility behind modals */
+.modal::backdrop {
+  background: oklch(0% 0 0 / 0.7) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
 @keyframes zoomIn95 {
   from {
     opacity: 0;
