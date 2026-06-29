@@ -13,17 +13,22 @@ import {
 } from "../hooks/useServerData";
 import { useServerCommand } from "../hooks/useServerCommand";
 import { useEnvironment } from "../contexts/EnvironmentContext";
-import { getMapDisplayName } from "../config/maps";
 import ServerModManager from "../components/ServerModManager";
 import ServerConfigEditor from "../components/ServerConfigEditor";
 import ServerLogViewer from "../components/ServerLogViewer";
 import StartScriptViewer from "../components/StartScriptViewer";
 import ServerUpdateManager from "../components/ServerUpdateManager";
 import ServerSettingsEditor from "../components/ServerSettingsEditor";
-import ServerLiveDetails from "../components/ServerLiveDetails";
 import SaveFileManager from "../components/SaveFileManager";
 import ServerDetailsRconConsole from "../components/ServerDetailsRconConsole";
-import TransitionProgress from "../components/TransitionProgress";
+import LoadingState from "./server-details/LoadingState";
+import ErrorState from "./server-details/ErrorState";
+import DeepLinkOnlyView from "./server-details/DeepLinkOnlyView";
+import ServerHeader from "./server-details/ServerHeader";
+import TabNavigation from "./server-details/TabNavigation";
+import DetailsTabPanel from "./server-details/DetailsTabPanel";
+import ServerBackupModal from "./server-details/ServerBackupModal";
+import ServerRestoreModal from "./server-details/ServerRestoreModal";
 
 const ServerDetails: React.FC = () => {
   const { serverName } = useParams<{ serverName: string }>();
@@ -137,67 +142,6 @@ const ServerDetails: React.FC = () => {
     setSearchParams({ tab });
   };
 
-  // Map display name resolved via centralized map registry (config/maps.ts)
-  // The imported getMapDisplayName handles both "TheIsland" and "TheIsland_WP" formats.
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "container":
-        return "Container";
-      case "native":
-        return "Native";
-      case "cluster":
-        return "Cluster";
-      case "cluster-server":
-        return "Cluster Server";
-      case "individual":
-        return "Individual Server";
-      default:
-        return type;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "running":
-        return "badge-success";
-      case "stopped":
-        return "badge-error";
-      case "restarting":
-        return "badge-warning";
-      case "starting":
-        return "badge-warning";
-      case "stopping":
-        return "badge-info";
-      default:
-        return "badge-neutral";
-    }
-  };
-
-  const getUpdateStatusBadge = () => {
-    const status = autoUpdateStatusQuery.data;
-
-    if (!status?.success) {
-      return null;
-    }
-
-    if (status.updateAvailable) {
-      return <span className="badge badge-warning">Needs update</span>;
-    }
-
-    switch (status.status) {
-      case "checking":
-        return <span className="badge badge-info">Checking updates</span>;
-      case "warning":
-      case "updating":
-        return <span className="badge badge-primary">Updating</span>;
-      case "failed":
-        return <span className="badge badge-error">Update failed</span>;
-      default:
-        return <span className="badge badge-success">Up to date</span>;
-    }
-  };
-
   // Server control actions using mutations
   const handleServerAction = async (action: "start" | "stop" | "restart") => {
     if (!server || !serverName) return;
@@ -261,10 +205,10 @@ const ServerDetails: React.FC = () => {
     try {
       const result = await provisioningApi.listServerBackups();
       if (result.success) {
-        const serverBackups = ((result.data?.backups as any[]) || []).filter(
+        const filtered = ((result.data?.backups as any[]) || []).filter(
           (b: any) => b.serverName === serverName,
         );
-        setServerBackups(serverBackups);
+        setServerBackups(filtered);
       } else {
         setServerBackupError(result.message || "Failed to load backups");
       }
@@ -318,7 +262,6 @@ const ServerDetails: React.FC = () => {
         backupName,
       );
       if (response.success) {
-        // Remove from local state
         setServerBackups((prev) => prev.filter((b) => b.name !== backupName));
       } else {
         try {
@@ -380,433 +323,67 @@ const ServerDetails: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="loading loading-spinner loading-lg mb-4"></div>
-          <p className="text-base-content/70">Loading server details...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   // Deep-link-only mode: no backend configured
   if (currentEnvironment.backends.length === 0) {
-    const links = currentEnvironment.links ?? {};
-    const linkEntries = Object.entries(links)
-      .filter(([, url]) => !!url)
-      .map(([key, url]) => ({
-        label: key
-          .replace(/([A-Z])/g, " $1")
-          .replace(/^./, (c) => c.toUpperCase()),
-        url: url as string,
-      }));
     return (
-      <div className="h-full flex flex-col p-6">
-        <div className="max-w-7xl mx-auto w-full">
-          <h1 className="text-2xl font-bold text-primary mb-1">{serverName}</h1>
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <h2 className="card-title">{currentEnvironment.name}</h2>
-              <p className="text-base-content/70 mb-4">
-                {currentEnvironment.description ||
-                  "This environment is configured as read-only. Server details are not available without a backend API connection."}
-              </p>
-              {linkEntries.length > 0 && (
-                <div className="flex flex-wrap gap-4">
-                  {linkEntries.map((link, i) => (
-                    <a
-                      key={i}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-outline btn-primary"
-                    >
-                      {link.label}
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <DeepLinkOnlyView
+        serverName={serverName}
+        currentEnvironment={currentEnvironment}
+      />
     );
   }
 
   if (error || !server) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="alert alert-error mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="stroke-current shrink-0 h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span>{error || "Server not found"}</span>
-          </div>
-          <button
-            onClick={() => navigate("/servers")}
-            className="btn btn-primary"
-          >
-            ← Back to Servers
-          </button>
-        </div>
-      </div>
-    );
+    return <ErrorState error={error} onBack={() => navigate("/servers")} />;
   }
 
   return (
     <div className="h-full flex flex-col p-6">
       <div className="max-w-7xl mx-auto w-full space-y-6">
         {/* Header */}
-        <div className="animate-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate("/servers")}
-                className="btn btn-ghost btn-circle"
-              >
-                ←
-              </button>
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🦖</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-2xl font-bold text-primary mb-1 truncate">
-                  {server.name}
-                </h1>
-                <p className="text-sm text-base-content/70 truncate">
-                  Server Management & Configuration
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <span className={`badge ${getStatusColor(server.status)}`}>
-                {server.status.charAt(0).toUpperCase() + server.status.slice(1)}
-              </span>
-              {getUpdateStatusBadge()}
-              {supportsCapability("canRestart") && (
-                <div className="btn-group">
-                  <button
-                    onClick={() => handleServerAction("start")}
-                    disabled={
-                      actionLoading !== null || server.status === "running"
-                    }
-                    className="btn btn-sm btn-success"
-                  >
-                    {actionLoading === "start" ? (
-                      <span className="loading loading-spinner loading-xs"></span>
-                    ) : (
-                      "▶️ Start"
-                    )}
-                  </button>
-                  <button
-                    onClick={handleStopWithConfirmation}
-                    disabled={
-                      actionLoading !== null || server.status === "stopped"
-                    }
-                    className="btn btn-sm btn-error"
-                  >
-                    {actionLoading === "stop" ? (
-                      <span className="loading loading-spinner loading-xs"></span>
-                    ) : (
-                      "⏹️ Stop"
-                    )}
-                  </button>
-                  <button
-                    onClick={handleRestartWithConfirmation}
-                    disabled={actionLoading !== null}
-                    className="btn btn-sm btn-warning"
-                  >
-                    {actionLoading === "restart" ? (
-                      <span className="loading loading-spinner loading-xs"></span>
-                    ) : (
-                      "🔄 Restart"
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {/* Start Script Viewer Button - Only show for native/cluster servers */}
-              {(server.type === "native" ||
-                server.type === "cluster-server") && (
-                <button
-                  onClick={() => setShowStartScript(true)}
-                  className="btn btn-sm btn-outline btn-info ml-2"
-                >
-                  📜 View Start Script
-                </button>
-              )}
-
-              {/* Update Server Button */}
-              <button
-                onClick={() => setShowUpdateManager(true)}
-                className="btn btn-sm btn-outline btn-accent ml-2"
-              >
-                🔄 Update Server
-              </button>
-
-              {/* Settings Button */}
-              {supportsCapability("canEditConfig") && (
-                <button
-                  onClick={() => setShowSettingsEditor(true)}
-                  className="btn btn-sm btn-outline btn-primary ml-2"
-                >
-                  ⚙️ Settings
-                </button>
-              )}
-
-              {/* Backup Button */}
-              {supportsCapability("canBackup") && (
-                <button
-                  onClick={openServerBackupModal}
-                  className="btn btn-sm btn-outline btn-secondary ml-2"
-                >
-                  🗄️ Backup
-                </button>
-              )}
-
-              {/* Restore Button */}
-              {supportsCapability("canRestore") && (
-                <button
-                  onClick={openServerRestoreModal}
-                  className="btn btn-sm btn-outline btn-warning ml-2"
-                >
-                  ♻️ Restore
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <ServerHeader
+          server={server}
+          actionLoading={actionLoading}
+          autoUpdateStatusQuery={autoUpdateStatusQuery}
+          supportsCapability={supportsCapability}
+          onNavigateBack={() => navigate("/servers")}
+          onStart={() => handleServerAction("start")}
+          onStop={handleStopWithConfirmation}
+          onRestart={handleRestartWithConfirmation}
+          onShowStartScript={() => setShowStartScript(true)}
+          onShowUpdateManager={() => setShowUpdateManager(true)}
+          onShowSettingsEditor={() => setShowSettingsEditor(true)}
+          onOpenBackupModal={openServerBackupModal}
+          onOpenRestoreModal={openServerRestoreModal}
+        />
 
         {/* Tab Navigation */}
-        <div className="tabs tabs-boxed bg-base-200">
-          <button
-            className={`tab ${activeTab === "details" ? "tab-active" : ""}`}
-            onClick={() => handleTabChange("details")}
-          >
-            📊 Details
-          </button>
-          {supportsCapability("canRcon") && (
-            <button
-              className={`tab ${activeTab === "rcon" ? "tab-active" : ""}`}
-              onClick={() => handleTabChange("rcon")}
-            >
-              🖥️ RCON Console
-            </button>
-          )}
-          {supportsCapability("canUpdateMods") && (
-            <button
-              className={`tab ${activeTab === "mods" ? "tab-active" : ""}`}
-              onClick={() => handleTabChange("mods")}
-            >
-              🎮 Mods
-            </button>
-          )}
-          {supportsCapability("canEditConfig") && (
-            <button
-              className={`tab ${activeTab === "config" ? "tab-active" : ""}`}
-              onClick={() => handleTabChange("config")}
-            >
-              ⚙️ Configuration
-            </button>
-          )}
-          <button
-            className={`tab ${activeTab === "logs" ? "tab-active" : ""}`}
-            onClick={() => handleTabChange("logs")}
-          >
-            📋 Logs
-          </button>
-          {supportsCapability("canBackup") && (
-            <button
-              className={`tab ${activeTab === "saves" ? "tab-active" : ""}`}
-              onClick={() => handleTabChange("saves")}
-            >
-              💾 Save Files
-            </button>
-          )}
-        </div>
+        <TabNavigation
+          activeTab={activeTab}
+          supportsCapability={supportsCapability}
+          onTabChange={handleTabChange}
+        />
 
         {/* Tab Content */}
         <div className="card bg-base-100 shadow-sm flex-1">
           <div className="card-body">
             {activeTab === "details" && (
-              <div className="space-y-6">
-                {/* Transition Progress - Show during server transitions */}
-                {isTransitioning && (
-                  <TransitionProgress
-                    status={liveData?.status || server.status}
-                    transitionStartedAt={transitionTracker.transitionStartedAt}
-                    expectedDuration={transitionTracker.expectedDuration}
-                    previousStatus={transitionTracker.previousStatus}
-                    variant="full"
-                    onStuck={() => {
-                      showToast(
-                        "Server transition is taking longer than expected. Check the logs for details.",
-                        "warning",
-                      );
-                    }}
-                  />
-                )}
-
-                {/* Live Server Information - Show when running (and not transitioning) */}
-                {server.status === "running" && !isTransitioning && (
-                  <div className="mb-6">
-                    <ServerLiveDetails
-                      serverName={server.name}
-                      serverType={server.type}
-                    />
-                  </div>
-                )}
-
-                {/* Refetching indicator */}
-                {isRefetching && !isTransitioning && (
-                  <div className="flex items-center gap-2 text-sm text-base-content/60">
-                    <span className="loading loading-spinner loading-xs"></span>
-                    <span>Refreshing data...</span>
-                  </div>
-                )}
-
-                {/* Server Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="card bg-base-200">
-                    <div className="card-body">
-                      <h4 className="card-title">Server Information</h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-base-content/70">Name:</span>
-                          <span className="font-medium">{server.name}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-base-content/70">Type:</span>
-                          <span className="badge badge-outline">
-                            {getTypeLabel(server.type)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-base-content/70">Status:</span>
-                          <span
-                            className={`badge ${getStatusColor(server.status)}`}
-                          >
-                            {server.status.charAt(0).toUpperCase() +
-                              server.status.slice(1)}
-                          </span>
-                        </div>
-                        {autoUpdateStatusQuery.data?.success && (
-                          <>
-                            <div className="flex justify-between gap-4">
-                              <span className="text-base-content/70">
-                                Update Status:
-                              </span>
-                              <span>{getUpdateStatusBadge()}</span>
-                            </div>
-                            <div className="flex justify-between gap-4">
-                              <span className="text-base-content/70">
-                                Last Update Check:
-                              </span>
-                              <span className="text-right">
-                                {autoUpdateStatusQuery.data.lastCheck
-                                  ? new Date(
-                                      autoUpdateStatusQuery.data.lastCheck,
-                                    ).toLocaleString()
-                                  : "Never"}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        {server.map && (
-                          <div className="flex justify-between">
-                            <span className="text-base-content/70">Map:</span>
-                            <span>{getMapDisplayName(server.map)}</span>
-                          </div>
-                        )}
-                        {server.clusterName && (
-                          <div className="flex justify-between">
-                            <span className="text-base-content/70">
-                              Cluster:
-                            </span>
-                            <span>{server.clusterName}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="card bg-base-200">
-                    <div className="card-body">
-                      <h4 className="card-title">Network Information</h4>
-                      <div className="space-y-2">
-                        {server.gamePort && (
-                          <div className="flex justify-between">
-                            <span className="text-base-content/70">
-                              Game Port:
-                            </span>
-                            <span>{server.gamePort}</span>
-                          </div>
-                        )}
-                        {server.queryPort && (
-                          <div className="flex justify-between">
-                            <span className="text-base-content/70">
-                              Query Port:
-                            </span>
-                            <span>{server.queryPort}</span>
-                          </div>
-                        )}
-                        {server.rconPort && (
-                          <div className="flex justify-between">
-                            <span className="text-base-content/70">
-                              RCON Port:
-                            </span>
-                            <span>{server.rconPort}</span>
-                          </div>
-                        )}
-                        {server.maxPlayers && (
-                          <div className="flex justify-between">
-                            <span className="text-base-content/70">
-                              Max Players:
-                            </span>
-                            <span>{server.maxPlayers}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Configuration Section - Collapsible */}
-                {server.config && (
-                  <div className="card bg-base-200">
-                    <div className="card-body">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="card-title">Configuration</h4>
-                        <button
-                          onClick={() =>
-                            setConfigSectionExpanded(!configSectionExpanded)
-                          }
-                          className="btn btn-sm btn-outline"
-                        >
-                          {configSectionExpanded ? "🔽 Collapse" : "▶️ Expand"}
-                        </button>
-                      </div>
-                      {configSectionExpanded && (
-                        <pre className="text-xs bg-base-300 p-4 rounded overflow-auto max-h-64">
-                          {JSON.stringify(server.config, null, 2)}
-                        </pre>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <DetailsTabPanel
+                server={server}
+                liveData={liveData}
+                isTransitioning={isTransitioning}
+                isRefetching={isRefetching}
+                transitionTracker={transitionTracker}
+                autoUpdateStatusQuery={autoUpdateStatusQuery}
+                configSectionExpanded={configSectionExpanded}
+                onToggleConfigSection={() =>
+                  setConfigSectionExpanded(!configSectionExpanded)
+                }
+                onShowToast={showToast}
+              />
             )}
 
             {activeTab === "rcon" && (
@@ -854,7 +431,6 @@ const ServerDetails: React.FC = () => {
           server={server}
           onClose={() => setShowSettingsEditor(false)}
           onSave={() => {
-            // Refresh server data to reflect changes
             refetchServer();
           }}
         />
@@ -862,135 +438,29 @@ const ServerDetails: React.FC = () => {
 
       {/* Server Backup Modal */}
       {showServerBackupModal && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-2xl">
-            <h3 className="font-bold text-lg mb-4">
-              Available Backups for {serverName}
-            </h3>
-            {serverBackupLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <span className="loading loading-spinner loading-lg"></span>
-              </div>
-            ) : serverBackupError ? (
-              <div className="alert alert-error mb-4">{serverBackupError}</div>
-            ) : serverBackups.length === 0 ? (
-              <div className="text-base-content/70">
-                No backups found for this server.
-              </div>
-            ) : (
-              <ul className="space-y-3">
-                {serverBackups.map(
-                  (b: {
-                    name: string;
-                    backupDate?: string;
-                    serverName: string;
-                  }) => (
-                    <li
-                      key={b.name}
-                      className="flex items-center justify-between bg-base-200 rounded p-3"
-                    >
-                      <div>
-                        <div className="font-mono text-sm">{b.name}</div>
-                        <div className="text-xs text-base-content/70">
-                          {b.backupDate
-                            ? new Date(b.backupDate).toLocaleString()
-                            : ""}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          className="btn btn-sm btn-primary"
-                          disabled={downloadServerBackupLoading === b.name}
-                          onClick={() => handleDownloadServerBackup(b.name)}
-                        >
-                          {downloadServerBackupLoading === b.name ? (
-                            <span className="loading loading-spinner loading-xs"></span>
-                          ) : (
-                            "⬇️ Download"
-                          )}
-                        </button>
-                        <button
-                          className="btn btn-sm btn-error"
-                          onClick={() => handleDeleteServerBackup(b.name)}
-                          title="Delete backup"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </li>
-                  ),
-                )}
-              </ul>
-            )}
-            <div className="modal-action">
-              <button
-                className="btn"
-                onClick={() => setShowServerBackupModal(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <ServerBackupModal
+          serverName={serverName || ""}
+          loading={serverBackupLoading}
+          error={serverBackupError}
+          backups={serverBackups}
+          downloadLoading={downloadServerBackupLoading}
+          onDownload={handleDownloadServerBackup}
+          onDelete={handleDeleteServerBackup}
+          onClose={() => setShowServerBackupModal(false)}
+        />
       )}
 
       {/* Server Restore Modal */}
       {showServerRestoreModal && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-4">Restore Server Saves</h3>
-            <form onSubmit={handleServerRestoreSubmit} className="space-y-4">
-              <div>
-                <label className="label">Target Server</label>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={serverName || ""}
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="label">Backup ZIP File</label>
-                <input
-                  type="file"
-                  accept=".zip"
-                  className="file-input file-input-bordered w-full"
-                  onChange={handleServerRestoreFileChange}
-                  disabled={serverRestoreLoading}
-                />
-              </div>
-              {serverRestoreError && (
-                <div className="alert alert-error">{serverRestoreError}</div>
-              )}
-              {serverRestoreSuccess && (
-                <div className="alert alert-success">
-                  {serverRestoreSuccess}
-                </div>
-              )}
-              <div className="modal-action">
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => setShowServerRestoreModal(false)}
-                  disabled={serverRestoreLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-warning"
-                  disabled={serverRestoreLoading}
-                >
-                  {serverRestoreLoading ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  ) : (
-                    "♻️ Restore"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ServerRestoreModal
+          serverName={serverName || ""}
+          loading={serverRestoreLoading}
+          error={serverRestoreError}
+          success={serverRestoreSuccess}
+          onFileChange={handleServerRestoreFileChange}
+          onSubmit={handleServerRestoreSubmit}
+          onClose={() => setShowServerRestoreModal(false)}
+        />
       )}
     </div>
   );

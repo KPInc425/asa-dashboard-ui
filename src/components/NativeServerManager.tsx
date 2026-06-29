@@ -1,102 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
-import { containerApi } from '../services/api';
-import { useConfirm } from '../contexts/ConfirmContext2';
-import { useToast } from '../contexts/ToastContext';
-
-interface NativeServerConfig {
-  serverPath: string;
-  mapName: string;
-  gamePort: number;
-  queryPort: number;
-  rconPort: number;
-  serverName: string;
-  maxPlayers: number;
-  serverPassword: string;
-  adminPassword: string;
-  mods: string[];
-  additionalArgs: string;
-  disableBattleEye: boolean;
-}
-
-interface NativeServer {
-  name: string;
-  status: string;
-  image: string;
-  ports: string;
-  created: string;
-  type?: 'individual' | 'cluster' | 'cluster-server';
-  serverCount?: number;
-  maps?: string;
-  config?: NativeServerConfig;
-  clusterName?: string;
-  map?: string;
-  gamePort?: number;
-  queryPort?: number;
-  rconPort?: number;
-  maxPlayers?: number;
-  serverPath?: string;
-}
-
-const NativeServerManager: React.FC = () => {
-  const [servers, setServers] = useState<NativeServer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingServer, setEditingServer] = useState<NativeServer | null>(null);
-  const [showStartBatModal, setShowStartBatModal] = useState(false);
-  const [selectedServer, setSelectedServer] = useState<NativeServer | null>(null);
-  const [startBatContent, setStartBatContent] = useState('');
-  const [formData, setFormData] = useState<Partial<NativeServerConfig>>({
-    serverPath: 'C:\\ARK\\servers',
-    mapName: 'TheIsland',
-    gamePort: 7777,
-    queryPort: 27015,
-    rconPort: 32330,
-    serverName: 'ASA Server',
-    maxPlayers: 70,
-    serverPassword: '',
-    adminPassword: 'admin123',
-    mods: [],
-    additionalArgs: '',
-    disableBattleEye: false
-  });
-
-  useEffect(() => {
-    loadServers();
-  }, []);
-  const { showConfirm } = useConfirm();
-  const { showToast } = useToast();
-
-  const loadServers = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/api/native-servers');
-      if (response.data.success) {
-        console.log('NativeServerManager - Servers loaded:', response.data.servers);
-        console.log('NativeServerManager - Server types:', response.data.servers.map((s: any) => ({ name: s.name, type: s.type })));
-        setServers(response.data.servers);
-      }
-    } catch (error) {
-      console.error('Failed to load native servers:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.serverPath) {
-      showToast('Server path is required', 'error');
-      return;
-    }
-
-    try {
-      const serverName = editingServer?.name || `native-server-${Date.now()}`;
-      const response = await api.post('/api/native-servers', {
-        name: serverName,
-        config: formData
-      });
+/**
+ * NativeServerManager
+ *
+ * This file is a re-export from the native-server-manager/ directory.
+ * The component has been refactored into smaller focused modules.
+ */
+export { default } from './native-server-manager/NativeServerManager';
+export type { NativeServer, NativeServerConfig } from './native-server-manager/types';
 
       if (response.data.success) {
         setShowAddModal(false);

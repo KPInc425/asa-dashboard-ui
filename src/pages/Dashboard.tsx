@@ -9,72 +9,16 @@ import { useDeveloper } from "../contexts/DeveloperContext";
 import { useToast } from "../contexts/ToastContext";
 import { provisioningApi } from "../services/api";
 import { useEnvironment } from "../contexts/EnvironmentContext";
-
-interface SystemInfo {
-  mode: string;
-  platform: string;
-  nodeVersion: string;
-  uptime: number;
-  memoryUsage: any;
-  dockerEnabled: boolean;
-  powershellEnabled: boolean;
-  nativeBasePath: string;
-  nativeClustersPath: string;
-}
-
-interface Cluster {
-  name: string;
-  description: string;
-  basePort: number;
-  serverCount: number;
-  created: string;
-  servers: any[];
-  path?: string;
-  config?: any;
-}
-
-interface NativeServer {
-  name: string;
-  status: string;
-  image: string;
-  created: string;
-  type: string;
-  clusterName?: string;
-  map?: string;
-  gamePort?: number;
-  queryPort?: number;
-  rconPort?: number;
-  maxPlayers?: number;
-  serverPath?: string;
-  config?: any;
-  isClusterServer?: boolean;
-  disableBattleEye?: boolean;
-  password?: string;
-  adminPassword?: string;
-  clusterId?: string;
-  clusterPassword?: string;
-  clusterOwner?: string;
-  gameUserSettings?: any;
-  gameIni?: any;
-  modManagement?: any;
-}
-
-interface DashboardStats {
-  totalServers: number;
-  runningServers: number;
-  stoppedServers: number;
-  totalPlayers: number;
-  totalClusters: number;
-}
-
-interface DebugInfo {
-  timestamp: string;
-  environment: any;
-  config: any;
-  provisioner: any;
-  clusters: any[];
-  errors: string[];
-}
+import StatCard from "./dashboard/StatCard";
+import SystemInfoCard from "./dashboard/SystemInfoCard";
+import QuickActionButton from "./dashboard/QuickActionButton";
+import ErrorAlert from "./dashboard/ErrorAlert";
+import ClusterList from "./dashboard/ClusterList";
+import RecentServers from "./dashboard/RecentServers";
+import EmptyState from "./dashboard/EmptyState";
+import DebugModal from "./dashboard/DebugModal";
+import DeepLinkOnlyView from "./dashboard/DeepLinkOnlyView";
+import type { Cluster, NativeServer, DashboardStats, DebugInfo, SystemInfo } from "./dashboard/types";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -308,45 +252,12 @@ const Dashboard: React.FC = () => {
 
   // Deep-link-only mode: no backend configured, show external links
   if (currentEnvironment.backends.length === 0) {
-    const links = currentEnvironment.links ?? {};
-    const linkEntries = Object.entries(links)
-      .filter(([, url]) => !!url)
-      .map(([key, url]) => ({
-        label: key
-          .replace(/([A-Z])/g, " $1")
-          .replace(/^./, (c) => c.toUpperCase()),
-        url: url as string,
-      }));
     return (
-      <div className="min-h-screen bg-base-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <h2 className="card-title">{currentEnvironment.name}</h2>
-              <p className="text-base-content/70 mb-4">
-                {currentEnvironment.description ||
-                  "This environment is configured as read-only. No backend API is connected."}
-              </p>
-              {linkEntries.length > 0 && (
-                <div className="flex flex-wrap gap-4">
-                  {linkEntries.map((link, i) => (
-                    <a
-                      key={i}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-outline btn-primary"
-                    >
-                      {link.label}
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <DeepLinkOnlyView
+        name={currentEnvironment.name}
+        description={currentEnvironment.description || ""}
+        links={currentEnvironment.links ?? {}}
+      />
     );
   }
 
@@ -373,106 +284,36 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {error && (
-          <div className="mb-6 alert alert-error">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="stroke-current shrink-0 h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span>{error}</span>
-          </div>
-        )}
+        {error && <ErrorAlert message={error} />}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                    <span className="text-primary-content text-xl">🦖</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-base-content/70">
-                    Total Servers
-                  </p>
-                  <p className="text-2xl font-bold text-base-content">
-                    {stats.totalServers}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-success rounded-lg flex items-center justify-center">
-                    <span className="text-success-content text-xl">🟢</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-base-content/70">
-                    Running
-                  </p>
-                  <p className="text-2xl font-bold text-success">
-                    {stats.runningServers}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-error rounded-lg flex items-center justify-center">
-                    <span className="text-error-content text-xl">🔴</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-base-content/70">
-                    Stopped
-                  </p>
-                  <p className="text-2xl font-bold text-error">
-                    {stats.stoppedServers}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
-                    <span className="text-secondary-content text-xl">🏗️</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-base-content/70">
-                    Clusters
-                  </p>
-                  <p className="text-2xl font-bold text-base-content">
-                    {stats.totalClusters}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            bgColor="bg-primary"
+            icon="🦖"
+            label="Total Servers"
+            value={stats.totalServers}
+          />
+          <StatCard
+            bgColor="bg-success"
+            icon="🟢"
+            label="Running"
+            value={stats.runningServers}
+            valueColor="text-success"
+          />
+          <StatCard
+            bgColor="bg-error"
+            icon="🔴"
+            label="Stopped"
+            value={stats.stoppedServers}
+            valueColor="text-error"
+          />
+          <StatCard
+            bgColor="bg-secondary"
+            icon="🏗️"
+            label="Clusters"
+            value={stats.totalClusters}
+          />
         </div>
 
         {/* System Information */}
@@ -482,93 +323,30 @@ const Dashboard: React.FC = () => {
               System Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="card bg-base-100 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                        <span className="text-primary-content text-sm font-medium">
-                          M
-                        </span>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-base-content/70">
-                        Mode
-                      </p>
-                      <p className="text-lg font-semibold text-base-content">
-                        {getModeDisplayName(systemInfo.mode)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card bg-base-100 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-success rounded-lg flex items-center justify-center">
-                        <span className="text-success-content text-sm font-medium">
-                          U
-                        </span>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-base-content/70">
-                        Uptime
-                      </p>
-                      <p className="text-lg font-semibold text-base-content">
-                        {formatUptime(systemInfo.uptime)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card bg-base-100 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center">
-                        <span className="text-secondary-content text-sm font-medium">
-                          M
-                        </span>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-base-content/70">
-                        Memory
-                      </p>
-                      <p className="text-lg font-semibold text-base-content">
-                        {formatMemoryUsage(systemInfo.memoryUsage)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card bg-base-100 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                        <span className="text-accent-content text-sm font-medium">
-                          P
-                        </span>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-base-content/70">
-                        Platform
-                      </p>
-                      <p className="text-lg font-semibold text-base-content">
-                        {systemInfo.platform}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <SystemInfoCard
+                bgColor="bg-primary"
+                letter="M"
+                label="Mode"
+                value={getModeDisplayName(systemInfo.mode)}
+              />
+              <SystemInfoCard
+                bgColor="bg-success"
+                letter="U"
+                label="Uptime"
+                value={formatUptime(systemInfo.uptime)}
+              />
+              <SystemInfoCard
+                bgColor="bg-secondary"
+                letter="M"
+                label="Memory"
+                value={formatMemoryUsage(systemInfo.memoryUsage)}
+              />
+              <SystemInfoCard
+                bgColor="bg-accent"
+                letter="P"
+                label="Platform"
+                value={systemInfo.platform}
+              />
             </div>
           </div>
         )}
@@ -579,297 +357,71 @@ const Dashboard: React.FC = () => {
             Quick Actions
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <button
+            <QuickActionButton
+              icon="🦖"
+              title="Manage Servers"
+              description="View and control all servers"
               onClick={() => navigate("/servers")}
-              className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="card-body p-4 text-center">
-                <div className="text-2xl mb-2">🦖</div>
-                <h3 className="font-semibold text-sm">Manage Servers</h3>
-                <p className="text-xs text-base-content/70">
-                  View and control all servers
-                </p>
-              </div>
-            </button>
-
-            <button
+            />
+            <QuickActionButton
+              icon="🏗️"
+              title="Create Server"
+              description="Set up new servers and clusters"
               onClick={() => navigate("/provisioning")}
-              className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="card-body p-4 text-center">
-                <div className="text-2xl mb-2">🏗️</div>
-                <h3 className="font-semibold text-sm">Create Server</h3>
-                <p className="text-xs text-base-content/70">
-                  Set up new servers and clusters
-                </p>
-              </div>
-            </button>
-
+            />
             {supportsCapability("canEditConfig") && (
-              <button
+              <QuickActionButton
+                icon="⚙️"
+                title="Global Settings"
+                description="Configure Game.ini files"
                 onClick={() => navigate("/global-configs")}
-                className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="card-body p-4 text-center">
-                  <div className="text-2xl mb-2">⚙️</div>
-                  <h3 className="font-semibold text-sm">Global Settings</h3>
-                  <p className="text-xs text-base-content/70">
-                    Configure Game.ini files
-                  </p>
-                </div>
-              </button>
+              />
             )}
-
             {supportsCapability("canUpdateMods") && (
-              <button
+              <QuickActionButton
+                icon="🧩"
+                title="Global Mods"
+                description="Add or remove mods"
                 onClick={() => setShowGlobalModManager(true)}
-                className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="card-body p-4 text-center">
-                  <div className="text-2xl mb-2">🧩</div>
-                  <h3 className="font-semibold text-sm">Global Mods</h3>
-                  <p className="text-xs text-base-content/70">
-                    Add or remove mods
-                  </p>
-                </div>
-              </button>
+              />
             )}
-
-            <button
+            <QuickActionButton
+              icon="💬"
+              title="Discord Setup"
+              description="Configure notifications"
               onClick={() => navigate("/discord")}
-              className="card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="card-body p-4 text-center">
-                <div className="text-2xl mb-2">💬</div>
-                <h3 className="font-semibold text-sm">Discord Setup</h3>
-                <p className="text-xs text-base-content/70">
-                  Configure notifications
-                </p>
-              </div>
-            </button>
+            />
           </div>
         </div>
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Clusters Section */}
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <h3 className="card-title">Clusters ({clusters.length})</h3>
-              <div className="mb-3 flex flex-wrap gap-2 items-center">
-                <button
-                  className="btn btn-outline btn-info"
-                  onClick={handleImportClick}
-                  disabled={importLoading}
-                >
-                  {importLoading ? (
-                    <span className="loading loading-spinner loading-sm"></span>
-                  ) : (
-                    "⬆️ Import/Restore Cluster"
-                  )}
-                </button>
-                <input
-                  type="file"
-                  accept="application/json"
-                  ref={fileInputRef}
-                  style={{ display: "none" }}
-                  onChange={handleFileChange}
-                />
-                {importError && (
-                  <div className="alert alert-error mt-2">
-                    <span>{importError}</span>
-                  </div>
-                )}
-                {importSuccess && (
-                  <div className="alert alert-success mt-2">
-                    <span>{importSuccess}</span>
-                  </div>
-                )}
-              </div>
-              {clusters.length === 0 ? (
-                <p className="text-base-content/70">No clusters found</p>
-              ) : (
-                <div className="space-y-3">
-                  {clusters.map((cluster) => (
-                    <div
-                      key={cluster.name}
-                      className="flex items-center justify-between p-3 bg-base-200 rounded-lg"
-                    >
-                      <div>
-                        <h4 className="font-medium">{cluster.name}</h4>
-                        <p className="text-sm text-base-content/70">
-                          {getClusterStatus(cluster)}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() =>
-                          navigate(
-                            `/clusters/${encodeURIComponent(cluster.name)}`,
-                          )
-                        }
-                        className="btn btn-ghost btn-sm"
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Servers */}
-          {nativeServers.length > 0 && (
-            <div className="card bg-base-100 shadow-sm">
-              <div className="card-body">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="card-title">Recent Servers</h2>
-                  <button
-                    onClick={() => navigate("/servers")}
-                    className="btn btn-primary btn-sm"
-                  >
-                    View All
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {nativeServers.slice(0, 3).map((server) => (
-                    <div
-                      key={server.name}
-                      className="flex items-center justify-between p-3 bg-base-200 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-secondary to-accent rounded-lg flex items-center justify-center">
-                          <span className="text-secondary-content text-sm">
-                            🖥️
-                          </span>
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{server.name}</h3>
-                          <p
-                            className={`text-sm ${getStatusColor(server.status)}`}
-                          >
-                            {server.status.charAt(0).toUpperCase() +
-                              server.status.slice(1)}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => navigate(`/servers/${server.name}`)}
-                        className="btn btn-ghost btn-xs"
-                      >
-                        View
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+          <ClusterList
+            clusters={clusters}
+            importLoading={importLoading}
+            importError={importError}
+            importSuccess={importSuccess}
+            handleImportClick={handleImportClick}
+            getClusterStatus={getClusterStatus}
+          />
+          <RecentServers
+            servers={nativeServers}
+            getStatusColor={getStatusColor}
+          />
         </div>
 
         {/* Empty State */}
         {clusters.length === 0 && nativeServers.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🦖</div>
-            <h2 className="text-2xl font-bold text-base-content mb-2">
-              Welcome to ASA Management Suite
-            </h2>
-            <p className="text-base-content/70 mb-6">
-              Get started by creating your first ARK server or cluster
-            </p>
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => navigate("/provisioning")}
-                className="btn btn-primary"
-              >
-                Create Server
-              </button>
-              <button
-                onClick={() => navigate("/servers")}
-                className="btn btn-outline"
-              >
-                View Servers
-              </button>
-            </div>
-          </div>
+          <EmptyState />
         )}
       </div>
 
       {/* Debug Modal */}
       {showDebugModal && debugInfo && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-6xl max-h-[90vh]">
-            <h3 className="font-bold text-lg mb-4">Debug Information</h3>
-            <div className="space-y-4 max-h-[70vh] overflow-auto">
-              <div>
-                <h4 className="font-semibold text-sm text-base-content/70 mb-2">
-                  Timestamp
-                </h4>
-                <p className="text-sm">{debugInfo.timestamp}</p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-sm text-base-content/70 mb-2">
-                  Environment Variables
-                </h4>
-                <pre className="text-xs bg-base-200 p-3 rounded-lg overflow-auto text-base-content">
-                  {JSON.stringify(debugInfo.environment, null, 2)}
-                </pre>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-sm text-base-content/70 mb-2">
-                  Config
-                </h4>
-                <pre className="text-xs bg-base-200 p-3 rounded-lg overflow-auto text-base-content">
-                  {JSON.stringify(debugInfo.config, null, 2)}
-                </pre>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-sm text-base-content/70 mb-2">
-                  Provisioner Paths
-                </h4>
-                <pre className="text-xs bg-base-200 p-3 rounded-lg overflow-auto text-base-content">
-                  {JSON.stringify(debugInfo.provisioner, null, 2)}
-                </pre>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-sm text-base-content/70 mb-2">
-                  Clusters ({debugInfo.clusters.length})
-                </h4>
-                <pre className="text-xs bg-base-200 p-3 rounded-lg overflow-auto text-base-content">
-                  {JSON.stringify(debugInfo.clusters, null, 2)}
-                </pre>
-              </div>
-
-              {debugInfo.errors.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-sm text-error mb-2">
-                    Errors ({debugInfo.errors.length})
-                  </h4>
-                  <ul className="text-xs text-error">
-                    {debugInfo.errors.map((error, index) => (
-                      <li key={index} className="mb-1">
-                        • {error}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            <div className="modal-action">
-              <button
-                onClick={() => setShowDebugModal(false)}
-                className="btn btn-ghost"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <DebugModal
+          debugInfo={debugInfo}
+          onClose={() => setShowDebugModal(false)}
+        />
       )}
 
       {/* Global Mod Manager Modal */}

@@ -3,97 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { provisioningApi } from "../services/api";
 import { useDeveloper } from "../contexts/DeveloperContext";
 import { useEnvironment } from "../contexts/EnvironmentContext";
-
-interface LogFile {
-  content: string;
-  path: string;
-  exists: boolean;
-}
-
-interface SystemLogs {
-  combined?: LogFile;
-  error?: LogFile;
-  asaApiService?: LogFile;
-  nodeOut?: LogFile;
-  nodeErr?: LogFile;
-  serviceOut?: LogFile;
-  serviceErr?: LogFile;
-  api?: { content: string };
-  server?: { content: string };
-  docker?: { content: string };
-  logFiles?: Record<string, LogFile>;
-}
-
-interface ServiceInfo {
-  mode: "native" | "docker";
-  isWindowsService: boolean;
-  serviceInstallPath: string | null;
-  logBasePath: string;
-  currentWorkingDirectory: string;
-  processId: number;
-  parentProcessId: number;
-}
-
-interface LogTab {
-  key: string;
-  sourceKey: string;
-  label: string;
-  icon: string;
-}
-
-const getLogTabMeta = (key: string): LogTab => {
-  if (key.includes("combined")) {
-    return {
-      key: "combined",
-      sourceKey: key,
-      label: "Combined Logs",
-      icon: "📋",
-    };
-  }
-  if (key.includes("error")) {
-    return { key: "error", sourceKey: key, label: "Error Logs", icon: "❌" };
-  }
-  if (key.includes("asa-api-service")) {
-    return {
-      key: "asaApiService",
-      sourceKey: key,
-      label: "API Service",
-      icon: "🔧",
-    };
-  }
-  if (key.includes("node-out")) {
-    return { key: "nodeOut", sourceKey: key, label: "Node Stdout", icon: "📤" };
-  }
-  if (key.includes("node-err")) {
-    return { key: "nodeErr", sourceKey: key, label: "Node Stderr", icon: "📥" };
-  }
-  if (key.includes("nssm-out")) {
-    return {
-      key: "serviceOut",
-      sourceKey: key,
-      label: "Service Stdout",
-      icon: "⚙️",
-    };
-  }
-  if (key.includes("nssm-err")) {
-    return {
-      key: "serviceErr",
-      sourceKey: key,
-      label: "Service Stderr",
-      icon: "⚠️",
-    };
-  }
-
-  return {
-    key,
-    sourceKey: key,
-    label: key
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" "),
-    icon: "📄",
-  };
-};
+import { SystemLogs, ServiceInfo, LogTab, LogFile } from "./system-logs/types";
+import { getLogTabMeta } from "./system-logs/logTabUtils";
+import { formatLogContent } from "./system-logs/formatLogContent";
+import LoadingState from "./system-logs/LoadingState";
+import NoBackendState from "./system-logs/NoBackendState";
+import LogHeader from "./system-logs/LogHeader";
+import LogControls from "./system-logs/LogControls";
+import ErrorAlert from "./system-logs/ErrorAlert";
+import LogTabs from "./system-logs/LogTabs";
+import LogViewer from "./system-logs/LogViewer";
+import NoLogContent from "./system-logs/NoLogContent";
+import NoLogsAvailable from "./system-logs/NoLogsAvailable";
+import DebugModal from "./system-logs/DebugModal";
 
 const SystemLogs: React.FC = () => {
   const navigate = useNavigate();
@@ -258,85 +180,6 @@ const SystemLogs: React.FC = () => {
     }
   }, [availableTabs]);
 
-  const formatLogContent = (content: string) => {
-    if (!content) return "No logs available";
-
-    return content
-      .split("\n")
-      .reverse()
-      .map((line, index) => {
-        // Improved log level detection
-        let logLevel = "info";
-
-        // Check for JSON log format first
-        try {
-          if (line.trim() && line.includes('"level"')) {
-            const match = line.match(/"level":\s*"?([^",\s]+)"?/);
-            if (match) {
-              logLevel = match[1].toLowerCase();
-            }
-          }
-        } catch (error) {
-          // Fallback to text-based detection
-        }
-
-        // If still 'info', check for text-based log level indicators
-        if (logLevel === "info") {
-          const lowerLine = line.toLowerCase();
-
-          // Check for error indicators
-          if (
-            lowerLine.includes("error") ||
-            lowerLine.includes("failed") ||
-            lowerLine.includes("exception") ||
-            lowerLine.includes("fatal") ||
-            lowerLine.includes("critical")
-          ) {
-            logLevel = "error";
-          }
-          // Check for warning indicators
-          else if (
-            lowerLine.includes("warn") ||
-            lowerLine.includes("warning") ||
-            lowerLine.includes("deprecated")
-          ) {
-            logLevel = "warn";
-          }
-          // Check for info indicators
-          else if (
-            lowerLine.includes("info") ||
-            lowerLine.includes("started") ||
-            lowerLine.includes("connected") ||
-            lowerLine.includes("listening") ||
-            lowerLine.includes("ready")
-          ) {
-            logLevel = "info";
-          }
-          // Check for debug indicators
-          else if (lowerLine.includes("debug") || lowerLine.includes("trace")) {
-            logLevel = "debug";
-          }
-          // Default to neutral for lines without clear indicators
-          else {
-            logLevel = "neutral";
-          }
-        }
-
-        let className = "font-mono text-sm";
-        if (logLevel === "error") className += " text-error";
-        else if (logLevel === "warn") className += " text-warning";
-        else if (logLevel === "info") className += " text-info";
-        else if (logLevel === "debug") className += " text-base-content/50";
-        else className += " text-base-content"; // neutral and default
-
-        return (
-          <div key={`${index}-${line?.slice(0, 30)}`} className={className}>
-            {line || "\u00A0"}
-          </div>
-        );
-      });
-  };
-
   // Memoize the rendered log content to avoid reprocessing on unrelated renders
   // Support new backend log object structure
   const activeTabMeta = availableTabs.find((tab) => tab.key === activeTab);
@@ -412,305 +255,82 @@ const SystemLogs: React.FC = () => {
   };
 
   if (loading && Object.keys(logs).length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="loading loading-spinner loading-lg mb-4"></div>
-          <p className="text-base-content/70">Loading system logs...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   // Deep-link-only mode: no backend configured
   if (currentEnvironment.backends.length === 0) {
-    return (
-      <div className="h-full flex flex-col p-6">
-        <div className="max-w-7xl mx-auto w-full">
-          <h1 className="text-4xl font-bold text-primary mb-2">System Logs</h1>
-          <div className="card bg-base-100 shadow-sm">
-            <div className="card-body">
-              <h2 className="card-title">{currentEnvironment.name}</h2>
-              <p className="text-base-content/70">
-                {currentEnvironment.description ||
-                  "This environment is configured as read-only. System logs are not available without a backend API connection."}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <NoBackendState />;
   }
 
   return (
     <div className="h-full flex flex-col p-6">
       <div className="max-w-7xl mx-auto w-full space-y-6">
         {/* Header */}
-        <div className="animate-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-2xl">📋</span>
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold text-primary mb-2">
-                  System Logs
-                </h1>
-                <p className="text-base-content/70">
-                  Monitor backend system logs for debugging and troubleshooting
-                </p>
-                {serviceInfo && (
-                  <div className="text-sm text-base-content/60 mt-1">
-                    Mode:{" "}
-                    {serviceInfo.mode === "docker"
-                      ? "Docker"
-                      : serviceInfo.isWindowsService
-                        ? "Native (Windows Service)"
-                        : "Native (Development)"}{" "}
-                    | Logs: {Object.keys(logs).length} files available
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {isDeveloperMode && (
-                <button
-                  onClick={debugSystemLogs}
-                  className="btn btn-warning hover:shadow-lg hover:shadow-warning/25"
-                  title="Debug system logs discovery"
-                >
-                  🔍 Debug Logs
-                </button>
-              )}
-              <button
-                onClick={() => navigate("/")}
-                className="btn btn-outline btn-primary hover:shadow-lg hover:shadow-primary/25"
-              >
-                ← Back to Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
+        <LogHeader
+          serviceInfo={serviceInfo}
+          logs={logs}
+          isDeveloperMode={isDeveloperMode}
+          onDebug={debugSystemLogs}
+          onBack={() => navigate("/")}
+        />
 
         {/* Controls */}
-        <div className="card bg-base-200 shadow-lg">
-          <div className="card-body">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Lines</span>
-                </label>
-                <select
-                  className="select select-bordered"
-                  value={lines}
-                  onChange={(e) => setLines(Number(e.target.value))}
-                >
-                  <option value={50}>50 lines</option>
-                  <option value={100}>100 lines</option>
-                  <option value={200}>200 lines</option>
-                  <option value={500}>500 lines</option>
-                </select>
-              </div>
-
-              <div className="form-control">
-                <label className="label cursor-pointer">
-                  <span className="label-text">Auto Refresh</span>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
-                    checked={autoRefresh}
-                    onChange={(e) => setAutoRefresh(e.target.checked)}
-                  />
-                </label>
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">&nbsp;</span>
-                </label>
-                <button
-                  onClick={loadLogs}
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <span className="loading loading-spinner loading-sm"></span>
-                  ) : (
-                    "🔄 Refresh"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <LogControls
+          lines={lines}
+          onLinesChange={setLines}
+          autoRefresh={autoRefresh}
+          onAutoRefreshChange={setAutoRefresh}
+          loading={loading}
+          onRefresh={loadLogs}
+        />
 
         {/* Error Display */}
-        {error && (
-          <div className="alert alert-error">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="stroke-current shrink-0 h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span>{error}</span>
-          </div>
-        )}
+        {error && <ErrorAlert error={error} />}
 
         {/* Logs Display */}
         {availableTabs.length > 0 ? (
           <div className="card bg-base-100 shadow-lg">
             <div className="card-body p-0">
               {/* Tabs */}
-              <div className="tabs tabs-boxed bg-base-200 p-2 m-4">
-                {availableTabs.map((tab) => (
-                  <button
-                    key={tab.key}
-                    className={`tab ${activeTab === tab.key ? "tab-active" : ""}`}
-                    onClick={() => setActiveTab(tab.key)}
-                  >
-                    <span className="mr-2">{tab.icon}</span>
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
+              <LogTabs
+                tabs={availableTabs}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
 
               {/* Tab Content */}
               <div className="p-4">
                 {currentLogContent ? (
-                  <div>
-                    {/* Log Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg font-semibold">
-                          {
-                            availableTabs.find((tab) => tab.key === activeTab)
-                              ?.label
-                          }
-                        </span>
-                        <span className="badge badge-outline">
-                          {currentLog.path
-                            ? currentLog.path.split(/[/\\]/).pop() || "Unknown"
-                            : "Unknown"}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => copyToClipboard(currentLogContent)}
-                          className="btn btn-sm btn-outline"
-                          title="Copy to clipboard"
-                        >
-                          📋 Copy
-                        </button>
-                        <button
-                          onClick={() =>
-                            downloadLogs(
-                              currentLogContent,
-                              `${activeTab}-logs.txt`,
-                            )
-                          }
-                          className="btn btn-sm btn-outline"
-                          title="Download logs"
-                        >
-                          💾 Download
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Log Content */}
-                    <div className="bg-base-300 p-4 rounded-lg max-h-96 overflow-y-auto">
-                      {formattedLog}
-                    </div>
-                  </div>
+                  <LogViewer
+                    logContent={currentLogContent}
+                    logFile={currentLog}
+                    label={
+                      availableTabs.find((tab) => tab.key === activeTab)
+                        ?.label || activeTab
+                    }
+                    activeTab={activeTab}
+                    formattedLog={formattedLog}
+                    onCopy={copyToClipboard}
+                    onDownload={downloadLogs}
+                  />
                 ) : (
-                  <div className="text-center py-8">
-                    <div className="text-4xl mb-4">📄</div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      No Log Content
-                    </h3>
-                    <p className="text-base-content/70">
-                      The selected log file doesn't have any content or couldn't
-                      be read.
-                    </p>
-                  </div>
+                  <NoLogContent />
                 )}
               </div>
             </div>
           </div>
         ) : (
-          /* No Logs Message */
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📋</div>
-            <h3 className="text-xl font-semibold mb-2">No Logs Available</h3>
-            <p className="text-base-content/70">
-              No system logs are currently available. This might be because the
-              log files don't exist yet or the system hasn't generated any logs.
-            </p>
-            {serviceInfo && (
-              <div className="mt-4 p-4 bg-base-200 rounded-lg">
-                <h4 className="font-semibold mb-2">Service Information:</h4>
-                <div className="text-sm text-left space-y-1">
-                  <div>
-                    Mode:{" "}
-                    {serviceInfo.mode === "docker"
-                      ? "Docker"
-                      : serviceInfo.isWindowsService
-                        ? "Native (Windows Service)"
-                        : "Native (Development)"}
-                  </div>
-                  <div>
-                    Working Directory: {serviceInfo.currentWorkingDirectory}
-                  </div>
-                  <div>Log Base Path: {serviceInfo.logBasePath}</div>
-                  <div>Process ID: {serviceInfo.processId}</div>
-                </div>
-              </div>
-            )}
-          </div>
+          <NoLogsAvailable serviceInfo={serviceInfo} />
         )}
 
         {/* Debug Modal */}
-        {showDebugModal && (
-          <div className="modal modal-open">
-            <div className="modal-box max-w-4xl max-h-[80vh]">
-              <h3 className="font-bold text-lg mb-4">
-                🔍 System Logs Debug Information
-              </h3>
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={copyDebugData}
-                  className="btn btn-sm btn-outline btn-primary"
-                >
-                  📋 Copy to Clipboard
-                </button>
-              </div>
-              <div className="bg-base-300 p-4 rounded-lg max-h-[60vh] overflow-y-auto">
-                <pre className="text-xs whitespace-pre-wrap break-words">
-                  {JSON.stringify(debugData, null, 2)}
-                </pre>
-              </div>
-              <div className="modal-action">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setShowDebugModal(false)}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-            <div
-              className="modal-backdrop"
-              onClick={() => setShowDebugModal(false)}
-            ></div>
-          </div>
-        )}
+        <DebugModal
+          show={showDebugModal}
+          debugData={debugData}
+          onCopy={copyDebugData}
+          onClose={() => setShowDebugModal(false)}
+        />
       </div>
     </div>
   );

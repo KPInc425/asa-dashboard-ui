@@ -1,103 +1,11 @@
-import React, { useState } from 'react';
-
-interface ServerConfig {
-  name: string;
-  map: string;
-  gamePort: number;
-  queryPort: number;
-  rconPort: number;
-  maxPlayers: number;
-  password: string;
-  adminPassword: string;
-  mods: string[];
-  customSettings?: any;
-}
-
-interface MapSelection {
-  map: string;
-  count: number;
-  enabled: boolean;
-}
-
-interface ClusterForm {
-  name: string;
-  description: string;
-  basePort: number;
-  serverCount: number;
-  selectedMaps: MapSelection[];
-  globalSettings: {
-    gameUserSettings: {
-      ServerSettings: any;
-      MultiHome: any;
-      SessionSettings: any;
-    };
-    gameIni: {
-      ServerSettings: any;
-    };
-  };
-  globalMods: string[];
-  servers: ServerConfig[];
-  clusterSettings: {
-    clusterId: string;
-    clusterName: string;
-    clusterDescription: string;
-    clusterPassword: string;
-    clusterOwner: string;
-  };
-  portConfiguration: {
-    basePort: number;
-    portIncrement: number;
-    queryPortBase: number;
-    queryPortIncrement: number;
-    rconPortBase: number;
-    rconPortIncrement: number;
-  };
-  autoStart: boolean;
-}
-
-interface AdvancedClusterFormProps {
-  onSubmit: (config: ClusterForm) => void;
-  onCancel: () => void;
-  loading: boolean;
-}
-
-const AVAILABLE_MAPS = [
-  'TheIsland',
-  'ScorchedEarth',
-  'Aberration',
-  'Extinction',
-  'Genesis',
-  'Genesis2',
-  'LostIsland',
-  'Fjordur',
-  'CrystalIsles',
-  'Ragnarok',
-  'Valguero'
-];
-
-const POPULAR_MODS = [
-  { id: '111111111', name: 'Structures Plus (S+)' },
-  { id: '880871931', name: 'Super Structures' },
-  { id: '731604991', name: 'StackMeMore' },
-  { id: '1404697612', name: 'Dino Storage v2' },
-  { id: '1565015734', name: 'Awesome SpyGlass!' },
-  { id: '1404697612', name: 'Dino Storage v2' },
-  { id: '1565015734', name: 'Awesome SpyGlass!' },
-  { id: '1404697612', name: 'Dino Storage v2' },
-  { id: '1565015734', name: 'Awesome SpyGlass!' }
-];
-
-const AdvancedClusterForm: React.FC<AdvancedClusterFormProps> = ({
-  onSubmit,
-  onCancel,
-  loading
-}) => {
-  const [activeTab, setActiveTab] = useState('basic');
-  const [form, setForm] = useState<ClusterForm>({
-    name: '',
-    description: '',
-    basePort: 7777,
-    serverCount: 1,
+/**
+ * AdvancedClusterForm
+ *
+ * This file is a re-export from the advanced-cluster-form/ directory.
+ * The component has been refactored into smaller focused modules.
+ */
+export { default } from './advanced-cluster-form/AdvancedClusterForm';
+export type { ClusterForm, AdvancedClusterFormProps, ServerConfig, MapSelection } from './advanced-cluster-form/types';
     selectedMaps: AVAILABLE_MAPS.map(map => ({
       map,
       count: 1,
