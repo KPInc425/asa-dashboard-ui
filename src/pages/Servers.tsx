@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import {
   useServers as useLegacyServers,
   useServerMutation,
-  useRefetchServers,
 } from "../hooks/useServerData";
 import { useServices } from "../hooks/useInventoryServices";
 import type { ServerSummary } from "../api/serverApi";
@@ -47,7 +46,7 @@ const Servers: React.FC = () => {
     data: serversData,
     isLoading: loading,
     error: queryError,
-    refetch,
+    refetch: refetchList,
   } = inventoryQuery.data ? inventoryQuery : legacyQuery;
 
   const autoUpdateStatusQuery = useQuery({
@@ -60,7 +59,7 @@ const Servers: React.FC = () => {
   // Server mutations with automatic refetch
   const startMutation = useServerMutation("start", {
     onSuccess: () => {
-      refetch();
+      refetchList();
     },
     onError: (err) => {
       setError(`Failed to start server: ${err.message}`);
@@ -69,7 +68,7 @@ const Servers: React.FC = () => {
 
   const stopMutation = useServerMutation("safeStop", {
     onSuccess: () => {
-      refetch();
+      refetchList();
     },
     onError: (err) => {
       setError(`Failed to stop server: ${err.message}`);
@@ -78,14 +77,12 @@ const Servers: React.FC = () => {
 
   const restartMutation = useServerMutation("safeRestart", {
     onSuccess: () => {
-      refetch();
+      refetchList();
     },
     onError: (err) => {
       setError(`Failed to restart server: ${err.message}`);
     },
   });
-
-  const { refetchList } = useRefetchServers();
 
   const autoUpdateStatusMap = autoUpdateStatusQuery.data?.servers ?? {};
 
@@ -242,7 +239,7 @@ const Servers: React.FC = () => {
     setError(null);
     try {
       await deleteServer(server.name);
-      refetch();
+      refetchList();
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to delete server",
@@ -250,7 +247,7 @@ const Servers: React.FC = () => {
     } finally {
       setActionLoading(null);
     }
-  }, [refetch]);
+  }, [refetchList]);
 
   if (loading) {
     return <LoadingSpinner />;

@@ -354,4 +354,74 @@ export const provisioningApi = {
   listClusterBackups: async (clusterName: string) => {
     return provisioningApi.getClusterBackups(clusterName);
   },
+
+  installSteamCmd: async (): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve({ success: true, message: "SteamCMD installed successfully (mock)" }), 3000);
+      });
+    }
+    const response = await api.post("/api/provisioning/install-steamcmd");
+    return response.data;
+  },
+
+  addServerToCluster: async (clusterName: string, serverConfig: Record<string, unknown>): Promise<{ success: boolean; message: string; jobId?: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve({ success: true, message: `Server added to cluster ${clusterName} (mock)`, jobId: "mock-job-id" }), 1000);
+      });
+    }
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/servers`, serverConfig);
+    return response.data;
+  },
+
+  backupCluster: async (clusterName: string, options?: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: { backupPath?: string } }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve({ success: true, message: `Cluster ${clusterName} backed up (mock)`, data: { backupPath: `/mock/backups/${clusterName}` } }), 2000);
+      });
+    }
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/backup`, options || {});
+    return response.data;
+  },
+
+  restoreCluster: async (clusterName: string, options?: Record<string, unknown>): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve({ success: true, message: `Cluster ${clusterName} restored (mock)` }), 2000);
+      });
+    }
+    const response = await api.post(`/api/provisioning/clusters/${encodeURIComponent(clusterName)}/restore`, options || {});
+    return response.data;
+  },
+
+  listServerBackups: async (): Promise<{ success: boolean; data?: { backups?: unknown[] }; message?: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve({ success: true, data: { backups: [] }, message: "No backups available (mock)" }), 500);
+      });
+    }
+    const response = await api.get("/api/provisioning/server-backups");
+    return response.data;
+  },
+
+  backupServer: async (serverName: string, options?: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: { backupPath?: string } }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve({ success: true, message: `Server ${serverName} backed up (mock)`, data: { backupPath: `/mock/backups/${serverName}` } }), 2000);
+      });
+    }
+    const response = await api.post(`/api/provisioning/servers/${encodeURIComponent(serverName)}/backup`, options || {});
+    return response.data;
+  },
+
+  restoreServer: async (serverName: string, sourcePath: string, options?: Record<string, unknown>): Promise<{ success: boolean; message: string }> => {
+    if (FRONTEND_ONLY_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve({ success: true, message: `Server ${serverName} restored from ${sourcePath} (mock)` }), 2000);
+      });
+    }
+    const response = await api.post(`/api/provisioning/servers/${encodeURIComponent(serverName)}/restore`, { sourcePath, ...options });
+    return response.data;
+  },
 };

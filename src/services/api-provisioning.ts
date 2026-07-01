@@ -19,8 +19,8 @@ export {
   restoreServer,
   listServerBackups,
   updateAllServers,
-  serverUpdateApi,
   regenerateStartScripts,
   getStartScript,
-  provisioningApi,
-} from './api-provisioning/provisioning-core';
+} from './api-provisioning/index';
+
+export { provisioningApi } from './api-provisioning/index';

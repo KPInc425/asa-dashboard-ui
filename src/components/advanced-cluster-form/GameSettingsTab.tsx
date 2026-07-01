@@ -3,7 +3,7 @@ import type { ClusterForm } from './types';
 
 interface GameSettingsTabProps {
   form: ClusterForm;
-  updateGlobalSetting: (section: keyof typeof form.globalSettings, subsection: string, key: string, value: any) => void;
+  updateGlobalSetting: (section: "gameIni" | "gameUserSettings", subsection: string, key: string, value: any) => void;
 }
 
 const GameSettingsTab: React.FC<GameSettingsTabProps> = ({ form, updateGlobalSetting }) => {

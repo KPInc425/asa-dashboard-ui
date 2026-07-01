@@ -242,10 +242,18 @@ export class ASAAdapter implements BackendAdapter {
     const name = String(raw.name ?? "unknown");
     return {
       serviceId: `${this.backendId}:${name}`,
+      environmentId: this._environmentId ?? "unknown",
+      name,
+      kind: "game-server",
+      runtimeOwner: sourceType === "container" ? "compose" : "manual",
+      lifecycleState: "active",
+      status: normalizeStatus(String(raw.status ?? "unknown")),
+      health: "unknown",
+      ports: [],
+      tags: [],
       backendId: this.backendId,
       displayName: name,
       serviceType: sourceType === "container" ? "container" : "native-server",
-      status: normalizeStatus(String(raw.status ?? "unknown")),
       metadata: { ...raw, sourceType },
     };
   }

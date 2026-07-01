@@ -51,3 +51,33 @@ export interface DebugInfo {
   clusters: any[];
   errors: string[];
 }
+
+export interface SystemInfo {
+  diskSpace: {
+    total: number;
+    free: number;
+    used: number;
+    usagePercent: number;
+    drive?: string;
+  };
+  memory: {
+    total: number;
+    free: number;
+    used: number;
+    usagePercent: number;
+  };
+  steamCmdInstalled: boolean;
+  steamCmdPath?: string;
+  asaBinariesInstalled?: boolean;
+  basePath: string;
+  platform?: string;
+  arch?: string;
+  nodeVersion?: string;
+  cpuCores?: number;
+  /** Display mode of the system */
+  mode?: string;
+  /** System uptime string */
+  uptime?: string;
+  /** Formatted memory usage string */
+  memoryUsage?: string;
+}

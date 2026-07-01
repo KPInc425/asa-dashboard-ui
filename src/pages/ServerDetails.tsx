@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../contexts/ToastContext";
 import { useConfirm } from "../contexts/ConfirmContext2";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -9,7 +9,6 @@ import { autoUpdateApi } from "../services/api-auto-update";
 import {
   useServerDetails,
   useServerLiveDataDynamic,
-  useRefetchServers,
 } from "../hooks/useServerData";
 import { useServerCommand } from "../hooks/useServerCommand";
 import { useEnvironment } from "../contexts/EnvironmentContext";
@@ -59,6 +58,7 @@ const ServerDetails: React.FC = () => {
   const [serverRestoreError, setServerRestoreError] = useState<string>("");
   const [serverRestoreSuccess, setServerRestoreSuccess] = useState<string>("");
 
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
   const { currentEnvironment, supportsCapability } = useEnvironment();
@@ -90,8 +90,6 @@ const ServerDetails: React.FC = () => {
     refetchInterval: 30_000,
   });
 
-  const { refetchServer: invalidateServer } = useRefetchServers();
-
   // Convert to Server type for backward compatibility
   const server: Server | null = serverData
     ? {
@@ -107,7 +105,7 @@ const ServerDetails: React.FC = () => {
       onSuccess: (action, serverId) => {
         console.log(`✅ ${action} completed for ${serverId}`);
         refetchServer();
-        invalidateServer(serverId);
+        queryClient.invalidateQueries({ queryKey: ["server", serverId] });
       },
       onError: (action, _serverId, err) => {
         setError(`Failed to ${action} server: ${err.message}`);
@@ -331,7 +329,12 @@ const ServerDetails: React.FC = () => {
     return (
       <DeepLinkOnlyView
         serverName={serverName}
-        currentEnvironment={currentEnvironment}
+        currentEnvironment={currentEnvironment as unknown as {
+          name: string;
+          description?: string;
+          links?: Record<string, string | undefined>;
+          backends: unknown[];
+        }}
       />
     );
   }
@@ -348,7 +351,7 @@ const ServerDetails: React.FC = () => {
           server={server}
           actionLoading={actionLoading}
           autoUpdateStatusQuery={autoUpdateStatusQuery}
-          supportsCapability={supportsCapability}
+          supportsCapability={supportsCapability as (cap: string) => boolean}
           onNavigateBack={() => navigate("/servers")}
           onStart={() => handleServerAction("start")}
           onStop={handleStopWithConfirmation}
@@ -363,7 +366,7 @@ const ServerDetails: React.FC = () => {
         {/* Tab Navigation */}
         <TabNavigation
           activeTab={activeTab}
-          supportsCapability={supportsCapability}
+          supportsCapability={supportsCapability as (cap: string) => boolean}
           onTabChange={handleTabChange}
         />
 

@@ -11,7 +11,7 @@ interface DetailsTabPanelProps {
   isTransitioning: boolean;
   isRefetching: boolean;
   transitionTracker: {
-    transitionStartedAt?: string;
+    transitionStartedAt?: Date | string;
     expectedDuration?: number;
     previousStatus?: string;
   };

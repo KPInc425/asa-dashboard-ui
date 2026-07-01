@@ -36,6 +36,7 @@ const ClusterDetails: React.FC = () => {
     restoreSuccess,
     serverBackups,
     serverBackupLoading,
+    serverBackupError,
     downloadServerBackupLoading,
     showServerBackupModal,
     showServerRestoreModal,

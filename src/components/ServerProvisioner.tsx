@@ -16,6 +16,7 @@ import ModsStep from "./provisioning/ModsStep";
 import { Link } from "react-router-dom";
 import MapManager from "./MapManager";
 import useProvisioner from "./provisioning/useProvisioner";
+import type { WizardStep } from "../types/provisioning";
 
 const ServerProvisioner: React.FC = () => {
   const {

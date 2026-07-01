@@ -18,10 +18,8 @@ export {
   restoreServer,
   listServerBackups,
   updateAllServers,
-  serverUpdateApi,
   regenerateStartScripts,
   getStartScript,
-  provisioningApi,
 } from './provisioning-core';
 
 export { serverUpdateApi } from './server-update-api';

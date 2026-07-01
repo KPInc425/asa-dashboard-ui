@@ -165,7 +165,7 @@ export function useClusterDetails() {
     try {
       const response = await provisioningApi.addServerToCluster(
         cluster.name,
-        newServer,
+        newServer as unknown as Record<string, unknown>,
       );
 
       if (response.jobId) {

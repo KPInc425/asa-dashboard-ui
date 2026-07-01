@@ -211,6 +211,13 @@ export interface ServiceEntry {
   /** Operator annotations for grouping/filtering */
   tags: string[];
 
+  /** Display-friendly name (optional override of `name`) */
+  displayName?: string;
+  /** Service type classification used by adapters */
+  serviceType?: string;
+  /** Arbitrary backend-specific metadata */
+  metadata?: Record<string, unknown>;
+
   // Backend-specific data preserved unnormalized
   /** Arbitrary backend-specific metadata */
   extensions?: Record<string, unknown>;

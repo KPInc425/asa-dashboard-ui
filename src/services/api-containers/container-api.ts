@@ -294,4 +294,24 @@ export const containerApi = {
       return { success: false, message: "Failed to download save file" };
     }
   },
+
+  async backupSaveFiles(serverName: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await api.post(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/backup`);
+      return response.data;
+    } catch (error) {
+      console.error("Error backing up save files:", error);
+      return { success: false, message: "Failed to backup save files" };
+    }
+  },
+
+  async deleteSaveFile(serverName: string, fileName: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await api.delete(`/api/native-servers/${encodeURIComponent(serverName)}/save-files/${encodeURIComponent(fileName)}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting save file:", error);
+      return { success: false, message: "Failed to delete save file" };
+    }
+  },
 };

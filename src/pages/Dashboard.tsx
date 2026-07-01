@@ -256,7 +256,7 @@ const Dashboard: React.FC = () => {
       <DeepLinkOnlyView
         name={currentEnvironment.name}
         description={currentEnvironment.description || ""}
-        links={currentEnvironment.links ?? {}}
+        links={currentEnvironment.links as Record<string, string> ?? {}}
       />
     );
   }
@@ -327,13 +327,13 @@ const Dashboard: React.FC = () => {
                 bgColor="bg-primary"
                 letter="M"
                 label="Mode"
-                value={getModeDisplayName(systemInfo.mode)}
+                value={getModeDisplayName(systemInfo.mode ?? "Unknown")}
               />
               <SystemInfoCard
                 bgColor="bg-success"
                 letter="U"
                 label="Uptime"
-                value={formatUptime(systemInfo.uptime)}
+                value={formatUptime(Number(systemInfo.uptime ?? 0))}
               />
               <SystemInfoCard
                 bgColor="bg-secondary"
@@ -345,7 +345,7 @@ const Dashboard: React.FC = () => {
                 bgColor="bg-accent"
                 letter="P"
                 label="Platform"
-                value={systemInfo.platform}
+                value={systemInfo.platform ?? "Unknown"}
               />
             </div>
           </div>

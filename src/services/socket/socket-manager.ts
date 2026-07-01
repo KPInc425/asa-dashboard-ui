@@ -295,6 +295,12 @@ class SocketManager {
         }
     }
 
+    offSystemLog(): void {
+        if (this.socket) {
+            this.socket.off("system-log-data");
+        }
+    }
+
     emit(event: string, data?: any): void {
         if (this.socket?.connected) {
             this.socket.emit(event, data);

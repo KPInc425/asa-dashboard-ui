@@ -4,7 +4,7 @@ import type { NativeServer, NativeServerConfig } from './types';
 interface AddServerModalProps {
   editingServer: NativeServer | null;
   formData: Partial<NativeServerConfig>;
-  setFormData: (data: Partial<NativeServerConfig>) => void;
+  setFormData: React.Dispatch<React.SetStateAction<Partial<NativeServerConfig>>>;
   setShowAddModal: (show: boolean) => void;
   setEditingServer: (server: NativeServer | null) => void;
   handleSubmit: (e: React.FormEvent) => void;
