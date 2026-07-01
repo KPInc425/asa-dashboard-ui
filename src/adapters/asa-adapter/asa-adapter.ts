@@ -249,4 +249,14 @@ export class ASAAdapter implements BackendAdapter {
       metadata: { ...raw, sourceType },
     };
   }
+
+  destroy(): void {
+    if (this._authExpiryTimer) {
+      clearTimeout(this._authExpiryTimer);
+      this._authExpiryTimer = null;
+    }
+    this._expiredCallbacks = [];
+    this._authToken = null;
+    this._connectionState = "disconnected";
+  }
 }
