@@ -134,7 +134,6 @@ interface AuthProviderProps {
 // ---------------------------------------------------------------------------
 
 import { isDemoMode } from "../demo/demo-core";
-import { DEMO_USER } from "../demo/demo-data";
 
 // ---------------------------------------------------------------------------
 // Provider component
@@ -170,6 +169,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         // Demo mode: auto-authenticate without any backend check.
         if (isDemoMode()) {
+          const { DEMO_USER } = await import("../demo/demo-data");
           setUser(DEMO_USER);
           setNeedsFirstTimeSetup(false);
           setIsLoading(false);
