@@ -95,23 +95,32 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [systemResponse, clustersResponse] = await Promise.all([
-        api.get("/api/system/info"),
-        apiService.provisioning
-          .listClusters()
-          .catch(() => ({ success: false, clusters: [] })),
-      ]);
-
-      if (systemResponse.data.success) {
-        setSystemInfo(systemResponse.data.systemInfo);
+      // Fetch system info
+      try {
+        const systemResponse = await api.get("/api/system/info");
+        if (systemResponse.data?.success) {
+          setSystemInfo(systemResponse.data.systemInfo);
+        }
+      } catch (sysErr) {
+        console.warn("Failed to load system info:", sysErr);
       }
 
-      if (clustersResponse.success) {
-        setClusters(clustersResponse.clusters as Cluster[]);
-        setStats((prev) => ({
-          ...prev,
-          totalClusters: clustersResponse.clusters.length,
-        }));
+      // Fetch clusters (separate try/catch so a system-info failure doesn't
+      // prevent clusters from loading)
+      try {
+        const clustersResponse = await apiService.provisioning
+          .listClusters()
+          .catch(() => ({ success: false, clusters: [] }));
+
+        if (clustersResponse.success) {
+          setClusters(clustersResponse.clusters as Cluster[]);
+          setStats((prev) => ({
+            ...prev,
+            totalClusters: clustersResponse.clusters.length,
+          }));
+        }
+      } catch (clsErr) {
+        console.warn("Failed to load clusters:", clsErr);
       }
     } catch (err: any) {
       setError("Failed to load dashboard data");
