@@ -112,12 +112,18 @@ const Dashboard: React.FC = () => {
           .listClusters()
           .catch(() => ({ success: false, clusters: [] }));
 
-        if (clustersResponse.success) {
-          setClusters(clustersResponse.clusters as Cluster[]);
+        console.debug("[Dashboard] Clusters response:", clustersResponse);
+
+        if (clustersResponse.success && Array.isArray(clustersResponse.clusters)) {
+          const loaded = clustersResponse.clusters as Cluster[];
+          console.debug(`[Dashboard] Loaded ${loaded.length} clusters:`, loaded.map((c: Cluster) => c.name));
+          setClusters(loaded);
           setStats((prev) => ({
             ...prev,
-            totalClusters: clustersResponse.clusters.length,
+            totalClusters: loaded.length,
           }));
+        } else {
+          console.warn("[Dashboard] Clusters response had success=false or missing clusters array:", clustersResponse);
         }
       } catch (clsErr) {
         console.warn("Failed to load clusters:", clsErr);
