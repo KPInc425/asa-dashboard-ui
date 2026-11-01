@@ -10,6 +10,8 @@ const ServerModManager: React.FC<ServerModManagerProps> = ({ serverName, onClose
   const [sharedMods, setSharedMods] = useState<number[]>([]);
   const [serverMods, setServerMods] = useState<number[]>([]);
   const [excludeSharedMods, setExcludeSharedMods] = useState(false);
+  // id -> display name, resolved by the API from the server install
+  const [modNames, setModNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,12 +42,14 @@ const ServerModManager: React.FC<ServerModManagerProps> = ({ serverName, onClose
       const sharedResponse = await api.get('/api/provisioning/shared-mods');
       if (sharedResponse.data.success) {
         setSharedMods(sharedResponse.data.sharedMods);
+        if (sharedResponse.data.modNames) setModNames(prev => ({ ...prev, ...sharedResponse.data.modNames }));
       }
 
       // Load server-specific mods
       const serverResponse = await api.get(`/api/provisioning/server-mods/${serverName}`);
       if (serverResponse.data.success) {
         setServerMods(serverResponse.data.serverConfig.additionalMods);
+        if (serverResponse.data.modNames) setModNames(prev => ({ ...prev, ...serverResponse.data.modNames }));
         setExcludeSharedMods(serverResponse.data.serverConfig.excludeSharedMods);
       } else {
         // Set defaults for Club ARK servers
@@ -128,6 +132,8 @@ const ServerModManager: React.FC<ServerModManagerProps> = ({ serverName, onClose
   };
 
   const getModName = (modId: number) => {
+    const resolved = modNames[String(modId)];
+    if (resolved) return resolved;
     const popularMod = popularMods.find(mod => mod.id === modId);
     return popularMod ? popularMod.name : `Mod ${modId}`;
   };
