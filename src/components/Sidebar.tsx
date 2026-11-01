@@ -133,21 +133,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed top-0 left-0 h-full w-64 bg-base-100 shadow-xl z-50 transform transition-transform duration-300 ease-in-out
+        fixed top-0 left-0 h-full w-64 bg-base-100/95 backdrop-blur-xl border-r border-white/10 z-50 transform transition-transform duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         lg:relative lg:translate-x-0
       `}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-base-300">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-primary-content text-lg">🦖</span>
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="grid place-items-center w-9 h-9 rounded-xl bg-primary/15 border border-primary/40 shadow-[0_0_18px_-4px_var(--color-primary)]">
+                <span className="text-lg leading-none">🦖</span>
               </div>
-              <h1 className="text-lg font-semibold text-base-content">
-                ASA Management Suite
-              </h1>
+              <div className="min-w-0">
+                <h1 className="text-[0.8rem] font-bold uppercase tracking-[0.14em] text-base-content/90 leading-tight">
+                  ASA Suite
+                </h1>
+                <p className="text-[0.65rem] font-mono uppercase tracking-[0.12em] text-primary/70 leading-tight">
+                  control deck
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -171,27 +176,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
             {menuItems.map((item) => (
               <Link
                 key={item.path}
                 to={getNavPath(item.path)}
                 onClick={onClose}
-                className={`
-                  flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 group
-                  ${
-                    isActive(item.path)
-                      ? "bg-primary text-primary-content shadow-lg"
-                      : "hover:bg-base-200 text-base-content"
-                  }
-                `}
+                className={`nav-item ${isActive(item.path) ? "nav-item-active" : ""}`}
               >
-                <span className="text-xl">{item.icon}</span>
-                <div className="flex-1">
-                  <div className="font-medium">{item.label}</div>
-                  <div
-                    className={`text-xs ${isActive(item.path) ? "text-primary-content/70" : "text-base-content/50"}`}
-                  >
+                <span className="nav-ico">{item.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[0.8rem] font-semibold leading-tight">{item.label}</div>
+                  <div className="text-[0.66rem] text-base-content/45 truncate leading-tight mt-0.5">
                     {item.description}
                   </div>
                 </div>
@@ -201,31 +197,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             {/* Admin-only section */}
             {adminMenuItems.length > 0 && (
               <>
-                <div className="pt-4 pb-2">
-                  <div className="text-xs font-medium text-base-content/50 uppercase tracking-wider">
-                    Administration
-                  </div>
-                </div>
+                <div className="section-label pt-5">Administration</div>
                 {adminMenuItems.map((item) => (
                   <Link
                     key={item.path}
                     to={getNavPath(item.path)}
                     onClick={onClose}
-                    className={`
-                      flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 group
-                      ${
-                        isActive(item.path)
-                          ? "bg-primary text-primary-content shadow-lg"
-                          : "hover:bg-base-200 text-base-content"
-                      }
-                    `}
+                    className={`nav-item ${isActive(item.path) ? "nav-item-active" : ""}`}
                   >
-                    <span className="text-xl">{item.icon}</span>
-                    <div className="flex-1">
-                      <div className="font-medium">{item.label}</div>
-                      <div
-                        className={`text-xs ${isActive(item.path) ? "text-primary-content/70" : "text-base-content/50"}`}
-                      >
+                    <span className="nav-ico">{item.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[0.8rem] font-semibold leading-tight">{item.label}</div>
+                      <div className="text-[0.66rem] text-base-content/45 truncate leading-tight mt-0.5">
                         {item.description}
                       </div>
                     </div>
@@ -236,12 +219,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-base-300">
+          <div className="px-4 py-3 border-t border-white/10">
             <div className="flex flex-col space-y-2">
               <div className="flex justify-center">
                 <EnvironmentSwitcher />
               </div>
-              <div className="text-xs text-base-content/50 text-center">
+              <div className="text-[0.62rem] font-mono uppercase tracking-[0.12em] text-base-content/35 text-center">
                 Game Estate Dashboard v2.0
               </div>
             </div>

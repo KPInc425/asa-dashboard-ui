@@ -80,6 +80,15 @@ const ServerStatusIndicator: React.FC<ServerStatusIndicatorProps> = ({
     }
   };
 
+  // Status LED class: colour plus the text label beside it, never colour alone.
+  const ledFor = (status: string | undefined) => {
+    const value = (status || "").toLowerCase();
+    if (["running", "up", "online", "active"].includes(value)) return "led led-on";
+    if (["starting", "stopping", "restarting"].includes(value)) return "led led-warn";
+    if (["error", "crashed", "failed", "stopped", "offline"].includes(value)) return "led led-off";
+    return "led led-idle";
+  };
+
   // Format transition duration for display
   const formatDuration = (ms: number): string => {
     if (ms < 1000) return '0s';
@@ -95,29 +104,26 @@ const ServerStatusIndicator: React.FC<ServerStatusIndicatorProps> = ({
   return (
     <>
       {/* Header with title and status icon */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1 md:gap-2 flex-wrap min-w-0">
-          <h3 className="font-semibold text-sm md:text-base text-base-content truncate">{server.name}</h3>
-          <span className={`badge ${getTypeColor(server.type)} badge-xs`}>
+      <div className="flex items-start justify-between gap-3 mb-3 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className={`${ledFor(server.status)} mt-0.5`} aria-hidden="true" />
+          <h3 className="font-semibold text-sm md:text-[0.95rem] text-base-content truncate">{server.name}</h3>
+          <span className={`badge ${getTypeColor(server.type)}`}>
             {getTypeLabel(server.type)}
           </span>
-          {server.isClusterServer && (
-            <span className="badge badge-info badge-xs">
-              Cluster
-            </span>
-          )}
+          {server.isClusterServer && <span className="badge badge-info">Cluster</span>}
         </div>
-        <span className="text-xl md:text-2xl flex-shrink-0">{getStatusIconWithAction()}</span>
+        <span className="text-base flex-shrink-0 opacity-70" aria-hidden="true">
+          {getStatusIconWithAction()}
+        </span>
       </div>
 
       {/* Status badge */}
-      <div className="flex justify-between items-center">
-        <span className="text-xs md:text-sm text-base-content/70">Status:</span>
+      <div className="flex justify-between items-center gap-3">
+        <span className="chip-label">Status</span>
         <div className="flex items-center gap-2">
-          {isInTransition && (
-            <span className="loading loading-spinner loading-xs"></span>
-          )}
-          <span className={`badge ${getStatusBadgeWithAction()} badge-xs md:badge-sm ${isUnknownStatus ? 'status-striped' : ''}`}>
+          {isInTransition && <span className="loading loading-spinner loading-xs"></span>}
+          <span className={`badge ${getStatusBadgeWithAction()} ${isUnknownStatus ? "status-striped" : ""}`}>
             {actionStatus[server.name] || getStatusLabel(server.status)}
           </span>
         </div>

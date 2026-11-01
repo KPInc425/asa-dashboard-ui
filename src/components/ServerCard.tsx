@@ -127,13 +127,13 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
   const showLatestVersion = latestVersion && latestVersion !== currentVersion;
 
   return (
-    <div className="bg-base-300 rounded-lg p-3 md:p-4 hover:shadow-lg transition-all duration-200 flex flex-col h-full min-h-[320px] md:min-h-[350px]">
+    <div className="panel panel-hover p-4 flex flex-col h-full min-h-[320px] md:min-h-[350px]">
       <ServerStatusIndicator server={server} actionStatus={actionStatus} />
       
       <div className="space-y-1 md:space-y-2 text-xs md:text-sm flex-grow flex flex-col">
         {updateIndicator && (
           <div className="flex justify-between items-start gap-2">
-            <span className="text-base-content/70">Update:</span>
+            <span className="chip-label">Update</span>
             <div className="flex flex-col items-end gap-1 text-right">
               <span className={`badge badge-sm ${updateIndicator.badgeClass}`}>{updateIndicator.label}</span>
               {server.autoUpdateStatus?.message && (
@@ -147,7 +147,7 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
 
         {(currentVersion || showLatestVersion) && (
           <div className="flex justify-between items-start gap-2">
-            <span className="text-base-content/70">Build:</span>
+            <span className="chip-label">Build</span>
             <div className="flex flex-col items-end text-right">
               {currentVersion && (
                 <span className="text-base-content/70 font-mono text-[11px] md:text-xs">Current {currentVersion}</span>
@@ -165,7 +165,7 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
         {/* Only show server count for actual clusters, not individual servers */}
         {server.serverCount && server.serverCount > 1 && (
           <div className="flex justify-between items-center">
-            <span className="text-base-content/70">Servers:</span>
+            <span className="chip-label">Servers</span>
             <span className="badge badge-outline badge-xs">{server.serverCount}</span>
           </div>
         )}
@@ -173,14 +173,14 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
         {/* Show map name with proper display name */}
         {server.map && server.map !== 'Unknown' && (
           <div className="flex justify-between items-center">
-            <span className="text-base-content/70">Map:</span>
+            <span className="chip-label">Map</span>
             <span className="text-base-content/70 truncate max-w-[60%] text-right">{getMapDisplayName(server.map)}</span>
           </div>
         )}
         
         {server.clusterName && (
           <div className="flex justify-between items-center text-xs">
-            <span className="text-base-content/70">Cluster:</span>
+            <span className="chip-label">Cluster</span>
             <span className="text-base-content/70 truncate max-w-[60%] text-right">{server.clusterName}</span>
           </div>
         )}
@@ -194,24 +194,26 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
           </div>
         )}
         
-        {server.gamePort && (
-          <div className="flex justify-between items-center">
-            <span className="text-base-content/70">Port:</span>
-            <span className="text-base-content/70">{server.gamePort}</span>
-          </div>
-        )}
-        
-        {server.queryPort && (
-          <div className="flex justify-between items-center">
-            <span className="text-base-content/70">Query Port:</span>
-            <span className="text-base-content/70">{server.queryPort}</span>
-          </div>
-        )}
-        
-        {server.rconPort && (
-          <div className="flex justify-between items-center">
-            <span className="text-base-content/70">RCON Port:</span>
-            <span className="text-base-content/70">{server.rconPort}</span>
+        {(server.gamePort || server.queryPort || server.rconPort) && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            {server.gamePort && (
+              <span className="chip">
+                <span className="chip-label">game</span>
+                {server.gamePort}
+              </span>
+            )}
+            {server.queryPort && (
+              <span className="chip">
+                <span className="chip-label">query</span>
+                {server.queryPort}
+              </span>
+            )}
+            {server.rconPort && (
+              <span className="chip">
+                <span className="chip-label">rcon</span>
+                {server.rconPort}
+              </span>
+            )}
           </div>
         )}
         
@@ -225,14 +227,14 @@ const ServerCard: React.FC<ServerCardProps> = React.memo(({
         
         {server.created && (
           <div className="flex justify-between items-center">
-            <span className="text-base-content/70">Created:</span>
+            <span className="chip-label">Created</span>
             <span className="text-base-content/70 text-xs">{new Date(server.created).toLocaleDateString()}</span>
           </div>
         )}
       </div>
       
       {/* Action Buttons - This will stick to the bottom */}
-      <div className="mt-auto pt-4">
+      <div className="mt-auto pt-4 border-t border-white/10">
         <ServerActionButtons
           server={server}
           actionLoading={actionLoading}

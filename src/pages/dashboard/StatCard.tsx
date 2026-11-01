@@ -9,6 +9,12 @@ interface StatCardProps {
   iconSize?: string;
 }
 
+/**
+ * Instrument tile: a labelled readout with a status LED, not a coloured slab.
+ * The bgColor prop is still accepted so callers do not change, but the colour is
+ * now used as the tile's accent (LED + value), which keeps the dashboard readable
+ * when four tiles sit side by side.
+ */
 const StatCard: React.FC<StatCardProps> = ({
   bgColor,
   icon,
@@ -17,26 +23,28 @@ const StatCard: React.FC<StatCardProps> = ({
   valueColor,
   iconSize = "text-xl",
 }) => {
+  const accent = valueColor || "text-base-content";
+  const led = bgColor.includes("success")
+    ? "led led-on"
+    : bgColor.includes("error")
+      ? "led led-off"
+      : bgColor.includes("secondary")
+        ? "led led-idle"
+        : "led led-warn";
+
   return (
-    <div className="card bg-base-100 shadow-sm">
-      <div className="card-body">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <div
-              className={`w-12 h-12 ${bgColor} rounded-lg flex items-center justify-center`}
-            >
-              <span className={`text-primary-content ${iconSize}`}>{icon}</span>
-            </div>
-          </div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-base-content/70">{label}</p>
-            <p
-              className={`text-2xl font-bold ${valueColor || "text-base-content"}`}
-            >
-              {value}
-            </p>
-          </div>
-        </div>
+    <div className="panel panel-hover p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <span className={led} aria-hidden="true" />
+        <span className="text-[0.65rem] font-mono uppercase tracking-[0.14em] text-base-content/55">
+          {label}
+        </span>
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <span className={`readout text-4xl ${accent}`}>{value}</span>
+        <span className={`${iconSize} opacity-60`} aria-hidden="true">
+          {icon}
+        </span>
       </div>
     </div>
   );

@@ -18,15 +18,17 @@ const ServerModManager: React.FC<ServerModManagerProps> = ({ serverName, onClose
   const [newModId, setNewModId] = useState('');
 
   const popularMods = [
-    { id: 928102085, name: 'Structures Plus (S+)', description: 'Enhanced building system' },
-    { id: 1404697612, name: 'Super Spyglass', description: 'Enhanced spyglass with detailed info' },
-    { id: 1565015734, name: 'Awesome Teleporters', description: 'Teleportation system' },
-    { id: 1609138312, name: 'Awesome SpyGlass!', description: 'Advanced spyglass with stats' },
-    { id: 215527665, name: 'Death Helper', description: 'Death location and recovery tools' },
-    { id: 558651608, name: 'Pet Finder', description: 'Find lost tames easily' },
-    { id: 731604991, name: 'Stairs Mod', description: 'Additional stair variants' },
-    { id: 566885854, name: 'Bridge', description: 'Bridge building system' },
-    { id: 1005639, name: 'Club ARK', description: 'Club ARK official mod' }
+    // Verified ASA CurseForge project ids. The previous entries were Steam
+    // Workshop ids from ASE, so clicking one dropped a dead id on an ASA server.
+    { id: 929420, name: 'Super Spyglass Plus', description: 'Detailed stat spyglass' },
+    { id: 942024, name: 'Dino Depot', description: 'Cryopod storage and dinoballs' },
+    { id: 928793, name: "Pelayori's Cryo Storage", description: 'Cryopods, cryogun, cryo terminal' },
+    { id: 928597, name: 'Automated Ark', description: 'Automates feeding, gathering, crafting' },
+    { id: 950914, name: 'Awesome Teleporters', description: 'Teleporter pad network' },
+    { id: 940975, name: 'Cybers Structures QoL+', description: 'Crossplay building quality of life' },
+    { id: 942452, name: 'CG Structures', description: 'Structures Plus style building (alpha)' },
+    { id: 935408, name: 'Der Dino Finder', description: 'Locate dinos by species' },
+    { id: 929868, name: 'Admin Panel', description: 'In-game admin tools' },
   ];
 
   useEffect(() => {
@@ -264,7 +266,7 @@ const ServerModManager: React.FC<ServerModManagerProps> = ({ serverName, onClose
                   type="text"
                   value={newModId}
                   onChange={(e) => setNewModId(e.target.value)}
-                  placeholder="Enter mod ID(s) - separate multiple with commas (e.g., 731604991, 1404697612)"
+                  placeholder="Enter mod ID(s) - separate multiple with commas (e.g., 929420, 942024)"
                   className="input input-bordered flex-1"
                 />
                 <button
