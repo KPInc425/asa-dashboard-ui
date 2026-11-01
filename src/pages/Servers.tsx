@@ -423,31 +423,31 @@ const Servers: React.FC = () => {
 
         {/* Stats Summary */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-3 md:p-4 text-center">
-            <div className="text-lg md:text-xl lg:text-2xl font-bold text-primary">
+          <div className="panel p-3 md:p-4 text-center">
+            <div className="readout text-2xl md:text-3xl font-bold text-primary">
               {servers.length}
             </div>
-            <div className="text-xs md:text-sm text-base-content/70">
+            <div className="text-[0.68rem] font-mono uppercase tracking-[0.12em] text-base-content/70 mt-1">
               Total Servers
             </div>
           </div>
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-3 md:p-4 text-center">
-            <div className="text-lg md:text-xl lg:text-2xl font-bold text-success">
+          <div className="panel p-3 md:p-4 text-center">
+            <div className="readout text-2xl md:text-3xl font-bold text-success">
               {servers.filter((s) => s.status === "running").length}
             </div>
-            <div className="text-xs md:text-sm text-base-content/70">
+            <div className="text-[0.68rem] font-mono uppercase tracking-[0.12em] text-base-content/70 mt-1">
               Running
             </div>
           </div>
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-3 md:p-4 text-center">
-            <div className="text-lg md:text-xl lg:text-2xl font-bold text-error">
+          <div className="panel p-3 md:p-4 text-center">
+            <div className="readout text-2xl md:text-3xl font-bold text-error">
               {servers.filter((s) => s.status === "stopped").length}
             </div>
-            <div className="text-xs md:text-sm text-base-content/70">
+            <div className="text-[0.68rem] font-mono uppercase tracking-[0.12em] text-base-content/70 mt-1">
               Stopped
             </div>
           </div>
-          <div className="bg-base-200/80 backdrop-blur-md border border-base-300/30 rounded-lg p-3 md:p-4 text-center">
+          <div className="panel p-3 md:p-4 text-center">
             <div className="text-lg md:text-xl lg:text-2xl font-bold text-warning">
               {
                 servers.filter(
@@ -455,7 +455,7 @@ const Servers: React.FC = () => {
                 ).length
               }
             </div>
-            <div className="text-xs md:text-sm text-base-content/70">
+            <div className="text-[0.68rem] font-mono uppercase tracking-[0.12em] text-base-content/70 mt-1">
               Starting
             </div>
           </div>
