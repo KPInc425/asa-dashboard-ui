@@ -334,9 +334,9 @@ const Dashboard: React.FC = () => {
         {/* System Information */}
         {systemInfo && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-base-content mb-4">
+            <div className="section-label">
               System Information
-            </h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <SystemInfoCard
                 bgColor="bg-primary"
@@ -368,9 +368,9 @@ const Dashboard: React.FC = () => {
 
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-base-content mb-4">
+          <div className="section-label">
             Quick Actions
-          </h2>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <QuickActionButton
               icon="🦖"
