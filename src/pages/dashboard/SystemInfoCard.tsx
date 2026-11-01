@@ -39,7 +39,7 @@ const SystemInfoCard: React.FC<SystemInfoCardProps> = ({
           {letter}
         </span>
         <div className="min-w-0">
-          <p className="text-[0.62rem] font-mono uppercase tracking-[0.14em] text-base-content/50">
+          <p className="text-[0.62rem] font-mono uppercase tracking-[0.14em] text-base-content/75">
             {label}
           </p>
           <p className="text-[0.95rem] font-semibold text-base-content truncate font-mono">

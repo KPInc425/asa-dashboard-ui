@@ -36,12 +36,12 @@ const StatCard: React.FC<StatCardProps> = ({
     <div className="panel panel-hover p-4">
       <div className="flex items-center gap-2 mb-3">
         <span className={led} aria-hidden="true" />
-        <span className="text-[0.65rem] font-mono uppercase tracking-[0.14em] text-base-content/55">
+        <span className="text-[0.65rem] font-mono uppercase tracking-[0.14em] text-base-content/80">
           {label}
         </span>
       </div>
       <div className="flex items-end justify-between gap-3">
-        <span className={`readout text-4xl ${accent}`}>{value}</span>
+        <span className={`readout text-5xl ${accent}`}>{value}</span>
         <span className={`${iconSize} opacity-60`} aria-hidden="true">
           {icon}
         </span>

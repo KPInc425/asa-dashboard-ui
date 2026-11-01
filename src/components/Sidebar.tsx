@@ -187,7 +187,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <span className="nav-ico">{item.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-[0.8rem] font-semibold leading-tight">{item.label}</div>
-                  <div className="text-[0.66rem] text-base-content/45 truncate leading-tight mt-0.5">
+                  <div className="text-[0.66rem] text-base-content/65 truncate leading-tight mt-0.5">
                     {item.description}
                   </div>
                 </div>
@@ -208,7 +208,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     <span className="nav-ico">{item.icon}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-[0.8rem] font-semibold leading-tight">{item.label}</div>
-                      <div className="text-[0.66rem] text-base-content/45 truncate leading-tight mt-0.5">
+                      <div className="text-[0.66rem] text-base-content/65 truncate leading-tight mt-0.5">
                         {item.description}
                       </div>
                     </div>
