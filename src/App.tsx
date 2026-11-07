@@ -31,6 +31,7 @@ import UserManagement from "./components/UserManagement";
 import FirstTimeSetup from "./components/FirstTimeSetup";
 import DiscordSetup from "./pages/DiscordSetup";
 import AutoUpdate from "./pages/AutoUpdate";
+import KitsPage from "./pages/Kits";
 import GamesPage from "./pages/Games";
 import EnvAwareLayout from "./components/EnvAwareLayout";
 
@@ -323,6 +324,7 @@ const AppContent: React.FC = () => {
             <Route path="/provisioning" element={<Provisioning />} />
             <Route path="/discord" element={<DiscordSetup />} />
             <Route path="/auto-update" element={<AutoUpdate />} />
+            <Route path="/kits" element={<KitsPage />} />
             <Route path="/games" element={<GamesPage />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/users" element={<UserManagement />} />

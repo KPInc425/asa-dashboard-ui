@@ -100,6 +100,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: "🔄",
       description: "Scheduler, warnings, and update controls",
     },
+    {
+      path: "/kits",
+      label: "Kits",
+      icon: "🎁",
+      description: "Player kits and what the mod reported back",
+    },
   ];
 
   // Add admin-only menu items
