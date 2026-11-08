@@ -14,8 +14,11 @@ interface UpdateConfig {
 
 interface UpdateStatus {
   needsUpdate: boolean;
+  unknownBuild?: boolean;
   reason: string;
   lastUpdate: string | null;
+  currentBuildId?: string | null;
+  latestBuildId?: string | null;
   updateInterval?: number;
   updateOnStart?: boolean;
   updateEnabled?: boolean;
@@ -43,6 +46,77 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configModalData, setConfigModalData] = useState<UpdateConfig | null>(null);
   const [backgroundUpdates, setBackgroundUpdates] = useState<Set<string>>(new Set());
+  const [jobState, setJobState] = useState<{
+    id: string;
+    message: string;
+    percent: number;
+    status: string;
+  } | null>(null);
+
+  const parseJobProgress = (raw: unknown): Array<{ message?: unknown; percent?: number }> => {
+    if (Array.isArray(raw)) return raw as Array<{ message?: unknown; percent?: number }>;
+    if (typeof raw === "string" && raw.trim().startsWith("[")) {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  // Poll the update job the API handed back. Background updates are real jobs
+  // now, so the modal can show what steamcmd is actually doing instead of
+  // guessing from a 5 minute timer.
+  const pollJob = (jobId: string) => {
+    const started = Date.now();
+    setJobState({ id: jobId, message: "Queued", percent: 0, status: "running" });
+
+    const tick = async () => {
+      try {
+        const res = await api.get(`/api/provisioning/jobs/${jobId}`);
+        const job = res.data?.job;
+        if (job) {
+          const progress = parseJobProgress(job.progress);
+          const latest = progress.length ? progress[progress.length - 1] : null;
+          const message =
+            typeof latest?.message === "string"
+              ? latest.message
+              : latest?.message && typeof latest.message === "object"
+                ? String((latest.message as Record<string, unknown>).message ?? "")
+                : "";
+          setJobState({
+            id: jobId,
+            message: message || job.status,
+            percent: typeof latest?.percent === "number" ? latest.percent : 0,
+            status: job.status,
+          });
+
+          if (job.status === "completed" || job.status === "failed") {
+            setSuccess(
+              job.status === "completed"
+                ? "Update job completed."
+                : `Update job failed: ${job.error || "see server logs"}`,
+            );
+            setJobState(null);
+            await loadUpdateStatus();
+            return;
+          }
+        }
+      } catch {
+        // keep polling; a transient fetch error is not a job failure
+      }
+
+      if (Date.now() - started < 45 * 60 * 1000) {
+        setTimeout(tick, 3000);
+      } else {
+        setJobState(null);
+      }
+    };
+
+    setTimeout(tick, 1500);
+  };
 
   useEffect(() => {
     loadUpdateStatus();
@@ -105,9 +179,12 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
       });
       
       if (response.data.success) {
-        if (response.data.data.background) {
-          setSuccess(`Update started for server ${serverName}. Progress will be tracked in the background.`);
+        if (response.data.data?.background && response.data.data?.jobId) {
+          setSuccess(
+            `Update started for ${serverName}. Progress will be tracked below.`,
+          );
           setBackgroundUpdates(prev => new Set([...prev, serverName]));
+          pollJob(response.data.data.jobId);
         } else {
           setSuccess(`Server ${serverName} updated successfully`);
         }
@@ -126,7 +203,9 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
           errorMessage = err.message;
         }
       }
-      setError(errorMessage);
+      const apiMessage = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
+      setError(apiMessage || errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -146,6 +225,9 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
       
       if (response.data.success) {
         setSuccess(response.data.message);
+        if (response.data.data?.jobId) {
+          pollJob(response.data.data.jobId);
+        }
         await loadUpdateStatus(); // Refresh the list
       } else {
         setError(`Failed to update servers: ${response.data.message}`);
@@ -161,7 +243,11 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
           errorMessage = err.message;
         }
       }
-      setError(errorMessage);
+      // axios rejects 4xx/5xx: surface the API's own message, which says why
+      // nothing was queued (for example "every server has updates disabled").
+      const apiMessage = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
+      setError(apiMessage || errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -201,12 +287,16 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
     return date.toLocaleString();
   };
 
-  const getStatusColor = (needsUpdate: boolean) => {
-    return needsUpdate ? 'text-warning' : 'text-success';
+  const getStatusColor = (status: UpdateStatus) => {
+    if (status.needsUpdate) return 'text-warning';
+    if (status.unknownBuild) return 'text-warning';
+    return 'text-success';
   };
 
-  const getStatusIcon = (needsUpdate: boolean) => {
-    return needsUpdate ? '⚠️' : '✅';
+  const getStatusIcon = (status: UpdateStatus) => {
+    if (status.needsUpdate) return '⚠️';
+    if (status.unknownBuild) return '❔';
+    return '✅';
   };
 
   if (loading) {
@@ -277,10 +367,24 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
 
             </div>
             <div className="mt-3 text-sm text-base-content/70">
-              <p>💡 <strong>Background Updates:</strong> Updates run in the background to avoid timeouts. Progress is tracked automatically.</p>
+              <p>💡 <strong>Background Updates:</strong> Each update saves the world, stops the server, runs SteamCMD, then restarts the server if it was running. Progress is tracked per job.</p>
               <p>🛑 <strong>Stop Scripts:</strong> Regenerates targeted stop scripts that only stop specific servers, not all servers.</p>
               <p>🔧 <strong>Port Configurations:</strong> Fixes port conflicts by using correct ASA port offsets (Game+1 for Query, Game+2 for RCON).</p>
             </div>
+            {jobState && (
+              <div className="mt-3 rounded-lg border border-info/40 bg-info/10 p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-mono">job {jobState.id}</span>
+                  <span>{jobState.status}</span>
+                </div>
+                <progress
+                  className="progress progress-info w-full my-2"
+                  value={jobState.percent}
+                  max={100}
+                ></progress>
+                <div className="text-sm text-base-content/80">{jobState.message}</div>
+              </div>
+            )}
           </div>
 
           {/* Servers List */}
@@ -300,9 +404,9 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h5 className="font-semibold">{server.serverName}</h5>
-                            <span className="badge badge-outline badge-sm">{server.clusterName}</span>
-                            <span className={`text-sm ${getStatusColor(server.status.needsUpdate)}`}>
-                              {getStatusIcon(server.status.needsUpdate)} {server.status.reason}
+                            <span className="badge badge-outline badge-sm">{server.clusterName || 'standalone'}</span>
+                            <span className={`text-sm ${getStatusColor(server.status)}`}>
+                              {getStatusIcon(server.status)} {server.status.reason}
                             </span>
                             {backgroundUpdates.has(server.serverName) && (
                               <span className="badge badge-info badge-sm animate-pulse">
@@ -313,6 +417,10 @@ const ServerUpdateManager: React.FC<ServerUpdateManagerProps> = ({ onClose }) =>
                           
                           <div className="text-sm text-base-content/70 space-y-1">
                             <div>Last Update: {formatLastUpdate(server.status.lastUpdate)}</div>
+                            <div className="font-mono">
+                              Installed: {server.status.currentBuildId || 'unknown'}
+                              {server.status.latestBuildId && ` / Steam: ${server.status.latestBuildId}`}
+                            </div>
                             {server.config && (
                               <>
                                 <div>Update on Start: {server.config.updateOnStart ? '✅' : '❌'}</div>
